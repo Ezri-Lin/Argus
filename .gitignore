@@ -47,8 +47,11 @@ pipeline/seen.json
 *.log
 logs/
 
-# Docs (internal design specs, not for public repo)
+# Internal docs (DESIGN.md, PRODUCT.md, Docs/ — kept in Argus-Private repo)
+DESIGN.md
+PRODUCT.md
 Docs/
+web/prototypes/
 
 # Claude Code / AI tools
 .agents/

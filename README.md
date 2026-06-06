@@ -4,8 +4,6 @@
 
 AI-powered news filtering that compresses the flood of tech news into just the most important items. Glance at it 5-10 times a day, 30 seconds each, and you're caught up.
 
-![Argus Dashboard](Docs/Prototypes/assets/argus-final-dashboard-1600.png)
-
 ## Features
 
 - **AI Subtraction** — Keep/drop decisions + one-sentence summaries, not full analysis
