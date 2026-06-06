@@ -47,6 +47,9 @@ pipeline/seen.json
 *.log
 logs/
 
+# Docs (internal design specs, not for public repo)
+Docs/
+
 # Claude Code / AI tools
 .agents/
 .claude/
