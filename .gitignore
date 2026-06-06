@@ -47,11 +47,15 @@ pipeline/seen.json
 *.log
 logs/
 
-# Internal docs (DESIGN.md, PRODUCT.md, Docs/ — kept in Argus-Private repo)
+# Internal docs (kept in Argus-Private repo)
 DESIGN.md
 PRODUCT.md
 Docs/
 web/prototypes/
+
+# Root package.json is redundant (web/package.json is the real one)
+/package.json
+/package-lock.json
 
 # Claude Code / AI tools
 .agents/
