@@ -6,6 +6,7 @@ Reads models/sources/members from DB. Writes events/snapshot/health.
 import hashlib
 import json
 import os
+import re
 import sys
 import threading
 import traceback
@@ -116,6 +117,17 @@ TAVILY_PROMPT = """你是 Argus 情报系统的搜索增强模块。根据以下
 严格只输出 JSON，无额外文字。
 {lang_instruction}"""
 
+PROACTIVE_SEARCH_PROMPT = """搜索 "{name}" 的最近重要新闻（过去 48 小时优先）。
+
+只返回与该实体直接相关的实质性新闻，忽略无关内容。
+如果没有找到相关新闻，返回空数组。
+
+【输出格式】严格只输出 JSON 数组，无额外文字：
+[{{"title":"新闻标题","url":"链接","snippet":"一句话摘要","outlet":"来源名","published":"发布时间或空"}}]
+
+最多返回 {max_results} 条最重要的。
+{lang_instruction}"""
+
 PRO_SYSTEM_PROMPT = """你是 Argus 情报系统的「交叉验证分析员」(PRO)。原则：零幻觉，只认证据。
 
 【输入】
@@ -183,13 +195,21 @@ def member_domains(conn, member_id: int) -> list[str]:
 
 
 def matches_member(title: str, snippet: str, member: dict) -> bool:
-    """Check if an RSS item mentions this member."""
+    """Check if an RSS item mentions this member (word-boundary match)."""
     text = f"{title} {snippet}".lower()
     names = [member["name"].lower()]
     names.extend(a.lower() for a in member_aliases(member))
     if member["symbol"]:
         names.append(member["symbol"].lower())
-    return any(n in text for n in names)
+    for n in names:
+        # Chinese names: plain substring (no word boundary concept)
+        if any(ord(c) > 0x7F for c in n):
+            if n in text:
+                return True
+        # ASCII names: word-boundary match to avoid false positives
+        elif re.search(r'\b' + re.escape(n) + r'\b', text):
+            return True
+    return False
 
 
 # ── Model calls ──
@@ -245,6 +265,35 @@ def call_tavily(query: str) -> list[dict]:
             ]
     except Exception as e:
         print(f"    Tavily error: {e}")
+        return []
+
+
+def search_member_news(model_cfg: dict, member: dict, aliases_str: str,
+                       domains_str: str, lang_instruction: str,
+                       max_results: int = 5) -> list[dict]:
+    """Use BASE model to proactively search for a member's recent news."""
+    prompt = PROACTIVE_SEARCH_PROMPT.format(
+        name=member["name"],
+        max_results=max_results,
+        lang_instruction=lang_instruction,
+    )
+    try:
+        result = call_model(model_cfg, prompt, member["name"])
+        if isinstance(result, list):
+            items = []
+            for r in result[:max_results]:
+                if isinstance(r, dict) and r.get("title"):
+                    items.append({
+                        "title": str(r["title"]),
+                        "url": str(r.get("url", "")),
+                        "snippet": str(r.get("snippet", ""))[:300],
+                        "outlet": str(r.get("outlet", "")),
+                        "published": str(r.get("published", "")),
+                    })
+            return items
+        return []
+    except Exception as e:
+        print(f"    AI search error for {member['name']}: {e}")
         return []
 
 
@@ -593,6 +642,38 @@ def run_pipeline(db_path: str | None = None):
     _update_progress(rss_sources_done=len(sources))
 
     print(f"  Fetched {len(all_items)} RSS items total")
+
+    # ── AI proactive search per member ──
+    ai_search_enabled = get_setting(conn, "ai_search_enabled", "true") == "true"
+    ai_search_max = int(get_setting(conn, "ai_search_max_results", "5"))
+
+    if ai_search_enabled:
+        _update_progress(step="ai_search")
+        print(f"  AI search: enabled (max {ai_search_max} results/member)")
+        for member in members:
+            mb = dict(member)
+            try:
+                ai_items = search_member_news(
+                    base_model, mb, ", ".join(member_aliases(mb)),
+                    ", ".join(member_domains(conn, mb["id"])),
+                    lang_instruction, ai_search_max,
+                )
+                for item in ai_items:
+                    all_items.append({
+                        "title": item["title"],
+                        "url": item["url"],
+                        "published": item.get("published", ""),
+                        "snippet": item.get("snippet", ""),
+                        "source_name": item.get("outlet", "AI Search"),
+                        "source_id": 0,
+                        "source_logo": "",
+                        "_source": "ai_search",
+                    })
+                print(f"    {mb['name']}: {len(ai_items)} AI search results")
+            except Exception as e:
+                print(f"    {mb['name']} AI search error: {safe_text(e)}")
+    else:
+        print("  AI search: disabled")
 
     total_kept = 0
     total_dropped = 0
