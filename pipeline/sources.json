@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Hacker News",
+    "type": "rss",
+    "url": "https://hnrss.org/frontpage",
+    "weight": 1.0
+  },
+  {
+    "name": "TechCrunch",
+    "type": "rss",
+    "url": "https://techcrunch.com/feed/",
+    "weight": 0.8
+  }
+]

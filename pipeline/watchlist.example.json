@@ -1,0 +1,36 @@
+{
+  "sources": [
+    { "name": "Hacker News", "type": "rss", "url": "https://hnrss.org/frontpage", "weight": 1.0 },
+    { "name": "TechCrunch", "type": "rss", "url": "https://techcrunch.com/feed/", "weight": 0.8 }
+  ],
+  "domains": [
+    { "key": "tech", "label_zh": "科技", "label_en": "Tech", "weight": 1.0 },
+    { "key": "markets", "label_zh": "市场", "label_en": "Markets", "weight": 0.9 },
+    { "key": "ai", "label_zh": "AI 大模型", "label_en": "AI", "weight": 1.0 }
+  ],
+  "members": [
+    { "name": "NVIDIA", "label_zh": "英伟达", "symbol": "NVDA", "domains": ["tech", "ai"], "aliases": ["nvda", "英伟达"] },
+    { "name": "OpenAI", "label_zh": "OpenAI", "domains": ["tech", "ai"], "aliases": ["openai", "chatgpt"] },
+    { "name": "Apple", "label_zh": "苹果", "symbol": "AAPL", "domains": ["tech"], "aliases": ["aapl", "苹果"] },
+    { "name": "Anthropic", "label_zh": "Anthropic", "domains": ["tech", "ai"], "aliases": ["anthropic", "claude"] },
+    { "name": "Microsoft", "label_zh": "微软", "symbol": "MSFT", "domains": ["tech", "ai"], "aliases": ["msft", "微软"] }
+  ],
+  "models": [
+    {
+      "label": "Base Model",
+      "base_url": "ARGUS_MODEL_BASE_URL",
+      "api_key": "ARGUS_MODEL_API_KEY",
+      "model": "ARGUS_MODEL_NAME",
+      "web_search": 1,
+      "role": "base"
+    }
+  ],
+  "settings": {
+    "pro_enabled": "false",
+    "tavily_enabled": "false",
+    "stale_threshold_min": "90",
+    "global_fail_count": "2",
+    "open_mode": "drawer",
+    "refresh_min": "60"
+  }
+}

@@ -1,1 +1,149 @@
 # Argus
+
+**Ambient information radar for tech intelligence workers.**
+
+AI-powered news filtering that compresses the flood of tech news into just the most important items. Glance at it 5-10 times a day, 30 seconds each, and you're caught up.
+
+![Argus Dashboard](Docs/Prototypes/assets/argus-final-dashboard-1600.png)
+
+## Features
+
+- **AI Subtraction** — Keep/drop decisions + one-sentence summaries, not full analysis
+- **Treemap Dashboard** — Sentiment-colored, heat-weighted visualization of your watchlist
+- **Live Feed** — RSS + AI-filtered news stream with importance scoring
+- **Multi-language** — Chinese/English bilingual UI
+- **Ambient Design** — Wall-mountable, glanceable, zero-animation idle states
+- **Self-hosted** — Your data stays on your machine
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- Node.js 18+
+- An OpenAI-compatible API key (e.g. OpenAI, Mimo, DeepSeek)
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/Ezri-Lin/Argus.git
+cd Argus
+
+# Backend
+pip install -r pipeline/requirements.txt
+
+# Frontend
+cd web && npm install && cd ..
+```
+
+### 2. Configure
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and fill in your API key:
+
+```env
+ARGUS_MODEL_BASE_URL=https://api.openai.com/v1
+ARGUS_MODEL_API_KEY=sk-your-key-here
+ARGUS_MODEL_NAME=gpt-4o-mini
+```
+
+### 3. Seed & Run
+
+```bash
+# Initialize the database with example watchlist
+cp pipeline/watchlist.example.json pipeline/watchlist.json
+python pipeline/seed.py
+
+# Start both backend and frontend
+./dev.sh
+```
+
+Open `http://localhost:5173` in your browser.
+
+## Customization
+
+### Watchlist
+
+Edit `pipeline/watchlist.json` to add your own entities:
+
+```json
+{
+  "members": [
+    { "name": "Your Company", "domains": ["tech"], "aliases": ["alias1"] }
+  ],
+  "domains": [
+    { "key": "tech", "label_zh": "科技", "label_en": "Tech", "weight": 1.0 }
+  ]
+}
+```
+
+Then re-seed: `python pipeline/seed.py`
+
+### RSS Sources
+
+Add feeds in the Sources panel (Settings) or edit `pipeline/sources.json`.
+
+### AI Models
+
+Configure models in Settings → Config. Supports any OpenAI-compatible API.
+
+## Architecture
+
+```
+pipeline/          # RSS → AI filter → events → snapshot
+  pipeline.py      # Core pipeline (single file, MVP)
+  db.py            # SQLite schema + migrations
+  seed.py          # Database seeder
+
+api/               # FastAPI server
+  api.py           # Core endpoints (/data, /layout, /health)
+  routes_ai.py     # AI model management
+  routes_members.py # Watchlist CRUD
+  routes_sources.py # RSS source management
+  scheduler.py     # Background task scheduler
+
+web/               # React + Vite + D3 treemap
+  src/
+    widgets/       # Treemap, feed, stat, countdown, etc.
+    components/    # Detail panel, config panel, settings
+    dashboard/     # Zustand store, API client, types
+    design/        # Tokens, grid, typography
+    lib/           # i18n, theme, utilities
+```
+
+## Deployment
+
+### Local Development
+
+```bash
+./dev.sh
+# Backend: http://localhost:8000
+# Frontend: http://localhost:5173
+```
+
+### Production
+
+Build the frontend and serve with any static host:
+
+```bash
+cd web && npm run build
+# Output: web/dist/
+```
+
+Deploy `web/dist/` to Vercel, Cloudflare Pages, or any static host. Point the API base URL to your backend.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React, Vite, D3, Zustand, Tailwind CSS |
+| Backend | Python, FastAPI, SQLite (WAL) |
+| AI | OpenAI-compatible API (configurable) |
+| Pipeline | RSS parsing → AI filtering → event extraction |
+
+## License
+
+MIT

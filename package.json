@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@number-flow/react": "^0.6.0",
+    "lightweight-charts": "^5.2.0",
+    "react-clock": "^6.0.0"
+  }
+}
