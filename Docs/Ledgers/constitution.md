@@ -55,8 +55,9 @@
 - 前端只取近 N 天 / 高分条目，老数据不堆积。
 
 ### 5. 部署独立性
-- 先 localhost 自己看。Cloudflare Tunnel 缓到验证通过再上。
-- cron 跑 pipeline，不依赖 GitHub Actions。
+- `docker compose up -d` 一条命令部署，不依赖外部平台。
+- Pipeline 内嵌 APScheduler，不依赖 GitHub Actions / cron。
+- 数据持久化在 Docker volume，SQLite 是唯一主存。
 
 ## 模块边界（MVP）
 
@@ -72,7 +73,7 @@
 - **Pipeline**: Python 3.11+, openai SDK, sqlite3 (内置)
 - **API**: FastAPI, uvicorn, python-dotenv
 - **Frontend**: React 18, Vite, TypeScript, react-grid-layout, D3 v7
-- **部署**: 本地 / NAS localhost
+- **部署**: Docker Compose（单容器多阶段构建）
 
 ## 版本约定
 
@@ -80,4 +81,4 @@
 - **v2 蓝图**：完整 schema（11 张表）、双模型 + Tavily、趋势 drawer、面板自检。详见 `Docs/Specs/M3-backend-v2.md`。v1 验证通过后才做。
 
 ---
-*Created: 2026-06-02 · Updated: 2026-06-02*
+*Created: 2026-06-02 · Updated: 2026-06-07*

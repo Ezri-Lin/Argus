@@ -29,9 +29,12 @@ async def lifespan(app):
 
 app = FastAPI(title="Argus API", lifespan=lifespan)
 
+_cors_origins = os.environ.get(
+    "ARGUS_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[o.strip() for o in _cors_origins],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -315,3 +318,26 @@ def get_pipeline_progress():
     """Return current pipeline progress (for frontend polling)."""
     from pipeline import get_progress
     return get_progress()
+
+
+# ── Static file serving (production / Docker) ──
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+_web_dist = Path(__file__).parent.parent / "web" / "dist"
+if _web_dist.is_dir():
+    _assets_dir = _web_dist / "assets"
+    if _assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="static-assets")
+
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(str(_web_dist / "index.html"))
+
+    @app.get("/{full_path:path}")
+    async def serve_spa_fallback(full_path: str):
+        file_path = _web_dist / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(_web_dist / "index.html"))

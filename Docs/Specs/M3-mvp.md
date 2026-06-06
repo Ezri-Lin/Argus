@@ -67,10 +67,10 @@ DB 文件：`argus/data/argus.db`（WAL）。`.gitignore` 掉 `data/*.db*` 和 `
 
 ## 技术选型（static-first）
 
-- **后端**：FastAPI + 内置 `sqlite3`。`pipeline.py` 由 cron 每 30–60min 跑。base 模型走 `.env`（一个 OpenAI 兼容端点，**必须支持联网**）。Tavily 先关。
+- **后端**：FastAPI + 内置 `sqlite3`。Pipeline 内嵌 APScheduler，每 30–60min 自动跑。base 模型走 `.env`（一个 OpenAI 兼容端点，**必须支持联网**）。Tavily 先关。
 - **前端**：Vite + React + react-grid-layout（拖拽）+ D3 v7 squarified treemap（SVG，一次性渲染，数据变才重画）。**全局关闭常驻动画。**
 - **刷新**：前端 30–60min `poll GET /data`；`document.hidden` 时暂停。接近 0 CPU。
-- **部署**：先本地 / NAS `localhost` 自己看。Cloudflare Tunnel 缓到验证通过再上。
+- **部署**：`docker compose up -d` 一条命令。数据持久化在 Docker volume。
 
 ## 静态技术铁律
 

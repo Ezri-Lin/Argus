@@ -72,9 +72,8 @@ monorepo/
 	data/       # JSON 契约文件
 ```
 
-- **重活放自有服务器**：流水线 cron + FastAPI +（后期）数据库；不放 Cloudflare Workers（有时间/CPU 限制，且要重写成 JS）
-- **Cloudflare Tunnel**：免费 HTTPS、不开端口、手机可访问
-- **前端**：服务器 nginx 静态托管 或 Cloudflare Pages
+- **重活放自有服务器**：流水线 APScheduler + FastAPI + SQLite；Docker 单容器部署
+- **前端**：FastAPI 直接提供静态文件（`web/dist/`），无需 nginx
 - **布局持久化（落库）**：服务器常驻，直接上 **SQLite** 存布局，前端经 `/layout` 读写；`localStorage` 仅作首屏快取 / 离线兜底。多设备（含手机经 Tunnel）天然同步，后期可迁 D1。
 
 ### 数据契约

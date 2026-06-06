@@ -19,8 +19,8 @@ AI-powered news filtering that compresses the flood of tech news into just the m
 
 ### Prerequisites
 
-- Python 3.12+
-- Node.js 18+
+- Python 3.12+ & Node.js 18+ (for local development)
+- **Or** Docker (for production deployment)
 - An OpenAI-compatible API key (e.g. OpenAI, Mimo, DeepSeek)
 
 ### 1. Clone & Install
@@ -116,6 +116,41 @@ web/               # React + Vite + D3 treemap
 
 ## Deployment
 
+### Docker (Recommended)
+
+The easiest way to run Argus in production — no Python/Node.js installation required.
+
+```bash
+# 1. Clone & configure
+git clone https://github.com/Ezri-Lin/Argus.git && cd Argus
+cp .env.example .env
+# Edit .env — at minimum set ARGUS_MODEL_API_KEY
+
+# 2. Prepare watchlist (optional, for auto-seed on first run)
+cp pipeline/watchlist.example.json pipeline/watchlist.json
+
+# 3. Build & start
+docker compose up -d
+
+# 4. Open http://localhost:8000
+```
+
+**Update:**
+
+```bash
+docker compose down
+git pull
+docker compose build --no-cache
+docker compose up -d
+```
+
+**Data persistence:** SQLite + config stored in Docker volume `argus-data`. To use a local directory instead (easier backup), edit `docker-compose.yml`:
+
+```yaml
+volumes:
+  - ./data:/app/data
+```
+
 ### Local Development
 
 ```bash
@@ -124,16 +159,14 @@ web/               # React + Vite + D3 treemap
 # Frontend: http://localhost:5173
 ```
 
-### Production
+### Static Host
 
-Build the frontend and serve with any static host:
+Build the frontend and deploy to Vercel, Cloudflare Pages, etc.:
 
 ```bash
 cd web && npm run build
 # Output: web/dist/
 ```
-
-Deploy `web/dist/` to Vercel, Cloudflare Pages, or any static host. Point the API base URL to your backend.
 
 ## Tech Stack
 
