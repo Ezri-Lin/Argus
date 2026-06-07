@@ -49,6 +49,7 @@ from .routes_dates import router as dates_router
 from .routes_video import router as video_router
 from .routes_search import router as search_router
 from .routes_pipeline import router as pipeline_router
+from .routes_budget import router as budget_router
 
 app.include_router(models_router)
 app.include_router(members_router)
@@ -59,6 +60,7 @@ app.include_router(dates_router)
 app.include_router(video_router)
 app.include_router(search_router)
 app.include_router(pipeline_router)
+app.include_router(budget_router)
 
 
 def _conn():
