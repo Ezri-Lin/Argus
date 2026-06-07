@@ -13,6 +13,58 @@ from models import (
     normalize_status,
 )
 from snapshot import default_impact_weight, default_persistence_days
+from local_search import LocalArticleSearch
+from relevance import ArticleRelevanceEngine
+
+
+def get_local_candidates(conn, member: dict, aliases: list) -> list:
+    """Search local RSS cache for relevant articles about a member.
+
+    Returns list of item dicts ready for AI processing (same shape as RSS items).
+    Only returns articles with relevance_score >= 0.45 and no noise flags.
+    """
+    local_search = LocalArticleSearch(conn)
+    relevance_engine = ArticleRelevanceEngine()
+
+    local_articles = local_search.search(
+        member_name=member["name"],
+        aliases=aliases,
+        lookback_days=14,
+        max_candidates=10,
+    )
+
+    candidates = []
+    for article in local_articles:
+        analysis = relevance_engine.analyze(article, member["name"], aliases)
+        score = analysis["relevance_score"]
+        noise_type = analysis["noise_type"]
+
+        if score < 0.45 or noise_type in ("comparison_only", "irrelevant"):
+            continue
+
+        # Look up source name
+        source_name = "Local RSS"
+        src_id = article.get("source_id")
+        if src_id:
+            row = conn.execute(
+                "SELECT name FROM sources WHERE id = ?", (src_id,)
+            ).fetchone()
+            if row:
+                source_name = row["name"]
+
+        candidates.append({
+            "title": article["title"],
+            "url": article["url"],
+            "published": article.get("published_at", ""),
+            "snippet": article.get("snippet", ""),
+            "source_name": source_name,
+            "source_id": src_id or 0,
+            "source_logo": "",
+            "_source": "local",
+            "_relevance_score": score,
+        })
+
+    return candidates
 
 
 def filter_and_deduplicate(member, all_items, conn):

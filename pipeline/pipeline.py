@@ -15,11 +15,14 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from article_lifecycle import ArticleLifecycle
 from db import get_db, get_model_for_role, get_setting, init_db
-from helpers import now_iso, safe_text
+from helpers import fingerprint, now_iso, safe_text
+from local_search import LocalArticleSearch
 from matching import member_domains, member_aliases
 from models import call_model
-from processing import filter_and_deduplicate, process_member_items
+from processing import filter_and_deduplicate, process_member_items, get_local_candidates
+from relevance import ArticleRelevanceEngine
 from rss import fetch_rss_items
 from scheduling import load_due_members, update_scan_schedule
 from snapshot import build_snapshot
@@ -96,6 +99,13 @@ def run_pipeline(db_path: str | None = None):
         write_health(conn, "rss", "ok")
     print(f"  Fetched {len(all_items)} RSS items total ({len(rss_errors)} source errors)")
 
+    # ── Local-first: lifecycle cleanup ──
+    lifecycle = ArticleLifecycle(conn)
+    discarded = lifecycle.auto_discard_stale()
+    archived = lifecycle.archive_stale(max_age_days=14)
+    if discarded or archived:
+        print(f"  Lifecycle: discarded {len(discarded)}, archived {len(archived)} stale articles")
+
     # ── Discovery search per member ──
     ai_search_enabled = get_setting(conn, "ai_search_enabled", "true") == "true"
     ai_search_max = int(get_setting(conn, "ai_search_max_results", "5"))
@@ -149,12 +159,27 @@ def run_pipeline(db_path: str | None = None):
 
         result = filter_and_deduplicate(member, all_items, conn)
         if result is None:
-            members_progress[-1]["status"] = "done"
-            members_progress[-1]["log"] = "0 matching items"
-            continue
-
-        mb, new_items, aliases_str, domains_str = result
-        work_queue.append((member_idx, mb, new_items, aliases_str, domains_str))
+            # Try local RSS cache as fallback
+            aliases = member_aliases(mb)
+            local_items = get_local_candidates(conn, mb, aliases)
+            # Deduplicate against existing events
+            new_locals = []
+            for item in local_items:
+                fp = fingerprint(item["url"], item["title"])
+                exists = conn.execute(
+                    "SELECT id FROM events WHERE fingerprint = ?", (fp,)
+                ).fetchone()
+                if not exists:
+                    new_locals.append(item)
+            if not new_locals:
+                members_progress[-1]["status"] = "done"
+                members_progress[-1]["log"] = "0 matching items"
+                continue
+            aliases_str = ", ".join(aliases)
+            work_queue.append((member_idx, mb, new_locals[:10], aliases_str, domain_str))
+        else:
+            mb, new_items, aliases_str, domains_str = result
+            work_queue.append((member_idx, mb, new_items, aliases_str, domains_str))
 
     _update_progress(step="analyzing", members_total=len(members), members_done=0, members=members_progress)
 
