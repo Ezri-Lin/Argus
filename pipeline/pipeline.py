@@ -84,10 +84,17 @@ def run_pipeline(db_path: str | None = None):
 
     # Fetch all RSS items (pass feedparser.parse so tests can monkey-patch)
     _update_progress(rss_sources_total=len(sources), rss_sources_done=0)
-    all_items = fetch_rss_items(sources, conn, feedparser.parse)
+
+    def _rss_progress(done: int, total: int):
+        _update_progress(rss_sources_done=done)
+
+    all_items, rss_errors = fetch_rss_items(sources, conn, feedparser.parse, _rss_progress)
     _update_progress(rss_sources_done=len(sources))
-    write_health(conn, "rss", "ok")
-    print(f"  Fetched {len(all_items)} RSS items total")
+    for src_name, err_msg in rss_errors:
+        write_health(conn, "rss", "degraded", err_msg)
+    if not rss_errors:
+        write_health(conn, "rss", "ok")
+    print(f"  Fetched {len(all_items)} RSS items total ({len(rss_errors)} source errors)")
 
     # ── Discovery search per member ──
     ai_search_enabled = get_setting(conn, "ai_search_enabled", "true") == "true"

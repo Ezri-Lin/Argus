@@ -1,5 +1,7 @@
 """Membership-based scan scheduling: due-member lookup and scan-time updates."""
 
+from datetime import datetime, timedelta, timezone
+
 from helpers import now_iso
 
 TIER_REFRESH_DEFAULTS = {
@@ -67,7 +69,6 @@ def update_scan_schedule(conn, member_id: int):
     ).fetchall()
     for row in rows:
         interval = row["refresh_interval_minutes"] or TIER_REFRESH_DEFAULTS.get(row["tier"], 360)
-        from datetime import datetime, timedelta, timezone
         next_dt = datetime.fromisoformat(now.replace("Z", "+00:00")) + timedelta(minutes=interval)
         next_at = next_dt.isoformat()
         conn.execute(

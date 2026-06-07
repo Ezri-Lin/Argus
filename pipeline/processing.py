@@ -4,6 +4,7 @@ import json
 
 from helpers import fingerprint, safe_text, clamp_float
 from matching import matches_member, member_aliases, member_domains
+from search.policy import should_deep_search, should_pro_validate
 from models import (
     BASE_SYSTEM_PROMPT,
     PRO_SYSTEM_PROMPT,
@@ -103,7 +104,6 @@ def process_member_items(
             status = "watch"
 
             # Deep search — hybrid policy decision
-            from search.policy import should_deep_search
             policy_decision = should_deep_search(
                 item, result, search_policy,
                 budget_remaining=get_deep_budget(),
@@ -122,7 +122,6 @@ def process_member_items(
                     reason = f"deep_search: {reason}"
 
             # Pro cross-validation — policy-gated
-            from search.policy import should_pro_validate
             pro_decision = should_pro_validate(
                 item, result, pro_validation_config,
                 pro_model_available=pro_model is not None and pro_enabled,

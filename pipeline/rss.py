@@ -3,19 +3,24 @@
 from helpers import safe_text
 
 
-def fetch_rss_items(sources, conn, parse_fn) -> list[dict]:
+def fetch_rss_items(sources, conn, parse_fn, progress_callback=None) -> tuple[list[dict], list[tuple[str, str]]]:
     """Fetch RSS items from all sources.
 
     Args:
         sources: iterable of source rows (dict-like).
         conn: database connection for updating source logos.
         parse_fn: feedparser.parse (passed in so callers can monkey-patch).
+        progress_callback: optional callable(sources_done, sources_total) for incremental progress.
 
     Returns:
-        List of item dicts ready for downstream processing.
+        Tuple of (items, errors) where items is a list of dicts ready for
+        downstream processing and errors is a list of (source_name, error_msg).
     """
     all_items: list[dict] = []
-    for source in sources:
+    errors: list[tuple[str, str]] = []
+    source_list = list(sources)
+    total = len(source_list)
+    for i, source in enumerate(source_list):
         src = dict(source)
         try:
             feed = parse_fn(src["url"])
@@ -45,4 +50,7 @@ def fetch_rss_items(sources, conn, parse_fn) -> list[dict]:
                 })
         except Exception as e:
             print(f"  RSS error ({safe_text(src['name'])}): {safe_text(e)}")
-    return all_items
+            errors.append((src["name"], safe_text(e)))
+        if progress_callback:
+            progress_callback(i + 1, total)
+    return all_items, errors
