@@ -15,11 +15,12 @@ PRAGMA foreign_keys = ON;
 
 -- Sources (RSS feeds, twitter, etc.)
 CREATE TABLE IF NOT EXISTS sources (
-  id     INTEGER PRIMARY KEY,
-  name   TEXT NOT NULL,
-  type   TEXT NOT NULL,
-  url    TEXT NOT NULL UNIQUE,
-  weight REAL NOT NULL DEFAULT 1.0
+  id       INTEGER PRIMARY KEY,
+  name     TEXT NOT NULL,
+  type     TEXT NOT NULL,
+  url      TEXT NOT NULL UNIQUE,
+  weight   REAL NOT NULL DEFAULT 1.0,
+  logo_url TEXT
 );
 
 -- Domains (e.g. "llm", "chips", "markets")
@@ -50,6 +51,14 @@ CREATE TABLE IF NOT EXISTS memberships (
   domain      TEXT    NOT NULL REFERENCES domains(key) ON DELETE CASCADE,
   role        TEXT    NOT NULL DEFAULT 'Primary',
   role_weight REAL    NOT NULL DEFAULT 1.0,
+  tier        TEXT    NOT NULL DEFAULT 'secondary',
+  enabled     INTEGER NOT NULL DEFAULT 1,
+  refresh_interval_minutes INTEGER,
+  last_scanned_at TEXT,
+  next_scan_at    TEXT,
+  source      TEXT    NOT NULL DEFAULT 'manual',
+  promoted_at TEXT,
+  dismissed_at TEXT,
   PRIMARY KEY (member_id, domain)
 );
 
@@ -69,6 +78,7 @@ CREATE TABLE IF NOT EXISTS events (
   impact_confidence REAL,
   impact_rationale TEXT,
   kind         TEXT,
+  event_type   TEXT,
   status       TEXT DEFAULT 'watch',
   note         TEXT,
   rumor        REAL NOT NULL DEFAULT 1.0,
@@ -169,6 +179,9 @@ CREATE INDEX IF NOT EXISTS idx_search_logs_provider ON search_logs(provider);
 """
 
 MIGRATIONS = {
+    "sources": [
+        ("logo_url", "TEXT"),
+    ],
     "members": [
         ("baseline_influence", "REAL NOT NULL DEFAULT 20.0"),
         ("baseline_confidence", "REAL NOT NULL DEFAULT 0.0"),
