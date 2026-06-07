@@ -16,5 +16,17 @@ services:
       retries: 3
       start_period: 15s
 
+  searxng:
+    image: searxng/searxng:latest
+    profiles: ["search"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./deploy/searxng:/etc/searxng
+    environment:
+      - BASE_URL=http://localhost:8080/
+      - INSTANCE_NAME=argus-search
+    restart: unless-stopped
+
 volumes:
   argus-data:
