@@ -329,7 +329,7 @@ function ModelCard({ model, onTest, onDelete, onUpdate, testing, testResult }: {
     <div style={{ padding: 12, background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
       <div className="flex items-center gap-2 mb-2">
         <input value={label} onChange={(e) => { setLabel(e.target.value); setSaveState("idle"); }} placeholder={t("settings.model.namePlaceholder")} style={{ ...inputStyle, padding: "4px 8px", fontSize: 12, flex: 1 }} />
-        <button onClick={onTest} disabled={testing} style={{ padding: "5px 11px", fontSize: 11, color: color.bg, background: testing ? color.textMuted : color.accent, border: "none", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", fontWeight: 650 }}>{testing ? "..." : t("settings.model.test")}</button>
+        <button onClick={async () => { await handleSave(); onTest(); }} disabled={testing || saveState === "saving"} style={{ padding: "5px 11px", fontSize: 11, color: color.bg, background: testing ? color.textMuted : color.accent, border: "none", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", fontWeight: 650 }}>{testing ? "..." : saveState === "saving" ? "..." : t("settings.model.test")}</button>
         <button onClick={onDelete} style={{ width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: color.neg, fontSize: 13, cursor: "pointer" }}>✕</button>
       </div>
       <input value={baseUrl} onChange={(e) => { setBaseUrl(e.target.value); setSaveState("idle"); }} placeholder="Base URL" style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, marginBottom: 4 }} />

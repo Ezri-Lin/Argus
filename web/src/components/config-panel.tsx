@@ -522,6 +522,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
   const [countdownKeyword, setCountdownKeyword] = useState("");
   const [countdownSuggesting, setCountdownSuggesting] = useState(false);
   const [countdownSuggestions, setCountdownSuggestions] = useState<Array<{ date: string; label: string }>>([]);
+  const [countdownError, setCountdownError] = useState("");
   const [countdownTargets, setCountdownTargets] = useState<Array<{ id: string; title: string; target: string; source?: string; keyword?: string }>>([]);
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
   const [editingTargetIdx, setEditingTargetIdx] = useState<number | null>(null);
@@ -1080,10 +1081,13 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
                   onClick={async () => {
                     if (!countdownKeyword.trim()) return;
                     setCountdownSuggesting(true);
+                    setCountdownError("");
                     setSelectedSuggestions(new Set());
                     const res = await aiSuggestDates(countdownKeyword);
                     if (res?.ok && res.dates) {
                       setCountdownSuggestions(res.dates.map((d) => ({ date: d.date, label: d.label })));
+                    } else {
+                      setCountdownError(res?.error || "Request failed — check model config");
                     }
                     setCountdownSuggesting(false);
                   }}
@@ -1093,6 +1097,11 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
                   {countdownSuggesting ? "..." : t("config.countdown.aiRecommend")}
                 </button>
               </div>
+              {countdownError && (
+                <div style={{ padding: "4px 8px", fontSize: 11, color: color.neg, background: `${color.neg}10`, borderRadius: radius.inner, marginTop: 4 }}>
+                  {countdownError}
+                </div>
+              )}
               {countdownSuggestions.length > 0 && (
                 <>
                   <div className="flex flex-col gap-1">
