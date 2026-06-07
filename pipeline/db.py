@@ -148,15 +148,18 @@ CREATE TABLE IF NOT EXISTS prices (
 
 -- Search provider configurations
 CREATE TABLE IF NOT EXISTS search_providers (
-  name        TEXT PRIMARY KEY,
-  profile     TEXT NOT NULL DEFAULT 'both',  -- 'discovery' | 'deep' | 'both'
-  enabled     INTEGER NOT NULL DEFAULT 0,
-  priority    INTEGER NOT NULL DEFAULT 99,
-  daily_cap   INTEGER NOT NULL DEFAULT 100,
-  timeout_sec INTEGER NOT NULL DEFAULT 8,
-  config_json TEXT NOT NULL DEFAULT '{}',
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  name          TEXT PRIMARY KEY,
+  profile       TEXT NOT NULL DEFAULT 'both',  -- 'discovery' | 'deep' | 'both'
+  enabled       INTEGER NOT NULL DEFAULT 0,
+  priority      INTEGER NOT NULL DEFAULT 99,
+  daily_cap     INTEGER NOT NULL DEFAULT 100,
+  timeout_sec   INTEGER NOT NULL DEFAULT 8,
+  config_json   TEXT NOT NULL DEFAULT '{}',
+  auth_type     TEXT,                          -- none / api_key / bearer
+  health_status TEXT,                          -- ok / degraded / failed
+  last_error    TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- Structured search log
@@ -172,7 +175,8 @@ CREATE TABLE IF NOT EXISTS search_logs (
   fallback_used    INTEGER NOT NULL DEFAULT 0,
   fallback_reason  TEXT,
   trigger_reason   TEXT,
-  cost_estimate_usd REAL DEFAULT 0
+  cost_estimate_usd REAL DEFAULT 0,
+  decision_json    TEXT                        -- full policy scoring JSON
 );
 CREATE INDEX IF NOT EXISTS idx_search_logs_ts       ON search_logs(ts);
 CREATE INDEX IF NOT EXISTS idx_search_logs_provider ON search_logs(provider);
@@ -187,14 +191,31 @@ MIGRATIONS = {
         ("baseline_confidence", "REAL NOT NULL DEFAULT 0.0"),
         ("baseline_rationale", "TEXT"),
     ],
+    "memberships": [
+        ("tier", "TEXT NOT NULL DEFAULT 'secondary'"),
+        ("enabled", "INTEGER NOT NULL DEFAULT 1"),
+        ("refresh_interval_minutes", "INTEGER"),
+        ("last_scanned_at", "TEXT"),
+        ("next_scan_at", "TEXT"),
+        ("source", "TEXT NOT NULL DEFAULT 'manual'"),
+        ("promoted_at", "TEXT"),
+        ("dismissed_at", "TEXT"),
+    ],
     "events": [
         ("impact_weight", "REAL"),
         ("impact_persistence_days", "REAL"),
         ("impact_confidence", "REAL"),
         ("impact_rationale", "TEXT"),
+        ("event_type", "TEXT"),
     ],
     "search_providers": [
         ("profile", "TEXT NOT NULL DEFAULT 'both'"),
+        ("auth_type", "TEXT"),
+        ("health_status", "TEXT"),
+        ("last_error", "TEXT"),
+    ],
+    "search_logs": [
+        ("decision_json", "TEXT"),
     ],
 }
 
@@ -215,6 +236,7 @@ def init_db(path: str | None = None) -> sqlite3.Connection:
     conn.executescript(SCHEMA)
     _ensure_columns(conn)
     _seed_search_providers(conn)
+    _migrate_settings(conn)
     conn.commit()
 
     db_file = Path(path or DB_PATH)
@@ -241,19 +263,19 @@ def _seed_search_providers(conn: sqlite3.Connection):
     # profile: 'discovery' = low-cost scan, 'deep' = on-demand evidence, 'both' = either
     # Default order: SearXNG(discovery) → Serper(fallback) → Bocha(Chinese), Tavily(deep only)
     providers = [
-        # (name,      profile,     enabled, priority, daily_cap, timeout, config)
-        ("searxng",    "discovery", 0,       1,        300,       8,       "{}"),
-        ("serper",     "both",      0,       2,        80,        8,       "{}"),
-        ("bocha",      "both",      0,       3,        40,        8,       "{}"),
-        ("duckduckgo", "both",      0,       99,       100,       8,       "{}"),
-        ("tavily",     "deep",      0,       1,        30,        8,       "{}"),
+        # (name,      profile,     enabled, priority, daily_cap, timeout, auth_type, config)
+        ("searxng",    "discovery", 0,       1,        300,       8,       "none",    "{}"),
+        ("serper",     "both",      0,       2,        80,        8,       "api_key", "{}"),
+        ("bocha",      "both",      0,       3,        40,        8,       "bearer",  "{}"),
+        ("duckduckgo", "both",      0,       99,       100,       8,       "none",    "{}"),
+        ("tavily",     "deep",      0,       1,        30,        8,       "api_key", "{}"),
     ]
-    for name, profile, enabled, priority, daily_cap, timeout, config in providers:
+    for name, profile, enabled, priority, daily_cap, timeout, auth_type, config in providers:
         conn.execute(
             "INSERT OR IGNORE INTO search_providers "
-            "(name, profile, enabled, priority, daily_cap, timeout_sec, config_json) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (name, profile, enabled, priority, daily_cap, timeout, config),
+            "(name, profile, enabled, priority, daily_cap, timeout_sec, auth_type, config_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, profile, enabled, priority, daily_cap, timeout, auth_type, config),
         )
     # Migrate existing rows: update profile for providers that still have default 'both'
     for name, profile, *_ in providers:
@@ -267,6 +289,18 @@ def _seed_search_providers(conn: sqlite3.Connection):
         conn.execute(
             "UPDATE search_providers SET enabled = 1, updated_at = datetime('now') WHERE name = 'tavily'"
         )
+
+
+def _migrate_settings(conn: sqlite3.Connection):
+    """Migrate deprecated settings keys to new names. Idempotent."""
+    # tavily_enabled → deep_search_enabled
+    old_val = get_setting(conn, "tavily_enabled", "")
+    new_val = get_setting(conn, "deep_search_enabled", "")
+    if old_val and not new_val:
+        set_setting(conn, "deep_search_enabled", old_val)
+    # Set default deep_search_daily_cap if missing
+    if not get_setting(conn, "deep_search_daily_cap", ""):
+        set_setting(conn, "deep_search_daily_cap", "30")
 
 
 def get_setting(conn: sqlite3.Connection, key: str, default: str = "") -> str:
