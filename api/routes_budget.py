@@ -1,4 +1,4 @@
-"""Budget status and last run summary endpoints."""
+"""Budget status endpoint."""
 
 import os
 
@@ -8,6 +8,10 @@ from pipeline.db import get_db, get_setting
 from pipeline.budget_guard import BudgetGuard, DEFAULT_BUDGETS
 
 router = APIRouter(tags=["budget"])
+
+
+def _conn():
+    return get_db(os.environ.get("ARGUS_DB_PATH", "data/argus.db"))
 
 
 def get_budget_status(conn) -> dict:
@@ -20,32 +24,11 @@ def get_budget_status(conn) -> dict:
     return bg.status(used)
 
 
-def get_last_run(conn) -> dict | None:
-    """Return the most recent pipeline health record, or None."""
-    row = conn.execute(
-        "SELECT * FROM health WHERE module = 'pipeline' ORDER BY updated_at DESC LIMIT 1"
-    ).fetchone()
-    if not row:
-        return None
-    return dict(row)
-
-
 @router.get("/budget-status")
 def budget_status():
     """Get current budget usage and limits."""
-    conn = get_db(os.environ.get("ARGUS_DB_PATH", "data/argus.db"))
+    conn = _conn()
     try:
         return get_budget_status(conn)
-    finally:
-        conn.close()
-
-
-@router.get("/pipeline/last-run")
-def last_run():
-    """Get the last pipeline run status."""
-    conn = get_db(os.environ.get("ARGUS_DB_PATH", "data/argus.db"))
-    try:
-        result = get_last_run(conn)
-        return result or {"status": "no_runs"}
     finally:
         conn.close()

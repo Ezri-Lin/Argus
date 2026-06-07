@@ -5,7 +5,8 @@ import tempfile
 import unittest
 
 from pipeline.db import init_db
-from api.routes_budget import get_budget_status, get_last_run
+from api.routes_budget import get_budget_status
+from api.routes_pipeline import get_last_run
 
 
 class TestRoutesBudget(unittest.TestCase):
