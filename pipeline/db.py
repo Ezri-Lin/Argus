@@ -284,6 +284,7 @@ FTS_TRIGGERS = [
 MIGRATIONS = {
     "sources": [
         ("logo_url", "TEXT"),
+        ("enabled", "INTEGER NOT NULL DEFAULT 1"),
         # M3: source quality tracking
         ("source_tier", "TEXT DEFAULT 'unknown'"),
         ("source_kind", "TEXT DEFAULT 'unknown'"),
