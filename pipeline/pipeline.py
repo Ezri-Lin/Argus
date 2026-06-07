@@ -499,6 +499,91 @@ def write_health(conn, module: str, status: str, error: str | None = None):
     conn.commit()
 
 
+# ── Membership-based scan scheduling ──
+
+TIER_REFRESH_DEFAULTS = {
+    "primary": 120,    # minutes
+    "secondary": 360,
+}
+TIER_PRIORITY = {"primary": 2, "secondary": 1, "ai_candidate": 0}
+
+
+def load_due_members(conn) -> list[dict]:
+    """Load distinct members that have at least one due active membership.
+
+    Returns list of dicts: {id, name, ..., effective_tier, membership_domains}.
+    Falls back to all members if no memberships exist.
+    """
+    now = now_iso()
+    # Check if any memberships exist at all
+    count = conn.execute("SELECT COUNT(*) FROM memberships").fetchone()[0]
+    if count == 0:
+        # Legacy fallback: scan all members as primary
+        rows = conn.execute("SELECT * FROM members").fetchall()
+        return [dict(r) | {"effective_tier": "primary", "membership_domains": []} for r in rows]
+
+    # Find due active memberships (enabled=1, tier in primary/secondary, next_scan_at due or NULL)
+    due = conn.execute("""
+        SELECT m.*, mb.domain, mb.tier, mb.refresh_interval_minutes
+        FROM memberships mb
+        JOIN members m ON m.id = mb.member_id
+        WHERE mb.enabled = 1
+          AND mb.tier IN ('primary', 'secondary')
+          AND (mb.next_scan_at IS NULL OR mb.next_scan_at <= ?)
+    """, (now,)).fetchall()
+
+    if not due:
+        return []
+
+    # Group by member_id, pick highest tier + collect domains
+    member_map: dict[int, dict] = {}
+    for row in due:
+        mid = row["id"]
+        if mid not in member_map:
+            member_map[mid] = {
+                "member": dict(row),
+                "tier": row["tier"],
+                "domains": set(),
+            }
+        else:
+            # Upgrade tier if this row is higher
+            if TIER_PRIORITY.get(row["tier"], 0) > TIER_PRIORITY.get(member_map[mid]["tier"], 0):
+                member_map[mid]["tier"] = row["tier"]
+        member_map[mid]["domains"].add(row["domain"])
+
+    result = []
+    for mid, info in member_map.items():
+        mb = info["member"]
+        mb["effective_tier"] = info["tier"]
+        mb["membership_domains"] = sorted(info["domains"])
+        result.append(mb)
+
+    return result
+
+
+def update_scan_schedule(conn, member_id: int):
+    """Update last_scanned_at / next_scan_at for all active memberships of a member."""
+    now = now_iso()
+    rows = conn.execute(
+        "SELECT domain, tier, refresh_interval_minutes FROM memberships "
+        "WHERE member_id = ? AND enabled = 1 AND tier IN ('primary', 'secondary')",
+        (member_id,),
+    ).fetchall()
+    for row in rows:
+        interval = row["refresh_interval_minutes"] or TIER_REFRESH_DEFAULTS.get(row["tier"], 360)
+        next_at = now  # will be computed properly in batch 3+
+        # For now, set next_scan_at = now + interval minutes
+        from datetime import datetime, timedelta, timezone
+        next_dt = datetime.fromisoformat(now.replace("Z", "+00:00")) + timedelta(minutes=interval)
+        next_at = next_dt.isoformat()
+        conn.execute(
+            "UPDATE memberships SET last_scanned_at = ?, next_scan_at = ? "
+            "WHERE member_id = ? AND domain = ?",
+            (now, next_at, member_id, row["domain"]),
+        )
+    conn.commit()
+
+
 # ── Main pipeline ──
 
 def run_pipeline(db_path: str | None = None):
@@ -506,8 +591,8 @@ def run_pipeline(db_path: str | None = None):
     now = now_iso()
     _update_progress(running=True, step="rss", started_at=now, members_done=0, events_found=0)
 
-    # Read config
-    tavily_enabled = get_setting(conn, "tavily_enabled", "false") == "true"
+    # Read config (deep_search_enabled migrated from tavily_enabled in batch 1)
+    deep_search_enabled = get_setting(conn, "deep_search_enabled", "false") == "true"
     pro_enabled = get_setting(conn, "pro_enabled", "false") == "true"
     language = get_setting(conn, "language", "zh")
 
@@ -529,8 +614,8 @@ def run_pipeline(db_path: str | None = None):
 
     pro_model = get_model_for_role(conn, "pro") if pro_enabled else None
 
-    # Read members + sources
-    members = conn.execute("SELECT * FROM members").fetchall()
+    # Read members (due active memberships) + sources
+    members = load_due_members(conn)
     sources = conn.execute("SELECT * FROM sources").fetchall()
 
     if not members:
@@ -541,9 +626,9 @@ def run_pipeline(db_path: str | None = None):
         conn.close()
         return
 
-    print(f"Pipeline: {len(members)} members, {len(sources)} sources")
+    print(f"Pipeline: {len(members)} members due, {len(sources)} sources")
     print(f"  base_model: {base_model['label']} ({base_model['model']})")
-    print(f"  tavily: {'on' if tavily_enabled else 'off'}, pro: {'on' if pro_enabled else 'off'}")
+    print(f"  deep_search: {'on' if deep_search_enabled else 'off'}, pro: {'on' if pro_enabled else 'off'}")
 
     # Fetch all RSS items
     _update_progress(rss_sources_total=len(sources), rss_sources_done=0)
@@ -618,7 +703,7 @@ def run_pipeline(db_path: str | None = None):
     total_dropped = 0
 
     # ── Phase 1: Pre-filter + deduplicate per member (main thread, needs DB) ──
-    work_queue: list[tuple[int, dict, list, str, str]] = []  # (idx, mb, new_items, aliases, domains)
+    work_queue: list[tuple[int, dict, list, str, str, str]] = []  # (idx, mb, new_items, aliases, domains, tier)
     members_progress: list[dict] = []
     for member_idx, member in enumerate(members):
         mb = dict(member)
@@ -653,14 +738,14 @@ def run_pipeline(db_path: str | None = None):
             members_progress[-1]["log"] = f"0 new (of {len(matching)})"
             continue
 
-        work_queue.append((member_idx, mb, new_items[:10], aliases_str, domains_str))
+        work_queue.append((member_idx, mb, new_items[:10], aliases_str, domains_str, mb.get("effective_tier", "primary")))
 
     _update_progress(step="analyzing", members_total=len(members), members_done=0, members=members_progress)
 
     # ── Phase 2: Concurrent AI processing (workers return event dicts, no DB writes) ──
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    def _process_member_work(idx: int, mb: dict, items: list, aliases_str: str, domains_str: str, router_factory=None) -> list[dict]:
+    def _process_member_work(idx: int, mb: dict, items: list, aliases_str: str, domains_str: str, tier: str = "primary", router_factory=None) -> list[dict]:
         """Process one member's items. Returns list of event dicts to insert."""
         _update_member_status(idx, "running")
         results = []
@@ -694,13 +779,12 @@ def run_pipeline(db_path: str | None = None):
                 status = "watch"
 
                 # Deep search — hybrid policy decision
-                member_tier = "primary"  # TODO: read from member when tier system added
                 policy_decision = should_deep_search(
                     item, result, search_policy,
                     budget_remaining=_get_deep_budget(),
-                    member_tier=member_tier,
+                    member_tier=tier,
                 )
-                if policy_decision.should_search and tavily_enabled and router_factory:
+                if policy_decision.should_search and deep_search_enabled and router_factory:
                     _consume_deep_budget()
                     local_router = router_factory()
                     sr_response = local_router.deep(
@@ -792,7 +876,7 @@ def run_pipeline(db_path: str | None = None):
     search_policy = PolicyConfig.from_settings(conn)
 
     # Deep search budget (thread-safe counter)
-    deep_search_cap = 30  # default daily cap for deep search
+    deep_search_cap = int(get_setting(conn, "deep_search_daily_cap", "30"))
     deep_search_count = [0]  # mutable container for thread-safe access
     deep_search_lock = threading.Lock()
 
@@ -809,14 +893,18 @@ def run_pipeline(db_path: str | None = None):
 
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {
-            pool.submit(_process_member_work, idx, mb, items, aliases, domains, _make_router): idx
-            for idx, mb, items, aliases, domains in work_queue
+            pool.submit(_process_member_work, idx, mb, items, aliases, domains, tier, _make_router): idx
+            for idx, mb, items, aliases, domains, tier in work_queue
         }
         for future in as_completed(futures):
             idx = futures[future]
             try:
                 events = future.result()
                 all_events.extend(events)
+                # Update scan schedule for the completed member
+                mb = next((m for i, m, *_ in work_queue if i == idx), None)
+                if mb:
+                    update_scan_schedule(conn, mb["id"])
                 _update_member_status(idx, "done", events=len(events), log=f"{len(events)} events")
                 _update_progress(events_found=_pipeline_progress["events_found"] + len(events))
             except Exception as e:
