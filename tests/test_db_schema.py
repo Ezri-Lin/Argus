@@ -58,5 +58,19 @@ class TestArticleDigestsSchema(unittest.TestCase):
             self.assertTrue(required.issubset(cols), f"Missing: {required - cols}")
 
 
+class TestSourcesExtension(unittest.TestCase):
+    def test_sources_has_m3_columns(self):
+        with tempfile.NamedTemporaryFile(suffix=".db") as f:
+            init_db(f.name)
+            conn = sqlite3.connect(f.name)
+            conn.row_factory = sqlite3.Row
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(sources)").fetchall()}
+            conn.close()
+            required = {"source_tier", "source_kind", "trust_score", "authority_weight",
+                        "freshness_weight", "language", "region", "health_status",
+                        "last_fetched_at", "last_success_at", "last_error", "consecutive_failures"}
+            self.assertTrue(required.issubset(cols), f"Missing: {required - cols}")
+
+
 if __name__ == "__main__":
     unittest.main()

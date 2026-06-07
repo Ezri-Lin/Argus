@@ -284,6 +284,20 @@ FTS_TRIGGERS = [
 MIGRATIONS = {
     "sources": [
         ("logo_url", "TEXT"),
+        # M3: source quality tracking
+        ("source_tier", "TEXT DEFAULT 'unknown'"),
+        ("source_kind", "TEXT DEFAULT 'unknown'"),
+        ("trust_score", "REAL DEFAULT 0.5"),
+        ("authority_weight", "REAL DEFAULT 0.5"),
+        ("freshness_weight", "REAL DEFAULT 0.5"),
+        ("language", "TEXT"),
+        ("region", "TEXT"),
+        ("domain_focus", "TEXT"),
+        ("health_status", "TEXT DEFAULT 'unknown'"),
+        ("last_fetched_at", "TEXT"),
+        ("last_success_at", "TEXT"),
+        ("last_error", "TEXT"),
+        ("consecutive_failures", "INTEGER DEFAULT 0"),
     ],
     "members": [
         ("baseline_influence", "REAL NOT NULL DEFAULT 20.0"),
