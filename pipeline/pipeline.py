@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from db import get_db, get_model_for_role, get_setting, init_db
 from search import SearchRouter
-from search.policy import PolicyConfig, should_deep_search
+from search.policy import PolicyConfig, ProValidationConfig, should_deep_search, should_pro_validate
 
 # ── Pipeline progress tracking ──
 
@@ -812,8 +812,12 @@ def run_pipeline(db_path: str | None = None):
                         supporting_sources = [e.get("url") or e.get("title", "") for e in evidence if e.get("url") or e.get("title")] or supporting_sources
                         reason = f"search: {reason}"
 
-                # Pro cross-validation
-                if need_pro and pro_model and pro_enabled:
+                # Pro cross-validation — policy-gated
+                pro_decision = should_pro_validate(
+                    item, result, pro_validation_config,
+                    pro_model_available=pro_model is not None and pro_enabled,
+                )
+                if pro_decision.should_validate:
                     try:
                         base_json = json.dumps({
                             "sentiment": sentiment, "importance": importance, "kind": kind, "status": status,
@@ -857,6 +861,8 @@ def run_pipeline(db_path: str | None = None):
                 if policy_decision.scores:
                     s = policy_decision.scores
                     policy_info = f" | policy:{policy_decision.reason} score={s.get('final_score',0):.2f}"
+                if pro_decision.should_validate:
+                    policy_info += f" | pro:{pro_decision.reason}"
                 results.append({
                     "fingerprint": fp, "member_id": mb["id"], "title": item["title"],
                     "url": item["url"], "outlet": item["source_name"], "published": item["published"],
@@ -865,7 +871,7 @@ def run_pipeline(db_path: str | None = None):
                     "impact_rationale": impact_rationale, "kind": kind, "status": status,
                     "note": short_label, "rumor": rumor,
                     "sources": json.dumps(supporting_sources, ensure_ascii=False),
-                    "need_pro": 1 if need_pro else 0, "route_reason": f"{reason}{policy_info}",
+                    "need_pro": 1 if pro_decision.should_validate else 0, "route_reason": f"{reason}{policy_info}",
                 })
             except Exception as e:
                 print(f"    {mb['name']} error: {safe_text(e)}")
@@ -874,6 +880,7 @@ def run_pipeline(db_path: str | None = None):
     # Run with max 5 concurrent workers
     all_events: list[dict] = []
     search_policy = PolicyConfig.from_settings(conn)
+    pro_validation_config = ProValidationConfig.from_settings(conn)
 
     # Deep search budget (thread-safe counter)
     deep_search_cap = int(get_setting(conn, "deep_search_daily_cap", "30"))

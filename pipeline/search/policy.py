@@ -218,3 +218,81 @@ def should_deep_search(
         return PolicyDecision(False, "watch_band_no_action", scores)
 
     return PolicyDecision(False, "below_threshold", scores)
+
+
+# ── Pro Validation Policy ──
+
+
+@dataclass
+class ProValidationConfig:
+    """Config for pro cross-validation policy."""
+    enabled: bool = True
+    importance_threshold: float = 0.80
+    rumor_threshold: float = 0.70
+
+    @classmethod
+    def from_settings(cls, conn) -> ProValidationConfig:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = 'pro_validation_config'"
+        ).fetchone()
+        if row:
+            try:
+                data = json.loads(row["value"])
+                known = {f.name for f in dataclasses.fields(cls)}
+                filtered = {k: v for k, v in data.items() if k in known}
+                return cls(**filtered)
+            except Exception:
+                pass
+        return cls()
+
+
+@dataclass
+class ProValidationDecision:
+    should_validate: bool
+    reason: str
+    signals: list[str] = field(default_factory=list)
+
+
+def should_pro_validate(
+    bundle: dict,
+    base_score: dict,
+    config: ProValidationConfig,
+    pro_model_available: bool = True,
+) -> ProValidationDecision:
+    """Decide whether pro cross-validation is needed.
+
+    Signals:
+    - BASE flagged need_pro (semantic uncertainty)
+    - High importance + single source (unverified high-impact)
+    - Contradiction risk flags
+    - High rumor score
+    """
+    if not config.enabled or not pro_model_available:
+        return ProValidationDecision(False, "disabled")
+
+    signals: list[str] = []
+
+    # 1. BASE explicitly flagged need_pro
+    if base_score.get("need_pro", False):
+        signals.append("base_flagged")
+
+    # 2. High importance + single source
+    importance = float(base_score.get("importance", 0))
+    n_sources = bundle.get("n_independent_sources", 1)
+    if importance >= config.importance_threshold and n_sources < 2:
+        signals.append("high_importance_single_source")
+
+    # 3. Contradiction risk
+    flags = set(base_score.get("risk_flags", []))
+    if "contradiction" in flags:
+        signals.append("contradiction")
+
+    # 4. High rumor score
+    rumor = float(base_score.get("rumor", 0.5))
+    if rumor >= config.rumor_threshold:
+        signals.append("high_rumor")
+
+    if signals:
+        return ProValidationDecision(True, ",".join(signals), signals)
+
+    return ProValidationDecision(False, "not_needed")
