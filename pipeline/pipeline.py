@@ -111,21 +111,6 @@ BASE_SYSTEM_PROMPT = """你是 Argus 情报系统的「初筛分析员」(BASE)�
 【输出】
 {{"sentiment":0.0,"importance":0.0,"kind":"转载","need_search":false,"need_pro":false,"reason":"","short_label":"IPO路演中","impactWeight":20,"impactPersistenceDays":7,"impactConfidence":0.5,"impactRationale":"一句话说明持续影响","risk_flags":[],"evidence_sufficiency":0.5,"uncertainty":0.5,"deep_search_need":0.0,"deep_search_reason":""}}"""
 
-TAVILY_PROMPT = """你是 Argus 情报系统的搜索增强模块。根据以下原始新闻和搜索结果，重新评估。
-
-【原始新闻】
-标题={title}｜来源={outlet}｜发布={published}
-
-【搜索结果】
-{evidence}
-
-【任务】
-综合原始新闻和搜索结果，输出 JSON：
-{{"sentiment":0.0,"importance":0.0,"kind":"转载","status":"watch","note":"一句话结论","short_label":"2-5 words summary","impactWeight":20,"impactPersistenceDays":7,"impactConfidence":0.5,"impactRationale":"一句话说明持续影响"}}
-
-严格只输出 JSON，无额外文字。
-{lang_instruction}"""
-
 PRO_SYSTEM_PROMPT = """你是 Argus 情报系统的「交叉验证分析员」(PRO)。原则：零幻觉，只认证据。
 
 【输入】
@@ -793,24 +778,8 @@ def run_pipeline(db_path: str | None = None):
                     evidence = [r.to_dict() for r in sr_response.results] if sr_response.results else []
                     if evidence:
                         search_evidence = evidence
-                        evidence_text = "\n".join(f"- {e['title']} ({e['url']}): {e['snippet']}" for e in evidence)
-                        enhanced = call_model(base_model, TAVILY_PROMPT.format(
-                            title=item["title"], outlet=item["source_name"], published=item["published"],
-                            evidence=evidence_text, lang_instruction=lang_instruction,
-                        ), "")
-                        sentiment = enhanced.get("sentiment", sentiment)
-                        importance = enhanced.get("importance", importance)
-                        impact_weight = clamp_float(enhanced.get("impactWeight", enhanced.get("impact_weight")), 0.0, 100.0, impact_weight)
-                        impact_persistence_days = clamp_float(enhanced.get("impactPersistenceDays", enhanced.get("impact_persistence_days")), 1.0, 365.0, impact_persistence_days)
-                        impact_confidence = clamp_float(enhanced.get("impactConfidence", enhanced.get("impact_confidence")), 0.0, 1.0, impact_confidence)
-                        impact_rationale = enhanced.get("impactRationale", enhanced.get("impact_rationale", impact_rationale))
-                        kind = enhanced.get("kind", kind)
-                        status = enhanced.get("status", "watch")
-                        enhanced_label = enhanced.get("short_label", "")
-                        if enhanced_label and enhanced_label != reason and len(enhanced_label) <= 25:
-                            short_label = enhanced_label
                         supporting_sources = [e.get("url") or e.get("title", "") for e in evidence if e.get("url") or e.get("title")] or supporting_sources
-                        reason = f"search: {reason}"
+                        reason = f"deep_search: {reason}"
 
                 # Pro cross-validation — policy-gated
                 pro_decision = should_pro_validate(
