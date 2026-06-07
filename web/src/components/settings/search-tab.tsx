@@ -16,11 +16,24 @@ export function SearchTab({ settings, markChanged }: {
   const [logs, setLogs] = useState<SearchLog[]>([]);
   const [testing, setTesting] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<Record<string, { ok: boolean; msg: string }>>({});
+  const [searchMode, setSearchMode] = useState<"auto" | "fallback" | "fixed">("auto");
 
   const loadProviders = () => fetchSearchProviders().then((p) => { if (p) setProviders(p); });
   const loadLogs = () => fetchSearchLogs(20).then((r) => { if (r) setLogs(r.logs); });
 
   useEffect(() => { loadProviders(); loadLogs(); }, []);
+
+  useEffect(() => {
+    const mode = settings["search.mode"];
+    if (mode === "auto" || mode === "fallback" || mode === "fixed") {
+      setSearchMode(mode);
+    }
+  }, [settings]);
+
+  const handleSearchModeChange = (mode: "auto" | "fallback" | "fixed") => {
+    setSearchMode(mode);
+    markChanged("search.mode", mode);
+  };
 
   const handleToggle = async (name: string, current: number) => {
     await updateSearchProvider(name, { enabled: current ? 0 : 1 });
@@ -110,6 +123,38 @@ export function SearchTab({ settings, markChanged }: {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Search mode */}
+      <section style={{ marginBottom: 4 }}>
+        <SectionLabel>搜索模式</SectionLabel>
+        <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+          {(["auto", "fallback", "fixed"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => handleSearchModeChange(mode)}
+              style={{
+                padding: "6px 16px",
+                borderRadius: radius.inner,
+                border: searchMode === mode ? `2px solid ${color.accent}` : `1px solid ${color.hairline}`,
+                background: searchMode === mode ? color.accentSoft : "transparent",
+                color: searchMode === mode ? color.accent : color.textMuted,
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: searchMode === mode ? 600 : 400,
+              }}
+            >
+              {mode === "auto" ? "Auto" : mode === "fallback" ? "Fallback" : "Fixed"}
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: color.textMuted, margin: 0 }}>
+          {searchMode === "auto"
+            ? "RSS 本地缓存优先，SearXNG 补漏，Tavily 仅在 Budget Guard 内付费补证。"
+            : searchMode === "fallback"
+            ? "按优先级依次尝试，失败时降级到下一个 provider。"
+            : "只使用指定的 provider，不降级。"}
+        </p>
+      </section>
+
       {/* Discovery providers */}
       <section>
         <SectionLabel>Discovery {t("search.provider")}</SectionLabel>
