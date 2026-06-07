@@ -45,6 +45,8 @@ from .routes_members import router as members_router
 from .routes_sources import router as sources_router
 from .routes_sources import library_router
 from .routes_ai import router as ai_router
+from .routes_dates import router as dates_router
+from .routes_video import router as video_router
 from .routes_search import router as search_router
 from .routes_pipeline import router as pipeline_router
 
@@ -53,6 +55,8 @@ app.include_router(members_router)
 app.include_router(sources_router)
 app.include_router(library_router)
 app.include_router(ai_router)
+app.include_router(dates_router)
+app.include_router(video_router)
 app.include_router(search_router)
 app.include_router(pipeline_router)
 
