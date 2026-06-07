@@ -180,7 +180,106 @@ CREATE TABLE IF NOT EXISTS search_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_search_logs_ts       ON search_logs(ts);
 CREATE INDEX IF NOT EXISTS idx_search_logs_provider ON search_logs(provider);
+
+-- M3: RSS article cache
+CREATE TABLE IF NOT EXISTS rss_articles (
+    id TEXT PRIMARY KEY,
+    source_id TEXT NOT NULL,
+    url TEXT UNIQUE NOT NULL,
+    canonical_url TEXT,
+    title TEXT NOT NULL,
+    snippet TEXT,
+    content_text TEXT,
+    published_at TEXT,
+    fetched_at TEXT NOT NULL,
+    hash TEXT,
+    language TEXT,
+    raw_json TEXT,
+    lifecycle_status TEXT DEFAULT 'fresh',
+    processed_at TEXT,
+    last_relevance_checked_at TEXT,
+    last_used_in_event_at TEXT,
+    relevance_score REAL,
+    importance_score REAL,
+    summary_short TEXT,
+    summary_long TEXT,
+    summary_model TEXT,
+    summary_updated_at TEXT,
+    read_count INTEGER DEFAULT 0,
+    should_reread INTEGER DEFAULT 0,
+    discard_reason TEXT,
+    discarded_at TEXT,
+    discarded_by TEXT,
+    FOREIGN KEY(source_id) REFERENCES sources(id)
+);
+
+-- M3: FTS5 for article full-text search
+CREATE VIRTUAL TABLE IF NOT EXISTS article_fts USING fts5(
+    title, snippet, content_text,
+    content='rss_articles', content_rowid='rowid'
+);
+
+-- M3: Article digest cache
+CREATE TABLE IF NOT EXISTS article_digests (
+    article_id TEXT PRIMARY KEY,
+    summary_short TEXT,
+    summary_long TEXT,
+    key_points TEXT,
+    entities TEXT,
+    about_members TEXT,
+    event_type TEXT,
+    source_kind TEXT,
+    relevance_score REAL,
+    importance_score REAL,
+    is_about_primary_member INTEGER,
+    noise_type TEXT,
+    digest_model TEXT,
+    created_at TEXT,
+    updated_at TEXT,
+    FOREIGN KEY(article_id) REFERENCES rss_articles(id)
+);
+
+-- M3: Source discovery candidates
+CREATE TABLE IF NOT EXISTS source_candidates (
+    id TEXT PRIMARY KEY,
+    member_id TEXT,
+    domain_id TEXT,
+    name TEXT,
+    site_url TEXT,
+    feed_url TEXT,
+    source_tier TEXT,
+    source_kind TEXT,
+    trust_score REAL,
+    discovery_score REAL,
+    discovery_reason TEXT,
+    status TEXT,
+    discovered_at TEXT,
+    raw_json TEXT
+);
 """
+
+FTS_TRIGGERS = [
+    """
+    CREATE TRIGGER IF NOT EXISTS rss_articles_ai AFTER INSERT ON rss_articles BEGIN
+        INSERT INTO article_fts(rowid, title, snippet, content_text)
+        VALUES (new.rowid, new.title, new.snippet, new.content_text);
+    END;
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS rss_articles_ad AFTER DELETE ON rss_articles BEGIN
+        INSERT INTO article_fts(article_fts, rowid, title, snippet, content_text)
+        VALUES ('delete', old.rowid, old.title, old.snippet, old.content_text);
+    END;
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS rss_articles_au AFTER UPDATE ON rss_articles BEGIN
+        INSERT INTO article_fts(article_fts, rowid, title, snippet, content_text)
+        VALUES ('delete', old.rowid, old.title, old.snippet, old.content_text);
+        INSERT INTO article_fts(rowid, title, snippet, content_text)
+        VALUES (new.rowid, new.title, new.snippet, new.content_text);
+    END;
+    """,
+]
 
 MIGRATIONS = {
     "sources": [
@@ -234,6 +333,8 @@ def get_db(path: str | None = None) -> sqlite3.Connection:
 def init_db(path: str | None = None) -> sqlite3.Connection:
     conn = get_db(path)
     conn.executescript(SCHEMA)
+    for trigger_sql in FTS_TRIGGERS:
+        conn.execute(trigger_sql)
     _ensure_columns(conn)
     _seed_search_providers(conn)
     _migrate_settings(conn)
