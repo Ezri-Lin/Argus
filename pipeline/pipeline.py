@@ -20,6 +20,8 @@ from openai import OpenAI
 sys.path.insert(0, str(Path(__file__).parent))
 
 from db import get_db, get_model_for_role, get_setting, init_db
+from search import SearchRouter
+from search.policy import PolicyConfig, should_deep_search
 
 # ── Pipeline progress tracking ──
 
@@ -31,6 +33,8 @@ _pipeline_progress = {
     "rss_sources_done": 0,
     "rss_sources_total": 0,
     "events_found": 0,
+    "search_done": 0,
+    "search_total": 0,
     "started_at": "",
     "members": [],  # [{name, domain, status, events, log}]
 }
@@ -115,17 +119,6 @@ TAVILY_PROMPT = """你是 Argus 情报系统的搜索增强模块。根据以下
 {{"sentiment":0.0,"importance":0.0,"kind":"转载","status":"watch","note":"一句话结论","short_label":"2-5 words summary","impactWeight":20,"impactPersistenceDays":7,"impactConfidence":0.5,"impactRationale":"一句话说明持续影响"}}
 
 严格只输出 JSON，无额外文字。
-{lang_instruction}"""
-
-PROACTIVE_SEARCH_PROMPT = """搜索 "{name}" 的最近重要新闻（过去 48 小时优先）。
-
-只返回与该实体直接相关的实质性新闻，忽略无关内容。
-如果没有找到相关新闻，返回空数组。
-
-【输出格式】严格只输出 JSON 数组，无额外文字：
-[{{"title":"新闻标题","url":"链接","snippet":"一句话摘要","outlet":"来源名","published":"发布时间或空"}}]
-
-最多返回 {max_results} 条最重要的。
 {lang_instruction}"""
 
 PRO_SYSTEM_PROMPT = """你是 Argus 情报系统的「交叉验证分析员」(PRO)。原则：零幻觉，只认证据。
@@ -236,65 +229,6 @@ def call_model(model_cfg: dict, system: str, user: str) -> dict:
             text = text[4:]
         text = text.strip()
     return json.loads(text)
-
-
-def call_tavily(query: str) -> list[dict]:
-    """Call Tavily search API. Returns list of {title, url, snippet}."""
-    # Read from DB first, fall back to .env
-    conn = get_db(os.environ.get("ARGUS_DB_PATH", "data/argus.db"))
-    api_key = get_setting(conn, "tavily_api_key", "") or os.environ.get("TAVILY_API_KEY", "")
-    conn.close()
-    if not api_key:
-        return []
-    try:
-        import urllib.request
-        req = urllib.request.Request(
-            "https://api.tavily.com/search",
-            data=json.dumps({
-                "api_key": api_key,
-                "query": query,
-                "max_results": 3,
-            }).encode(),
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read())
-            return [
-                {"title": r["title"], "url": r["url"], "snippet": r.get("content", "")[:300]}
-                for r in data.get("results", [])
-            ]
-    except Exception as e:
-        print(f"    Tavily error: {e}")
-        return []
-
-
-def search_member_news(model_cfg: dict, member: dict, aliases_str: str,
-                       domains_str: str, lang_instruction: str,
-                       max_results: int = 5) -> list[dict]:
-    """Use BASE model to proactively search for a member's recent news."""
-    prompt = PROACTIVE_SEARCH_PROMPT.format(
-        name=member["name"],
-        max_results=max_results,
-        lang_instruction=lang_instruction,
-    )
-    try:
-        result = call_model(model_cfg, prompt, member["name"])
-        if isinstance(result, list):
-            items = []
-            for r in result[:max_results]:
-                if isinstance(r, dict) and r.get("title"):
-                    items.append({
-                        "title": str(r["title"]),
-                        "url": str(r.get("url", "")),
-                        "snippet": str(r.get("snippet", ""))[:300],
-                        "outlet": str(r.get("outlet", "")),
-                        "published": str(r.get("published", "")),
-                    })
-            return items
-        return []
-    except Exception as e:
-        print(f"    AI search error for {member['name']}: {e}")
-        return []
 
 
 # ── Time decay ──
@@ -643,37 +577,37 @@ def run_pipeline(db_path: str | None = None):
 
     print(f"  Fetched {len(all_items)} RSS items total")
 
-    # ── AI proactive search per member ──
+    # ── Discovery search per member ──
     ai_search_enabled = get_setting(conn, "ai_search_enabled", "true") == "true"
     ai_search_max = int(get_setting(conn, "ai_search_max_results", "5"))
 
     if ai_search_enabled:
-        _update_progress(step="ai_search")
-        print(f"  AI search: enabled (max {ai_search_max} results/member)")
+        _update_progress(step="searching", search_done=0, search_total=len(members))
+        print(f"  Discovery search: enabled (max {ai_search_max} results/member)")
+        discovery_router = SearchRouter(conn, profile="discovery")
         for member in members:
             mb = dict(member)
             try:
-                ai_items = search_member_news(
-                    base_model, mb, ", ".join(member_aliases(mb)),
-                    ", ".join(member_domains(conn, mb["id"])),
-                    lang_instruction, ai_search_max,
+                response = discovery_router.discovery(
+                    mb["name"], max_results=ai_search_max, member_id=str(mb["id"]),
                 )
-                for item in ai_items:
+                for sr in response.results:
                     all_items.append({
-                        "title": item["title"],
-                        "url": item["url"],
-                        "published": item.get("published", ""),
-                        "snippet": item.get("snippet", ""),
-                        "source_name": item.get("outlet", "AI Search"),
+                        "title": sr.title,
+                        "url": sr.url,
+                        "published": sr.published or "",
+                        "snippet": sr.snippet,
+                        "source_name": sr.outlet or "Web Search",
                         "source_id": 0,
                         "source_logo": "",
-                        "_source": "ai_search",
+                        "_source": "discovery",
                     })
-                print(f"    {mb['name']}: {len(ai_items)} AI search results")
+                print(f"    {mb['name']}: {len(response.results)} discovery results")
             except Exception as e:
-                print(f"    {mb['name']} AI search error: {safe_text(e)}")
+                print(f"    {mb['name']} discovery error: {safe_text(e)}")
+            _update_progress(search_done=_pipeline_progress["search_done"] + 1)
     else:
-        print("  AI search: disabled")
+        print("  Discovery search: disabled")
 
     total_kept = 0
     total_dropped = 0
@@ -721,7 +655,7 @@ def run_pipeline(db_path: str | None = None):
     # ── Phase 2: Concurrent AI processing (workers return event dicts, no DB writes) ──
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    def _process_member_work(idx: int, mb: dict, items: list, aliases_str: str, domains_str: str) -> list[dict]:
+    def _process_member_work(idx: int, mb: dict, items: list, aliases_str: str, domains_str: str, router_factory=None) -> list[dict]:
         """Process one member's items. Returns list of event dicts to insert."""
         _update_member_status(idx, "running")
         results = []
@@ -754,9 +688,14 @@ def run_pipeline(db_path: str | None = None):
                     short_label = item["title"][:20]
                 status = "watch"
 
-                # Tavily
-                if need_search and tavily_enabled:
-                    evidence = call_tavily(f"{mb['name']} {item['title']}")
+                # Deep search — policy-based decision
+                policy_decision = should_deep_search(item, result, search_policy)
+                if policy_decision.should_search and tavily_enabled and router_factory:
+                    local_router = router_factory()
+                    sr_response = local_router.deep(
+                        f"{mb['name']} {item['title']}", max_results=3, member_id=str(mb["id"]),
+                    )
+                    evidence = [r.to_dict() for r in sr_response.results] if sr_response.results else []
                     if evidence:
                         search_evidence = evidence
                         evidence_text = "\n".join(f"- {e['title']} ({e['url']}): {e['snippet']}" for e in evidence)
@@ -834,9 +773,14 @@ def run_pipeline(db_path: str | None = None):
 
     # Run with max 5 concurrent workers
     all_events: list[dict] = []
+    search_policy = PolicyConfig.from_settings(conn)
+
+    def _make_router():
+        return SearchRouter(get_db(db_path), profile="deep")
+
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {
-            pool.submit(_process_member_work, idx, mb, items, aliases, domains): idx
+            pool.submit(_process_member_work, idx, mb, items, aliases, domains, _make_router): idx
             for idx, mb, items, aliases, domains in work_queue
         }
         for future in as_completed(futures):
@@ -884,8 +828,8 @@ def run_pipeline(db_path: str | None = None):
     write_health(conn, "base_model", "ok")
     if pro_model:
         write_health(conn, "pro_model", "ok")
-    if get_setting(conn, "tavily_enabled", "false") == "true":
-        write_health(conn, "tavily", "ok")
+    for row in conn.execute("SELECT name FROM search_providers WHERE enabled = 1").fetchall():
+        write_health(conn, f"search_{row['name']}", "ok")
     write_health(conn, "pipeline", "ok")
 
     # Build snapshot (read previous for sentiment history)

@@ -64,6 +64,7 @@ const zh = {
   "settings.tab.config": "配置",
   "settings.tab.features": "功能",
   "settings.tab.params": "参数",
+  "settings.tab.search": "搜索",
   "settings.tab.status": "状态",
   "settings.tab.import": "导入",
 
@@ -108,6 +109,26 @@ const zh = {
   "settings.params.failThreshold": "失败阈值",
   "settings.params.failThresholdDesc": "失败模块数达到此值则全局标红",
   "settings.params.countUnit": "个",
+
+  // Settings — search tab
+  "search.enabled": "已启用",
+  "search.priority": "优先级",
+  "search.dailyCap": "日限额",
+  "search.timeout": "超时(秒)",
+  "search.apiKey": "API Key",
+  "search.test": "测试",
+  "search.testing": "测试中...",
+  "search.testOk": "连接成功",
+  "search.testFail": "连接失败",
+  "search.noProviders": "暂无搜索供应商",
+  "search.logs": "搜索日志",
+  "search.noLogs": "暂无日志",
+  "search.provider": "供应商",
+  "search.results": "结果",
+  "search.latency": "延迟",
+  "search.fallback": "降级",
+  "search.member": "成员",
+  "search.time": "时间",
 
   // Settings — status tab
   "settings.status.loading": "加载中...",
@@ -254,6 +275,7 @@ const en: Record<keyof typeof zh, string> = {
   "settings.tab.config": "Config",
   "settings.tab.features": "Features",
   "settings.tab.params": "Params",
+  "settings.tab.search": "Search",
   "settings.tab.status": "Status",
   "settings.tab.import": "Import",
 
@@ -298,6 +320,26 @@ const en: Record<keyof typeof zh, string> = {
   "settings.params.failThreshold": "Fail Threshold",
   "settings.params.failThresholdDesc": "Mark global as failed when this many modules are failed",
   "settings.params.countUnit": "",
+
+  // Settings — search tab
+  "search.enabled": "Enabled",
+  "search.priority": "Priority",
+  "search.dailyCap": "Daily Cap",
+  "search.timeout": "Timeout (s)",
+  "search.apiKey": "API Key",
+  "search.test": "Test",
+  "search.testing": "Testing...",
+  "search.testOk": "Connected",
+  "search.testFail": "Failed",
+  "search.noProviders": "No search providers",
+  "search.logs": "Search Logs",
+  "search.noLogs": "No logs yet",
+  "search.provider": "Provider",
+  "search.results": "Results",
+  "search.latency": "Latency",
+  "search.fallback": "Fallback",
+  "search.member": "Member",
+  "search.time": "Time",
 
   // Settings — status tab
   "settings.status.loading": "Loading...",

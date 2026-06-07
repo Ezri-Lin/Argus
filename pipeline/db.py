@@ -135,6 +135,37 @@ CREATE TABLE IF NOT EXISTS prices (
   market_cap REAL,
   PRIMARY KEY (symbol, ts)
 );
+
+-- Search provider configurations
+CREATE TABLE IF NOT EXISTS search_providers (
+  name        TEXT PRIMARY KEY,
+  profile     TEXT NOT NULL DEFAULT 'both',  -- 'discovery' | 'deep' | 'both'
+  enabled     INTEGER NOT NULL DEFAULT 0,
+  priority    INTEGER NOT NULL DEFAULT 99,
+  daily_cap   INTEGER NOT NULL DEFAULT 100,
+  timeout_sec INTEGER NOT NULL DEFAULT 8,
+  config_json TEXT NOT NULL DEFAULT '{}',
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Structured search log
+CREATE TABLE IF NOT EXISTS search_logs (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts               TEXT NOT NULL DEFAULT (datetime('now')),
+  member_id        TEXT,
+  profile          TEXT NOT NULL,
+  provider         TEXT NOT NULL,
+  query            TEXT,
+  results_count    INTEGER NOT NULL DEFAULT 0,
+  latency_ms       INTEGER,
+  fallback_used    INTEGER NOT NULL DEFAULT 0,
+  fallback_reason  TEXT,
+  trigger_reason   TEXT,
+  cost_estimate_usd REAL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_search_logs_ts       ON search_logs(ts);
+CREATE INDEX IF NOT EXISTS idx_search_logs_provider ON search_logs(provider);
 """
 
 MIGRATIONS = {
@@ -148,6 +179,9 @@ MIGRATIONS = {
         ("impact_persistence_days", "REAL"),
         ("impact_confidence", "REAL"),
         ("impact_rationale", "TEXT"),
+    ],
+    "search_providers": [
+        ("profile", "TEXT NOT NULL DEFAULT 'both'"),
     ],
 }
 
@@ -167,6 +201,7 @@ def init_db(path: str | None = None) -> sqlite3.Connection:
     conn = get_db(path)
     conn.executescript(SCHEMA)
     _ensure_columns(conn)
+    _seed_search_providers(conn)
     conn.commit()
 
     db_file = Path(path or DB_PATH)
@@ -186,6 +221,39 @@ def _ensure_columns(conn: sqlite3.Connection):
         for name, definition in columns:
             if name not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+
+
+def _seed_search_providers(conn: sqlite3.Connection):
+    """Seed default search providers. Idempotent."""
+    # profile: 'discovery' = low-cost scan, 'deep' = on-demand evidence, 'both' = either
+    # Default order: SearXNG(discovery) → Serper(fallback) → Bocha(Chinese), Tavily(deep only)
+    providers = [
+        # (name,      profile,     enabled, priority, daily_cap, timeout, config)
+        ("searxng",    "discovery", 0,       1,        300,       8,       "{}"),
+        ("serper",     "both",      0,       2,        80,        8,       "{}"),
+        ("bocha",      "both",      0,       3,        40,        8,       "{}"),
+        ("duckduckgo", "both",      0,       99,       100,       8,       "{}"),
+        ("tavily",     "deep",      0,       1,        30,        8,       "{}"),
+    ]
+    for name, profile, enabled, priority, daily_cap, timeout, config in providers:
+        conn.execute(
+            "INSERT OR IGNORE INTO search_providers "
+            "(name, profile, enabled, priority, daily_cap, timeout_sec, config_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (name, profile, enabled, priority, daily_cap, timeout, config),
+        )
+    # Migrate existing rows: update profile for providers that still have default 'both'
+    for name, profile, *_ in providers:
+        conn.execute(
+            "UPDATE search_providers SET profile = ? WHERE name = ? AND profile = 'both' AND ? != 'both'",
+            (profile, name, profile),
+        )
+    # Migrate existing tavily_enabled setting → enable tavily for deep search
+    tavily_on = get_setting(conn, "tavily_enabled", "false") == "true"
+    if tavily_on:
+        conn.execute(
+            "UPDATE search_providers SET enabled = 1, updated_at = datetime('now') WHERE name = 'tavily'"
+        )
 
 
 def get_setting(conn: sqlite3.Connection, key: str, default: str = "") -> str:
@@ -208,3 +276,35 @@ def get_model_for_role(conn: sqlite3.Connection, role: str) -> dict | None:
         (role,),
     ).fetchone()
     return dict(row) if row else None
+
+
+def get_search_provider(conn: sqlite3.Connection, name: str) -> dict | None:
+    row = conn.execute("SELECT * FROM search_providers WHERE name = ?", (name,)).fetchone()
+    return dict(row) if row else None
+
+
+def get_enabled_providers(conn: sqlite3.Connection, profile: str | None = None) -> list[dict]:
+    """Return enabled search providers ordered by priority.
+    If profile is given, filter by profile (exact match or 'both').
+    """
+    if profile:
+        rows = conn.execute(
+            "SELECT * FROM search_providers WHERE enabled = 1 AND (profile = ? OR profile = 'both') ORDER BY priority ASC",
+            (profile,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM search_providers WHERE enabled = 1 ORDER BY priority ASC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def insert_search_log(conn: sqlite3.Connection, **kwargs):
+    """Insert a row into search_logs. Keys must match column names."""
+    cols = ", ".join(kwargs.keys())
+    placeholders = ", ".join("?" * len(kwargs))
+    conn.execute(
+        f"INSERT INTO search_logs ({cols}) VALUES ({placeholders})",
+        list(kwargs.values()),
+    )
+    conn.commit()

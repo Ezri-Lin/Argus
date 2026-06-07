@@ -45,22 +45,13 @@ def _call_model(model_cfg: dict, system: str, user: str) -> str:
     return resp.choices[0].message.content.strip()
 
 
-def _call_tavily(api_key: str, query: str, max_results: int = 5) -> list[dict]:
-    req = urllib.request.Request(
-        "https://api.tavily.com/search",
-        data=json.dumps({
-            "api_key": api_key,
-            "query": query,
-            "max_results": max_results,
-        }).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read())
-        return [
-            {"title": r["title"], "url": r["url"], "snippet": r.get("content", "")[:300]}
-            for r in data.get("results", [])
-        ]
+def _search_query(conn, query: str, max_results: int = 5) -> list[dict]:
+    """Search using SearchRouter. Returns list of {title, url, snippet}."""
+    from search.router import SearchRouter
+
+    search_router = SearchRouter(conn, profile="api")
+    response = search_router.search(query, max_results=max_results, trigger_reason="api")
+    return [r.to_dict() for r in response.results]
 
 
 # ── AI Search ──
@@ -73,23 +64,22 @@ class SearchRequest(BaseModel):
 @router.post("/search")
 def ai_search(body: SearchRequest):
     conn = _conn()
-    tavily_key = get_setting(conn, "tavily_api_key", "") or os.environ.get("TAVILY_API_KEY", "")
     model = get_model_for_role(conn, "base")
-    conn.close()
 
-    if not tavily_key:
-        return {"ok": False, "error": "Tavily API key not configured"}
     if not model:
+        conn.close()
         return {"ok": False, "error": "No base model configured"}
 
     try:
-        results = _call_tavily(tavily_key, body.query, max_results=8)
+        results = _search_query(conn, body.query, max_results=8)
     except Exception as e:
-        return {"ok": False, "error": f"Tavily error: {_safe_text(e)}"}
+        conn.close()
+        return {"ok": False, "error": f"Search error: {_safe_text(e)}"}
 
     evidence = "\n".join(f"- {r['title']} ({r['url']}): {r['snippet']}" for r in results)
 
     language = get_setting(conn, "language", "zh")
+    conn.close()
 
     if language == "en":
         system = """You are the Argus intelligence search summary module. Extract key information from search results.
@@ -131,23 +121,24 @@ class SuggestDatesRequest(BaseModel):
     keyword: str
 
 
-def _query_dates_for_keyword(model_cfg: dict, keyword: str, language: str = "zh", tavily_key: str = "", tavily_enabled: bool = True) -> list[dict]:
-    """Query AI for future date nodes for a single keyword. Uses Tavily web search for grounding."""
+def _query_dates_for_keyword(model_cfg: dict, keyword: str, language: str = "zh") -> list[dict]:
+    """Query AI for future date nodes for a single keyword. Uses web search for grounding."""
     from datetime import date
     today = date.today().isoformat()
 
-    # Tavily search for real dates (only if tavily_enabled)
+    # Web search for real dates
     evidence_block = ""
-    if tavily_key and tavily_enabled:
-        try:
-            search_query = f"{keyword} schedule dates 2026"
-            results = _call_tavily(tavily_key, search_query, max_results=5)
-            if results:
-                evidence_block = "\n".join(
-                    f"- {r['title']}: {r['snippet']}" for r in results
-                )
-        except Exception:
-            pass  # Tavily failure is non-fatal
+    try:
+        conn = _conn()
+        search_query = f"{keyword} schedule dates 2026"
+        results = _search_query(conn, search_query, max_results=5)
+        conn.close()
+        if results:
+            evidence_block = "\n".join(
+                f"- {r['title']}: {r['snippet']}" for r in results
+            )
+    except Exception:
+        pass  # Search failure is non-fatal
 
     if language == "en":
         system = f"""You are a date estimation assistant. Today is {today}.
@@ -200,15 +191,13 @@ def suggest_dates(body: SuggestDatesRequest):
     conn = _conn()
     model = get_model_for_role(conn, "base")
     language = get_setting(conn, "language", "zh")
-    tavily_key = get_setting(conn, "tavily_api_key", "") or os.environ.get("TAVILY_API_KEY", "")
-    tavily_enabled = get_setting(conn, "tavily_enabled", "false") == "true"
     conn.close()
 
     if not model:
         return {"ok": False, "error": "No base model configured"}
 
     try:
-        dates = _query_dates_for_keyword(model, body.keyword, language, tavily_key, tavily_enabled)
+        dates = _query_dates_for_keyword(model, body.keyword, language)
         return {"ok": True, "dates": dates}
     except Exception as e:
         return {"ok": False, "error": f"Model error: {_safe_text(e)}"}
@@ -226,8 +215,6 @@ def refresh_dates(body: RefreshDatesRequest):
     conn = _conn()
     model = get_model_for_role(conn, "base")
     language = get_setting(conn, "language", "zh")
-    tavily_key = get_setting(conn, "tavily_api_key", "") or os.environ.get("TAVILY_API_KEY", "")
-    tavily_enabled = get_setting(conn, "tavily_enabled", "false") == "true"
     conn.close()
 
     if not model:
@@ -239,7 +226,7 @@ def refresh_dates(body: RefreshDatesRequest):
         if not kw:
             continue
         try:
-            dates = _query_dates_for_keyword(model, kw, language, tavily_key, tavily_enabled)
+            dates = _query_dates_for_keyword(model, kw, language)
             results[kw] = dates
         except Exception as e:
             results[kw] = []

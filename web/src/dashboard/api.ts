@@ -418,3 +418,66 @@ export async function putSourcesLibrary(doc: LibraryDoc): Promise<boolean> {
 export async function importSourcesLibrary(doc: LibraryDoc): Promise<{ ok: boolean; added_streams: number; added_feeds: number } | null> {
   return apiFetch("/sources-library/import", jsonBody("POST", doc));
 }
+
+// ── Search providers ──
+
+export type SearchProvider = {
+  name: string;
+  profile: "discovery" | "deep" | "both";
+  enabled: number;
+  priority: number;
+  daily_cap: number;
+  timeout_sec: number;
+  config_json: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SearchLog = {
+  id: number;
+  ts: string;
+  member_id: string | null;
+  profile: string;
+  provider: string;
+  query: string;
+  results_count: number;
+  latency_ms: number;
+  fallback_used: number;
+  fallback_reason: string | null;
+  trigger_reason: string;
+  cost_estimate_usd: number;
+};
+
+export type SearchStats = {
+  today: Array<{
+    provider: string;
+    calls: number;
+    results: number;
+    avg_latency: number;
+    total_cost: number;
+  }>;
+};
+
+export const fetchSearchProviders = () => apiFetch<SearchProvider[]>("/search/providers");
+
+export async function updateSearchProvider(name: string, patch: Partial<SearchProvider>): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/search/providers/${name}`, jsonBody("PUT", patch));
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export const testSearchProvider = (name: string) =>
+  apiFetch<{ ok: boolean; results_count: number; latency_ms: number; error?: string }>(
+    `/search/providers/${name}/test`,
+    { method: "POST" },
+  );
+
+export const fetchSearchLogs = (limit = 20, provider = "") =>
+  apiFetch<{ logs: SearchLog[]; total: number }>(
+    `/search/search-logs?limit=${limit}${provider ? `&provider=${provider}` : ""}`,
+  );
+
+export const fetchSearchStats = () => apiFetch<SearchStats>("/search/stats");
