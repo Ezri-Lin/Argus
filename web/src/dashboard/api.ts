@@ -27,6 +27,10 @@ export type {
   SearchProvider,
   SearchLog,
   SearchStats,
+  BudgetEntry,
+  BudgetStatus,
+  LastRunSummary,
+  ProviderHealthItem,
 } from "./api-types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -273,3 +277,13 @@ export const fetchSearchLogs = (limit = 20, provider = "") =>
   );
 
 export const fetchSearchStats = () => apiFetch<SearchStats>("/search/stats");
+
+// ── Budget & Pipeline Status (M3) ──
+
+export async function fetchBudgetStatus(): Promise<BudgetStatus | null> {
+  return apiFetch<BudgetStatus>("/budget-status");
+}
+
+export async function fetchLastRunSummary(): Promise<LastRunSummary | null> {
+  return apiFetch<LastRunSummary>("/pipeline/last-run");
+}

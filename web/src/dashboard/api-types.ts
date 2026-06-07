@@ -232,3 +232,37 @@ export type SearchStats = {
     total_cost: number;
   }>;
 };
+
+// M3: Budget & Pipeline Status
+
+export interface BudgetEntry {
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+export interface BudgetStatus {
+  daily_ai_calls: BudgetEntry;
+  daily_llm_tokens: BudgetEntry;
+  per_call_token_limit: BudgetEntry;
+  daily_deep_search_calls: BudgetEntry;
+  daily_tavily_budget_usd: BudgetEntry;
+  max_base_articles_per_run: BudgetEntry;
+  max_base_articles_per_member: BudgetEntry;
+  max_digest_generation_per_run: BudgetEntry;
+}
+
+export interface LastRunSummary {
+  status: string;
+  module?: string;
+  last_ok?: string;
+  last_error?: string;
+  updated_at?: string;
+}
+
+export interface ProviderHealthItem {
+  provider: string;
+  status: "healthy" | "unavailable" | "degraded" | "disabled" | "unknown";
+  latency_ms?: number;
+  error?: string;
+}
