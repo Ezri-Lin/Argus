@@ -112,6 +112,32 @@ web/               # React + Vite + D3 treemap
     lib/           # i18n, theme, utilities
 ```
 
+## Self-hosted search with SearXNG
+
+Argus can optionally run SearXNG as a local metasearch sidecar for low-cost discovery search.
+
+Start with:
+
+```bash
+docker compose --profile search up -d
+```
+
+If you already have a SearXNG instance:
+
+```bash
+SEARXNG_BASE_URL=https://your-search.example.com
+```
+
+SearXNG is an independent open-source project licensed under AGPL-3.0. Argus runs the official container image by default and does not modify SearXNG source code. Do not expose your SearXNG instance publicly without authentication and rate limiting.
+
+## RSS intelligence engine
+
+- Preloaded official/news/research sources are enabled by default.
+- Articles are cached locally in SQLite.
+- Local matching uses full title/snippet/content relevance, not title-only matching.
+- Backend automatically discovers official feeds for newly added members.
+- Users normally only configure domains and members.
+
 ## Deployment
 
 ### Docker (Recommended)
