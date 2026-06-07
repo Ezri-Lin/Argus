@@ -43,14 +43,18 @@ app.add_middleware(
 from .routes_models import router as models_router
 from .routes_members import router as members_router
 from .routes_sources import router as sources_router
+from .routes_sources import library_router
 from .routes_ai import router as ai_router
 from .routes_search import router as search_router
+from .routes_pipeline import router as pipeline_router
 
 app.include_router(models_router)
 app.include_router(members_router)
 app.include_router(sources_router)
+app.include_router(library_router)
 app.include_router(ai_router)
 app.include_router(search_router)
+app.include_router(pipeline_router)
 
 
 def _conn():
@@ -153,66 +157,6 @@ def put_layout(body: LayoutDoc):
     return {"ok": True}
 
 
-# ── Sources Library ──
-
-LIBRARY_PATH = Path(__file__).parent.parent / "data" / "sources-library.json"
-
-
-def _read_library() -> dict:
-    if LIBRARY_PATH.exists():
-        try:
-            return json.loads(LIBRARY_PATH.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return {"streams": [], "feeds": []}
-
-
-def _write_library(data: dict):
-    LIBRARY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    LIBRARY_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-@app.get("/sources-library")
-def get_sources_library():
-    return _read_library()
-
-
-class LibraryDoc(BaseModel):
-    streams: list = []
-    feeds: list = []
-
-
-@app.put("/sources-library")
-def put_sources_library(body: LibraryDoc):
-    _write_library(body.model_dump())
-    return {"ok": True}
-
-
-@app.post("/sources-library/import")
-def import_sources_library(body: LibraryDoc):
-    """Merge imported sources into existing library, dedup by url."""
-    existing = _read_library()
-    existing_urls = {s["url"] for s in existing.get("streams", []) if s.get("url")}
-    existing_feed_urls = {s["url"] for s in existing.get("feeds", []) if s.get("url")}
-
-    added_s = 0
-    for s in body.streams:
-        if s.get("url") and s["url"] not in existing_urls:
-            existing.setdefault("streams", []).append(s)
-            existing_urls.add(s["url"])
-            added_s += 1
-
-    added_f = 0
-    for f in body.feeds:
-        if f.get("url") and f["url"] not in existing_feed_urls:
-            existing.setdefault("feeds", []).append(f)
-            existing_feed_urls.add(f["url"])
-            added_f += 1
-
-    _write_library(existing)
-    return {"ok": True, "added_streams": added_s, "added_feeds": added_f}
-
-
 # ── GET /health ──
 
 @app.get("/health")
@@ -300,26 +244,6 @@ def put_settings(body: SettingsUpdate):
         except Exception:
             pass
     return {"ok": True}
-
-
-# ── POST /pipeline/trigger ──
-
-@app.post("/pipeline/trigger")
-def trigger_pipeline():
-    """Manually trigger a pipeline run (non-blocking, runs in background)."""
-    from .scheduler import trigger_now
-    try:
-        trigger_now()
-        return {"ok": True, "message": "Pipeline triggered"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.get("/pipeline/progress")
-def get_pipeline_progress():
-    """Return current pipeline progress (for frontend polling)."""
-    from pipeline import get_progress
-    return get_progress()
 
 
 # ── Static file serving (production / Docker) ──
