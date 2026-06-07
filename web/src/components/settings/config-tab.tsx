@@ -6,16 +6,7 @@ import {
   type SettingsResponse, type ModelsResponse,
 } from "@/dashboard/api";
 import { ModelCard } from "./model-card";
-
-const inputStyle = {
-  width: "100%", padding: "8px 10px", fontSize: 13,
-  color: color.textPrimary, background: color.surface2,
-  border: `1px solid ${color.hairline}`, borderRadius: radius.inner, outline: "none",
-} as const;
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, color: color.textMuted, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{children}</div>;
-}
+import { SectionLabel, inputStyle } from "./settings-ui";
 
 /** Mask API key: show first 5 + last 4 chars */
 function maskKey(key: string): string {
