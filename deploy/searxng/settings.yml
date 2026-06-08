@@ -3,10 +3,14 @@ server:
   secret_key: "argus-local-instance"
   limiter: false
   image_proxy: false
+  bind_address: "0.0.0.0"
 search:
   safe_search: 0
   autocomplete: ""
   default_lang: "auto"
+  formats:
+    - html
+    - json
 engines:
   - name: duckduckgo
     disabled: false

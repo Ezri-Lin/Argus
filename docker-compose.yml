@@ -26,6 +26,9 @@ services:
     environment:
       - BASE_URL=http://localhost:8080/
       - INSTANCE_NAME=argus-search
+      - SEARXNG_SECRET=argus-local-secret-key-12345
+      - SEARXNG_LIMITER=false
+      - SEARXNG_DEBUG=true
     restart: unless-stopped
 
 volumes:
