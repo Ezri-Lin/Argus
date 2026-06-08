@@ -27,13 +27,13 @@ def _build_domain_query(member_name: str, domain_key: str, conn) -> str:
     if not domain_key:
         return member_name
     row = conn.execute(
-        "SELECT name, search_intent, include_terms FROM domains WHERE key = ?",
+        "SELECT key, label_en, search_intent, include_terms FROM domains WHERE key = ?",
         (domain_key,),
     ).fetchone()
     if not row:
         return member_name
     terms = _parse_terms(row["include_terms"])[:3]
-    intent = row["search_intent"] or row["name"]
+    intent = row["search_intent"] or row["label_en"] or row["key"]
     if terms:
         return f"{member_name} {' '.join(terms)}"
     return f"{member_name} {intent}"
