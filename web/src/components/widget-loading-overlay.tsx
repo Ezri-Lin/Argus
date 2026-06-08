@@ -83,8 +83,8 @@ export function WidgetLoadingOverlay({ domain }: { domain?: string }) {
                 fontSize: 10,
                 padding: "2px 6px",
                 borderRadius: 4,
-                background: m.status === "done" ? color.successSoft : m.status === "running" ? color.accentSoft : color.surface2,
-                color: m.status === "done" ? color.success : m.status === "running" ? color.accent : color.textMuted,
+                background: m.status === "done" ? color.posBg : m.status === "running" ? color.accentSoft : color.surface2,
+                color: m.status === "done" ? color.pos : m.status === "running" ? color.accent : color.textMuted,
               }}
             >
               {m.name}

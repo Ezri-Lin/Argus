@@ -1,6 +1,7 @@
 import { color, radius } from "@/design/tokens";
 import { sentimentStyle } from "@/lib/treemap-style";
 import { useI18n } from "@/lib/use-i18n";
+import type { I18nKey } from "@/lib/i18n";
 import { getKindLabel } from "@/lib/kind-label";
 import { formatLocalShort } from "@/lib/format-time";
 import type { TreemapItem, RelatedNews } from "@/dashboard/mock-data";
@@ -10,7 +11,7 @@ function isRelatedNews(r: string | RelatedNews): r is RelatedNews {
 }
 
 /** Visual indicator for impact weight — higher = more prominent */
-function impactBadge(impactWeight: number | undefined, t: (key: string) => string) {
+function impactBadge(impactWeight: number | undefined, t: (key: I18nKey) => string) {
   if (impactWeight == null || impactWeight < 30) return null;
   const level = impactWeight >= 70 ? "high" : impactWeight >= 50 ? "med" : "low";
   const label = level === "high" ? t("detail.highImpact") : level === "med" ? t("detail.impact") : null;

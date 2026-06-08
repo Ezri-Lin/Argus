@@ -2,7 +2,26 @@
 
 /// <reference types="vite/client" />
 
-import type { BudgetStatus, LastRunSummary, LibraryDoc } from "./api-types";
+import type {
+  ApiResponse,
+  HealthResponse,
+  SettingsResponse,
+  ModelsResponse,
+  DomainItem,
+  MemberItem,
+  SourceItem,
+  PipelineProgress,
+  AiSearchResult,
+  AiDatesResult,
+  AiVideoResult,
+  AiStatResult,
+  SearchProvider,
+  SearchLog,
+  SearchStats,
+  BudgetStatus,
+  LastRunSummary,
+  LibraryDoc,
+} from "./api-types";
 
 export type {
   ApiLogoFields,

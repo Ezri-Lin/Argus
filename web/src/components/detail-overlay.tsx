@@ -5,6 +5,7 @@ import { color, radius, fontSize, fontFamily } from "@/design/tokens";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import { useFreshness } from "@/lib/use-freshness";
 import { useI18n } from "@/lib/use-i18n";
+import type { I18nKey } from "@/lib/i18n";
 
 type DetailOverlayProps = {
   widgetTitle: string;
@@ -320,7 +321,7 @@ function StatChip({ label, value }: { label: string; value: number }) {
   );
 }
 
-function getModuleLabels(t: (key: string) => string): Record<string, string> {
+function getModuleLabels(t: (key: I18nKey) => string): Record<string, string> {
   return {
     pipeline: t("detail.module.pipeline"),
     rss: t("detail.module.rss"),
