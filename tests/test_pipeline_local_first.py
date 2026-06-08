@@ -25,7 +25,7 @@ class TestPipelineLocalFirst(unittest.TestCase):
             "VALUES (1, 'Test', 'rss', 'http://x', 1)"
         )
         self.conn.execute(
-            "INSERT INTO domains (key, label_zh) VALUES ('ai', 'AI')"
+            "INSERT INTO domains (key, label) VALUES ('ai', 'AI')"
         )
         self.conn.execute(
             "INSERT INTO members (id, name) VALUES (1, 'OpenAI')"

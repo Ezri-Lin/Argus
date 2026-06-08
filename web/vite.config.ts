@@ -7,6 +7,7 @@ const API_PATHS = [
   "/data", "/layout", "/health", "/settings",
   "/models", "/domains", "/members", "/sources",
   "/ai", "/pipeline", "/search", "/budget-status",
+  "/widgets",
 ];
 
 export default defineConfig({

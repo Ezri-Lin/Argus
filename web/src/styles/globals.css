@@ -1,5 +1,6 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "./geist-override.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

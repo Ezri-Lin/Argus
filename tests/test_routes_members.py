@@ -21,7 +21,7 @@ class MemberCreateBaselineTests(unittest.TestCase):
         os.environ["ARGUS_DB_PATH"] = self.tmp.name
         self.conn = init_db(self.tmp.name)
         self.conn.execute(
-            "INSERT INTO domains (key, label_zh, label_en, weight) VALUES ('ai', 'AI 大模型', 'AI', 1.0)"
+            "INSERT INTO domains (key, label, weight) VALUES ('ai', 'AI 大模型', 1.0)"
         )
         self.conn.execute(
             "INSERT INTO settings (key, value) VALUES ('pro_enabled', 'true')"

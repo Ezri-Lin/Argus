@@ -28,7 +28,7 @@ class PipelineProJudgementTests(unittest.TestCase):
             "INSERT INTO settings (key, value) VALUES ('tavily_enabled', 'false')"
         )
         self.conn.execute(
-            "INSERT INTO domains (key, label_zh, label_en, weight) VALUES ('ai', 'AI 大模型', 'AI', 1.0)"
+            "INSERT INTO domains (key, label, weight) VALUES ('ai', 'AI 大模型', 1.0)"
         )
         member_id = self.conn.execute(
             "INSERT INTO members (name, aliases, baseline_influence) VALUES ('OpenAI', '[\"ChatGPT\"]', 90)"

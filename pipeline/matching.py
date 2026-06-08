@@ -15,10 +15,10 @@ def member_aliases(member: dict) -> list[str]:
 
 def member_domains(conn, member_id: int) -> list[str]:
     rows = conn.execute(
-        "SELECT d.label_zh FROM memberships m JOIN domains d ON d.key = m.domain "
+        "SELECT d.label FROM memberships m JOIN domains d ON d.key = m.domain "
         "WHERE m.member_id = ?", (member_id,)
     ).fetchall()
-    return [r["label_zh"] for r in rows]
+    return [r["label"] or r["key"] for r in rows]
 
 
 def matches_member(title: str, snippet: str, member: dict) -> bool:

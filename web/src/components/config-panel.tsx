@@ -344,7 +344,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
               selectedDomain={config.group || "tech"}
               onSelectDomain={(d) => setConfig((c) => ({ ...c, group: d }))}
               onAddDomain={async (key, label) => {
-                await createDomain({ key, label_zh: label, label_en: "", weight: 1.0 });
+                await createDomain({ key, label, weight: 1.0 });
                 const d = await fetchDomains();
                 if (d) setDomains(d);
               }}

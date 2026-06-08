@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 if command -v docker &>/dev/null; then
   if docker info &>/dev/null; then
     echo "▸ Starting SearXNG…"
-    docker compose --profile search up -d 2>/dev/null || true
+    docker compose up -d searxng 2>/dev/null || true
     # Wait for SearXNG to be ready
     for i in $(seq 1 15); do
       if curl -sf http://localhost:8080/healthz &>/dev/null; then
@@ -36,14 +36,9 @@ if ! python3 -c "import fastapi" &>/dev/null; then
   pip3 install -r pipeline/requirements.txt
 fi
 
-# ── Init DB (create tables only, no seed data) ──
-mkdir -p data
-python3 -c "
-import sys; sys.path.insert(0, 'pipeline')
-from db import init_db
-init_db()
-print('  DB initialized.')
-"
+# ── Seed DB (idempotent: creates tables, seeds data, generates snapshot, refreshes health) ──
+echo "▸ Seeding database…"
+python3 pipeline/seed.py
 
 # ── Frontend deps ──
 if [ ! -d "web/node_modules" ]; then

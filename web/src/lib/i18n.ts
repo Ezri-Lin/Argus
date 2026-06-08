@@ -33,6 +33,11 @@ const zh = {
   "config.treemap.quickAdd": "快速添加",
   "config.treemap.primaryInterval": "主成员刷新 (min)",
   "config.treemap.secondaryInterval": "副成员刷新 (min)",
+  "config.treemap.tierPrimary": "主力",
+  "config.treemap.tierSecondary": "观察",
+  "config.treemap.tierCandidate": "推荐",
+  "config.treemap.candidateHint": "推荐成员不会主动获取数据，如有需要可加入主力或观察",
+  "config.treemap.interval": "刷新",
 
   // ── Config panel — feed ──
   "config.feed.mode": "模式",
@@ -440,6 +445,11 @@ const en: Record<keyof typeof zh, string> = {
   "config.treemap.quickAdd": "Quick add",
   "config.treemap.primaryInterval": "Primary interval (min)",
   "config.treemap.secondaryInterval": "Secondary interval (min)",
+  "config.treemap.tierPrimary": "Primary",
+  "config.treemap.tierSecondary": "Secondary",
+  "config.treemap.tierCandidate": "Recommended",
+  "config.treemap.candidateHint": "Recommended members won't be fetched. Move to Primary or Secondary to enable.",
+  "config.treemap.interval": "Interval",
 
   // ── Config panel — feed ──
   "config.feed.mode": "Mode",

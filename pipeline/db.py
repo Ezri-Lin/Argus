@@ -26,8 +26,7 @@ CREATE TABLE IF NOT EXISTS sources (
 -- Domains (e.g. "llm", "chips", "markets")
 CREATE TABLE IF NOT EXISTS domains (
   key       TEXT PRIMARY KEY,
-  label_zh  TEXT NOT NULL,
-  label_en  TEXT,
+  label     TEXT NOT NULL DEFAULT '',
   weight    REAL NOT NULL DEFAULT 1.0,
   aliases   TEXT NOT NULL DEFAULT '[]'
 );
@@ -36,8 +35,7 @@ CREATE TABLE IF NOT EXISTS domains (
 CREATE TABLE IF NOT EXISTS members (
   id        INTEGER PRIMARY KEY,
   name      TEXT NOT NULL UNIQUE,
-  label_zh  TEXT,
-  label_en  TEXT,
+  label     TEXT NOT NULL DEFAULT '',
   aliases   TEXT NOT NULL DEFAULT '[]',
   symbol    TEXT,
   baseline_influence REAL NOT NULL DEFAULT 20.0,
@@ -321,6 +319,7 @@ MIGRATIONS = {
         ("consecutive_failures", "INTEGER DEFAULT 0"),
     ],
     "members": [
+        ("label", "TEXT NOT NULL DEFAULT ''"),
         ("baseline_influence", "REAL NOT NULL DEFAULT 20.0"),
         ("baseline_confidence", "REAL NOT NULL DEFAULT 0.0"),
         ("baseline_rationale", "TEXT"),
@@ -352,6 +351,7 @@ MIGRATIONS = {
         ("decision_json", "TEXT"),
     ],
     "domains": [
+        ("label", "TEXT NOT NULL DEFAULT ''"),
         ("description", "TEXT DEFAULT ''"),
         ("search_intent", "TEXT DEFAULT ''"),
         ("include_terms", "TEXT DEFAULT '[]'"),
@@ -398,6 +398,15 @@ def _ensure_columns(conn: sqlite3.Connection):
         for name, definition in columns:
             if name not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+
+    # Backfill label from label_zh for existing databases
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(domains)")}
+    if "label_zh" in cols:
+        conn.execute("UPDATE domains SET label = COALESCE(label_zh, '') WHERE label = '' OR label IS NULL")
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(members)")}
+    if "label_zh" in cols:
+        conn.execute("UPDATE members SET label = COALESCE(label_zh, '') WHERE label = '' OR label IS NULL")
+    conn.commit()
 
 
 def _seed_search_providers(conn: sqlite3.Connection):

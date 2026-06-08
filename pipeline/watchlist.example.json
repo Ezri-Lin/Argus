@@ -4,16 +4,16 @@
     { "name": "TechCrunch", "type": "rss", "url": "https://techcrunch.com/feed/", "weight": 0.8 }
   ],
   "domains": [
-    { "key": "tech", "label_zh": "科技", "label_en": "Tech", "weight": 1.0 },
-    { "key": "markets", "label_zh": "市场", "label_en": "Markets", "weight": 0.9 },
-    { "key": "ai", "label_zh": "AI 大模型", "label_en": "AI", "weight": 1.0 }
+    { "key": "tech", "label": "科技", "weight": 1.0 },
+    { "key": "markets", "label": "市场", "weight": 0.9 },
+    { "key": "ai", "label": "AI 大模型", "weight": 1.0 }
   ],
   "members": [
-    { "name": "NVIDIA", "label_zh": "英伟达", "symbol": "NVDA", "domains": ["tech", "ai"], "aliases": ["nvda", "英伟达"] },
-    { "name": "OpenAI", "label_zh": "OpenAI", "domains": ["tech", "ai"], "aliases": ["openai", "chatgpt"] },
-    { "name": "Apple", "label_zh": "苹果", "symbol": "AAPL", "domains": ["tech"], "aliases": ["aapl", "苹果"] },
-    { "name": "Anthropic", "label_zh": "Anthropic", "domains": ["tech", "ai"], "aliases": ["anthropic", "claude"] },
-    { "name": "Microsoft", "label_zh": "微软", "symbol": "MSFT", "domains": ["tech", "ai"], "aliases": ["msft", "微软"] }
+    { "name": "NVIDIA", "label": "英伟达", "symbol": "NVDA", "domains": ["tech", "ai"], "aliases": ["nvda", "英伟达"] },
+    { "name": "OpenAI", "label": "OpenAI", "domains": ["tech", "ai"], "aliases": ["openai", "chatgpt"] },
+    { "name": "Apple", "label": "苹果", "symbol": "AAPL", "domains": ["tech"], "aliases": ["aapl", "苹果"] },
+    { "name": "Anthropic", "label": "Anthropic", "domains": ["tech", "ai"], "aliases": ["anthropic", "claude"] },
+    { "name": "Microsoft", "label": "微软", "symbol": "MSFT", "domains": ["tech", "ai"], "aliases": ["msft", "微软"] }
   ],
   "models": [
     {

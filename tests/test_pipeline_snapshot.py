@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 from db import init_db
-from pipeline import build_snapshot
+from snapshot import build_snapshot
 
 
 class SnapshotInfluenceTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class SnapshotInfluenceTests(unittest.TestCase):
 
     def add_domain(self):
         self.conn.execute(
-            "INSERT INTO domains (key, label_zh, label_en, weight) VALUES ('ai', 'AI', 'AI', 1.0)"
+            "INSERT INTO domains (key, label, weight) VALUES ('ai', 'AI', 1.0)"
         )
 
     def add_member(self, name, baseline):

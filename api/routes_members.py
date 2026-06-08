@@ -51,13 +51,10 @@ def _domain_labels(conn, domains: list[str]) -> str:
     if not domains:
         return ""
     rows = conn.execute(
-        f"SELECT key, label_zh, label_en FROM domains WHERE key IN ({','.join('?' for _ in domains)})",
+        f"SELECT key, label FROM domains WHERE key IN ({','.join('?' for _ in domains)})",
         domains,
     ).fetchall()
-    by_key = {
-        r["key"]: " ".join(v for v in (r["label_zh"], r["label_en"]) if v)
-        for r in rows
-    }
+    by_key = {r["key"]: r["label"] or r["key"] for r in rows}
     return ", ".join(by_key.get(key, key) for key in domains)
 
 
@@ -144,8 +141,7 @@ def list_domains():
 
 class DomainCreate(BaseModel):
     key: str
-    label_zh: str = ""
-    label_en: str = ""
+    label: str = ""
     weight: float = 1.0
     description: str = ""
     search_intent: str = ""
@@ -157,12 +153,12 @@ class DomainCreate(BaseModel):
 def create_domain(body: DomainCreate):
     conn = _conn()
     conn.execute(
-        "INSERT INTO domains (key, label_zh, label_en, weight, description, search_intent, include_terms, exclude_terms) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
-        "ON CONFLICT(key) DO UPDATE SET label_zh=excluded.label_zh, label_en=excluded.label_en, "
+        "INSERT INTO domains (key, label, weight, description, search_intent, include_terms, exclude_terms) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET label=excluded.label, "
         "weight=excluded.weight, description=excluded.description, search_intent=excluded.search_intent, "
         "include_terms=excluded.include_terms, exclude_terms=excluded.exclude_terms",
-        (body.key, body.label_zh, body.label_en, body.weight, body.description,
+        (body.key, body.label, body.weight, body.description,
          body.search_intent, json.dumps(body.include_terms), json.dumps(body.exclude_terms)),
     )
     conn.commit()
@@ -171,8 +167,7 @@ def create_domain(body: DomainCreate):
 
 
 class DomainUpdate(BaseModel):
-    label_zh: str | None = None
-    label_en: str | None = None
+    label: str | None = None
     weight: float | None = None
     description: str | None = None
     search_intent: str | None = None
@@ -184,10 +179,8 @@ class DomainUpdate(BaseModel):
 def update_domain(key: str, body: DomainUpdate):
     conn = _conn()
     fields, values = [], []
-    if body.label_zh is not None:
-        fields.append("label_zh = ?"); values.append(body.label_zh)
-    if body.label_en is not None:
-        fields.append("label_en = ?"); values.append(body.label_en)
+    if body.label is not None:
+        fields.append("label = ?"); values.append(body.label)
     if body.weight is not None:
         fields.append("weight = ?"); values.append(body.weight)
     if body.description is not None:
@@ -222,7 +215,7 @@ def delete_domain(key: str):
 def list_members():
     conn = _conn()
     members = conn.execute("""
-        SELECT m.id, m.name, m.label_zh, m.label_en, m.aliases, m.symbol,
+        SELECT m.id, m.name, m.label, m.aliases, m.symbol,
                GROUP_CONCAT(ms.domain) as domains
         FROM members m
         LEFT JOIN memberships ms ON ms.member_id = m.id
@@ -241,8 +234,7 @@ def list_members():
 
 class MemberCreate(BaseModel):
     name: str
-    label_zh: str = ""
-    label_en: str = ""
+    label: str = ""
     symbol: str = ""
     aliases: list[str] = []
 
@@ -257,8 +249,8 @@ def create_member(body: MemberCreate):
         return {"id": existing["id"]}
 
     cur = conn.execute(
-        "INSERT INTO members (name, label_zh, label_en, aliases, symbol) VALUES (?, ?, ?, ?, ?)",
-        (body.name, body.label_zh, body.label_en, json.dumps(body.aliases), body.symbol),
+        "INSERT INTO members (name, label, aliases, symbol) VALUES (?, ?, ?, ?)",
+        (body.name, body.label, json.dumps(body.aliases), body.symbol),
     )
     member_id = cur.lastrowid
     conn.commit()
@@ -305,8 +297,7 @@ def rescore_member_baseline(member_id: int):
 
 class MemberUpdate(BaseModel):
     name: str | None = None
-    label_zh: str | None = None
-    label_en: str | None = None
+    label: str | None = None
     symbol: str | None = None
     aliases: list[str] | None = None
     domains: list[str] | None = None
@@ -318,10 +309,8 @@ def update_member(member_id: int, body: MemberUpdate):
     fields, values = [], []
     if body.name is not None:
         fields.append("name = ?"); values.append(body.name)
-    if body.label_zh is not None:
-        fields.append("label_zh = ?"); values.append(body.label_zh)
-    if body.label_en is not None:
-        fields.append("label_en = ?"); values.append(body.label_en)
+    if body.label is not None:
+        fields.append("label = ?"); values.append(body.label)
     if body.symbol is not None:
         fields.append("symbol = ?"); values.append(body.symbol)
     if body.aliases is not None:

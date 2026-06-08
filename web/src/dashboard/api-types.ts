@@ -107,16 +107,14 @@ export type ModelsResponse = {
 
 export type DomainItem = {
   key: string;
-  label_zh: string;
-  label_en: string;
+  label: string;
   weight: number;
 };
 
 export type MemberItem = ApiLogoFields & {
   id: number;
   name: string;
-  label_zh: string;
-  label_en: string;
+  label: string;
   aliases: string[];
   symbol: string;
   domains: string[];

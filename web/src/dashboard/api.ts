@@ -151,7 +151,7 @@ export async function testModel(id: number): Promise<{ ok: boolean; response?: s
 
 // ── Domains CRUD ──
 
-export async function createDomain(domain: { key: string; label_zh: string; label_en: string; weight: number }): Promise<boolean> {
+export async function createDomain(domain: { key: string; label: string; weight: number }): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/domains`, jsonBody("POST", domain));
     return res.ok;
@@ -180,7 +180,7 @@ export async function deleteDomain(key: string): Promise<boolean> {
 
 // ── Members CRUD ──
 
-export async function createMember(member: { name: string; label_zh?: string; symbol?: string; aliases?: string[] }): Promise<{ id: number } | null> {
+export async function createMember(member: { name: string; label?: string; symbol?: string; aliases?: string[] }): Promise<{ id: number } | null> {
   return apiFetch("/members", jsonBody("POST", member));
 }
 
@@ -358,8 +358,7 @@ export async function applyDomainPreset(preset: DomainPreset): Promise<{
   try {
     await apiFetch("/domains", jsonBody("POST", {
       key: preset.domain.key,
-      label_zh: preset.domain.label_zh,
-      label_en: preset.domain.label_en,
+      label: preset.domain.label,
       weight: preset.domain.weight,
       description: preset.domain.description ?? "",
       search_intent: preset.domain.search_intent ?? "",
@@ -370,7 +369,7 @@ export async function applyDomainPreset(preset: DomainPreset): Promise<{
     for (const m of preset.members) {
       const res = await apiFetch<{ id: number }>("/members", jsonBody("POST", {
         name: m.name,
-        label_zh: m.label_zh,
+        label: m.label,
         symbol: m.symbol,
         aliases: m.aliases,
       }));

@@ -209,7 +209,7 @@ def build_snapshot(conn, prev_sentiment_map: dict[str, float] | None = None) -> 
         if member_children:
             member_children.sort(key=lambda item: item["size"], reverse=True)
             children.append({
-                "name": domain["label_zh"] + " " + (domain["label_en"] or ""),
+                "name": domain["label"] or domain["key"],
                 "key": domain["key"],
                 "weight": domain["weight"],
                 "children": member_children,

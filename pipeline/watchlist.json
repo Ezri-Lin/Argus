@@ -850,139 +850,333 @@
   "domains": [
     {
       "key": "ai",
-      "label_zh": "AI 大模型",
-      "label_en": "AI",
+      "label": "AI 大模型",
       "weight": 1.0
     },
     {
       "key": "tech",
-      "label_zh": "科技",
-      "label_en": "Tech",
+      "label": "科技",
       "weight": 0.9
     },
     {
       "key": "business",
-      "label_zh": "商业",
-      "label_en": "Business",
+      "label": "商业",
       "weight": 0.8
     },
     {
-      "key": "chinese",
-      "label_zh": "中文源",
-      "label_en": "Chinese",
-      "weight": 0.6
-    },
-    {
       "key": "finance",
-      "label_zh": "金融",
-      "label_en": "Finance",
+      "label": "金融",
       "weight": 0.9
     },
     {
       "key": "investment",
-      "label_zh": "投资",
-      "label_en": "Investment",
+      "label": "投资",
       "weight": 0.8
     },
     {
       "key": "startups",
-      "label_zh": "创业",
-      "label_en": "Startups",
+      "label": "创业",
       "weight": 0.8
     },
     {
       "key": "marketing",
-      "label_zh": "营销",
-      "label_en": "Marketing",
+      "label": "营销",
       "weight": 0.7
     },
     {
       "key": "crypto",
-      "label_zh": "加密",
-      "label_en": "Crypto",
+      "label": "加密",
       "weight": 0.7
     },
     {
       "key": "policy",
-      "label_zh": "政策",
-      "label_en": "Policy",
+      "label": "政策",
       "weight": 0.7
     },
     {
-      "key": "geopolitics",
-      "label_zh": "地缘",
-      "label_en": "Geopolitics",
-      "weight": 0.7
+      "key": "markets",
+      "label": "市场",
+      "weight": 0.9
+    },
+    {
+      "key": "geo",
+      "label": "地缘政治",
+      "weight": 0.8
     },
     {
       "key": "news",
-      "label_zh": "全球新闻",
-      "label_en": "Global News",
+      "label": "全球新闻",
       "weight": 0.85
     }
   ],
   "members": [
     {
       "name": "NVIDIA",
-      "label_zh": "英伟达",
+      "label": "英伟达",
       "symbol": "NVDA",
-      "domains": [
-        "tech",
-        "ai"
-      ],
-      "aliases": [
-        "nvda",
-        "英伟达"
-      ]
+      "domains": ["tech", "ai"],
+      "aliases": ["nvda", "英伟达"],
+      "baseline_influence": 90.0
     },
     {
       "name": "OpenAI",
-      "label_zh": "OpenAI",
-      "domains": [
-        "tech",
-        "ai"
-      ],
-      "aliases": [
-        "openai",
-        "chatgpt"
-      ]
+      "label": "OpenAI",
+      "domains": ["tech", "ai"],
+      "aliases": ["openai", "chatgpt"],
+      "baseline_influence": 88.0
     },
     {
       "name": "Apple",
-      "label_zh": "苹果",
+      "label": "苹果",
       "symbol": "AAPL",
-      "domains": [
-        "tech"
-      ],
-      "aliases": [
-        "aapl",
-        "苹果"
-      ]
+      "domains": ["tech"],
+      "aliases": ["aapl", "苹果"],
+      "baseline_influence": 85.0
     },
     {
       "name": "Anthropic",
-      "label_zh": "Anthropic",
-      "domains": [
-        "tech",
-        "ai"
-      ],
-      "aliases": [
-        "anthropic",
-        "claude"
-      ]
+      "label": "Anthropic",
+      "domains": ["tech", "ai"],
+      "aliases": ["anthropic", "claude"],
+      "baseline_influence": 82.0
     },
     {
       "name": "Microsoft",
-      "label_zh": "微软",
+      "label": "微软",
       "symbol": "MSFT",
-      "domains": [
-        "tech",
-        "ai"
-      ],
-      "aliases": [
-        "msft",
-        "微软"
-      ]
+      "domains": ["tech", "ai"],
+      "aliases": ["msft", "微软"],
+      "baseline_influence": 87.0
+    },
+    {
+      "name": "Google",
+      "label": "谷歌",
+      "symbol": "GOOGL",
+      "domains": ["tech", "ai"],
+      "aliases": ["googl", "谷歌", "alphabet"],
+      "baseline_influence": 86.0
+    },
+    {
+      "name": "Meta",
+      "label": "Meta",
+      "symbol": "META",
+      "domains": ["tech", "ai"],
+      "aliases": ["meta", "facebook"],
+      "baseline_influence": 78.0
+    },
+    {
+      "name": "Amazon",
+      "label": "亚马逊",
+      "symbol": "AMZN",
+      "domains": ["tech", "business"],
+      "aliases": ["amzn", "亚马逊", "aws"],
+      "baseline_influence": 84.0
+    },
+    {
+      "name": "Tesla",
+      "label": "特斯拉",
+      "symbol": "TSLA",
+      "domains": ["tech", "business"],
+      "aliases": ["tsla", "特斯拉"],
+      "baseline_influence": 80.0
+    },
+    {
+      "name": "TSMC",
+      "label": "台积电",
+      "symbol": "TSM",
+      "domains": ["tech"],
+      "aliases": ["tsm", "台积电"],
+      "baseline_influence": 75.0
+    },
+    {
+      "name": "Samsung",
+      "label": "三星",
+      "domains": ["tech"],
+      "aliases": ["三星"],
+      "baseline_influence": 72.0
+    },
+    {
+      "name": "Baidu",
+      "label": "百度",
+      "symbol": "BIDU",
+      "domains": ["tech", "ai"],
+      "aliases": ["bidu", "百度"],
+      "baseline_influence": 60.0
+    },
+    {
+      "name": "Tencent",
+      "label": "腾讯",
+      "domains": ["tech", "business"],
+      "aliases": ["腾讯"],
+      "baseline_influence": 65.0
+    },
+    {
+      "name": "Alibaba",
+      "label": "阿里巴巴",
+      "domains": ["tech", "business"],
+      "aliases": ["阿里巴巴", "baba"],
+      "baseline_influence": 63.0
+    },
+    {
+      "name": "Bitcoin",
+      "label": "比特币",
+      "symbol": "BTC",
+      "domains": ["crypto", "markets"],
+      "aliases": ["btc", "比特币"],
+      "baseline_influence": 85.0
+    },
+    {
+      "name": "Ethereum",
+      "label": "以太坊",
+      "symbol": "ETH",
+      "domains": ["crypto", "markets"],
+      "aliases": ["eth", "以太坊"],
+      "baseline_influence": 70.0
+    },
+    {
+      "name": "Solana",
+      "label": "Solana",
+      "symbol": "SOL",
+      "domains": ["crypto"],
+      "aliases": ["sol"],
+      "baseline_influence": 55.0
+    },
+    {
+      "name": "Coinbase",
+      "label": "Coinbase",
+      "symbol": "COIN",
+      "domains": ["crypto"],
+      "aliases": ["coin"],
+      "baseline_influence": 50.0
+    },
+    {
+      "name": "JPMorgan",
+      "label": "摩根大通",
+      "symbol": "JPM",
+      "domains": ["finance", "markets"],
+      "aliases": ["jpm", "摩根大通"],
+      "baseline_influence": 75.0
+    },
+    {
+      "name": "Goldman Sachs",
+      "label": "高盛",
+      "symbol": "GS",
+      "domains": ["finance", "markets"],
+      "aliases": ["gs", "高盛"],
+      "baseline_influence": 70.0
+    },
+    {
+      "name": "BlackRock",
+      "label": "贝莱德",
+      "symbol": "BLK",
+      "domains": ["finance", "investment", "markets"],
+      "aliases": ["blk", "贝莱德"],
+      "baseline_influence": 68.0
+    },
+    {
+      "name": "Federal Reserve",
+      "label": "美联储",
+      "domains": ["finance", "policy", "markets"],
+      "aliases": ["fed", "美联储"],
+      "baseline_influence": 80.0
+    },
+    {
+      "name": "S&P 500",
+      "label": "标普500",
+      "domains": ["markets"],
+      "aliases": ["spx", "标普"],
+      "baseline_influence": 90.0
+    },
+    {
+      "name": "Nasdaq",
+      "label": "纳斯达克",
+      "domains": ["markets"],
+      "aliases": ["ndx", "纳指"],
+      "baseline_influence": 88.0
+    },
+    {
+      "name": "Gold",
+      "label": "黄金",
+      "domains": ["markets"],
+      "aliases": ["xau", "黄金"],
+      "baseline_influence": 72.0
+    },
+    {
+      "name": "Oil WTI",
+      "label": "原油",
+      "domains": ["markets"],
+      "aliases": ["cl", "原油"],
+      "baseline_influence": 65.0
+    },
+    {
+      "name": "Taiwan Strait",
+      "label": "台海",
+      "domains": ["geo"],
+      "aliases": ["台海局势"],
+      "baseline_influence": 80.0
+    },
+    {
+      "name": "US-China Trade",
+      "label": "中美贸易",
+      "domains": ["geo"],
+      "aliases": ["中美关税"],
+      "baseline_influence": 75.0
+    },
+    {
+      "name": "Red Sea",
+      "label": "红海",
+      "domains": ["geo"],
+      "aliases": ["红海航运"],
+      "baseline_influence": 65.0
+    },
+    {
+      "name": "EU AI Act",
+      "label": "欧盟AI法案",
+      "domains": ["geo", "policy"],
+      "aliases": ["欧盟AI监管"],
+      "baseline_influence": 60.0
+    },
+    {
+      "name": "India Capex",
+      "label": "印度投资",
+      "domains": ["geo"],
+      "aliases": ["印度基建"],
+      "baseline_influence": 55.0
+    },
+    {
+      "name": "Middle East Energy",
+      "label": "中东能源",
+      "domains": ["geo"],
+      "aliases": ["中东石油"],
+      "baseline_influence": 62.0
+    },
+    {
+      "name": "Korea Chips",
+      "label": "韩国芯片",
+      "domains": ["geo", "tech"],
+      "aliases": ["韩国半导体"],
+      "baseline_influence": 58.0
+    },
+    {
+      "name": "Mexico Nearshoring",
+      "label": "墨西哥近岸",
+      "domains": ["geo"],
+      "aliases": ["近岸外包"],
+      "baseline_influence": 50.0
+    },
+    {
+      "name": "BYD",
+      "label": "比亚迪",
+      "domains": ["tech", "business"],
+      "aliases": ["比亚迪"],
+      "baseline_influence": 62.0
+    },
+    {
+      "name": "DeepSeek",
+      "label": "DeepSeek",
+      "domains": ["ai"],
+      "aliases": ["deepseek", "深度求索"],
+      "baseline_influence": 70.0
     }
   ],
   "models": [
