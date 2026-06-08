@@ -2,7 +2,11 @@
 
 import hashlib
 
+import requests
+
 from pipeline.helpers import now_iso, safe_text
+
+_UA = "Mozilla/5.0 (compatible; ArgusFeed/1.0; +https://github.com/argus)"
 
 
 def _article_id(url: str) -> str:
@@ -29,7 +33,9 @@ def fetch_rss_items(sources, conn, parse_fn, progress_callback=None) -> tuple[li
     for i, source in enumerate(source_list):
         src = dict(source)
         try:
-            feed = parse_fn(src["url"])
+            resp = requests.get(src["url"], timeout=15, headers={"User-Agent": _UA})
+            resp.raise_for_status()
+            feed = parse_fn(resp.content)
             # Extract feed logo if we don't have one yet
             if not src.get("logo_url"):
                 try:

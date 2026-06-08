@@ -1,0 +1,1006 @@
+{
+  "sources": [
+    {
+      "name": "OpenAI News",
+      "type": "rss",
+      "url": "https://openai.com/news/rss.xml",
+      "weight": 0.95
+    },
+    {
+      "name": "Anthropic News",
+      "type": "rss",
+      "url": "https://rsshub.zhisii.com/anthropic/news",
+      "weight": 0.95
+    },
+    {
+      "name": "Google Keyword AI",
+      "type": "rss",
+      "url": "https://blog.google/rss/",
+      "weight": 0.92
+    },
+    {
+      "name": "Google DeepMind Blog",
+      "type": "rss",
+      "url": "https://deepmind.google/blog/rss.xml",
+      "weight": 0.95
+    },
+    {
+      "name": "Google Research Blog",
+      "type": "rss",
+      "url": "https://research.google/blog/rss/",
+      "weight": 0.93
+    },
+    {
+      "name": "Meta AI Blog",
+      "type": "rss",
+      "url": "https://rsshub.zhisii.com/meta/ai/blog",
+      "weight": 0.93
+    },
+    {
+      "name": "AWS Machine Learning Blog",
+      "type": "rss",
+      "url": "https://aws.amazon.com/blogs/machine-learning/feed/",
+      "weight": 0.92
+    },
+    {
+      "name": "Google Cloud AI and ML Blog",
+      "type": "rss",
+      "url": "https://cloudblog.withgoogle.com/rss",
+      "weight": 0.9
+    },
+    {
+      "name": "NVIDIA Technical Blog AI",
+      "type": "rss",
+      "url": "https://developer.nvidia.com/blog/feed/",
+      "weight": 0.92
+    },
+    {
+      "name": "NVIDIA Blog",
+      "type": "rss",
+      "url": "http://feeds.feedburner.com/nvidiablog",
+      "weight": 0.9
+    },
+    {
+      "name": "Hugging Face Blog",
+      "type": "rss",
+      "url": "https://huggingface.co/blog/feed.xml",
+      "weight": 0.9
+    },
+    {
+      "name": "Cohere Blog",
+      "type": "rss",
+      "url": "https://rsshub.zhisii.com/cohere/blog",
+      "weight": 0.9
+    },
+    {
+      "name": "Stability AI News",
+      "type": "rss",
+      "url": "https://stability.ai/news-updates?format=rss",
+      "weight": 0.88
+    },
+    {
+      "name": "IBM Research AI Blog",
+      "type": "rss",
+      "url": "https://research.ibm.com/rss",
+      "weight": 0.88
+    },
+    {
+      "name": "Intel AI Blog",
+      "type": "rss",
+      "url": "https://community.intel.com/t5/Blogs/Tech-Innovation/Artificial-Intelligence-AI/bg-p/artificial-intelligence/rss",
+      "weight": 0.85
+    },
+    {
+      "name": "Salesforce AI Research Blog",
+      "type": "rss",
+      "url": "https://www.salesforce.com/blog/feed",
+      "weight": 0.86
+    },
+    {
+      "name": "Apple Machine Learning Research",
+      "type": "rss",
+      "url": "https://machinelearning.apple.com/rss.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "GitHub Blog",
+      "type": "rss",
+      "url": "https://github.blog/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "GitHub Changelog",
+      "type": "rss",
+      "url": "https://github.blog/changelog/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "GitLab Blog",
+      "type": "rss",
+      "url": "https://about.gitlab.com/atom.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "Cloudflare Blog",
+      "type": "rss",
+      "url": "https://blog.cloudflare.com/rss/",
+      "weight": 0.82
+    },
+    {
+      "name": "Vercel Blog",
+      "type": "rss",
+      "url": "https://vercel.com/blog/rss.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "Databricks Blog",
+      "type": "rss",
+      "url": "https://www.databricks.com/feed",
+      "weight": 0.82
+    },
+    {
+      "name": "Elastic Blog",
+      "type": "rss",
+      "url": "https://www.elastic.co/blog/feed",
+      "weight": 0.76
+    },
+    {
+      "name": "Docker Blog",
+      "type": "rss",
+      "url": "https://www.docker.com/blog/feed/",
+      "weight": 0.76
+    },
+    {
+      "name": "Kubernetes Blog",
+      "type": "rss",
+      "url": "https://kubernetes.io/feed.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "CNCF Blog",
+      "type": "rss",
+      "url": "https://www.cncf.io/feed/",
+      "weight": 0.78
+    },
+    {
+      "name": "Weaviate Blog",
+      "type": "rss",
+      "url": "https://weaviate.io/blog/rss.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "Snowflake Blog",
+      "type": "rss",
+      "url": "https://medium.com/feed/snowflake",
+      "weight": 0.78
+    },
+    {
+      "name": "Qdrant Blog",
+      "type": "rss",
+      "url": "https://medium.com/feed/qdrant",
+      "weight": 0.78
+    },
+    {
+      "name": "Weights and Biases Blog",
+      "type": "rss",
+      "url": "https://medium.com/feed/weightsandbiases",
+      "weight": 0.78
+    },
+    {
+      "name": "WIRED AI",
+      "type": "rss",
+      "url": "https://www.wired.com/feed/tag/ai/latest/rss",
+      "weight": 0.85
+    },
+    {
+      "name": "TechCrunch AI",
+      "type": "rss",
+      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "The Verge AI",
+      "type": "rss",
+      "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+      "weight": 0.8
+    },
+    {
+      "name": "MIT Technology Review AI",
+      "type": "rss",
+      "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed/",
+      "weight": 0.88
+    },
+    {
+      "name": "Ars Technica IT",
+      "type": "rss",
+      "url": "https://feeds.arstechnica.com/arstechnica/technology-lab",
+      "weight": 0.82
+    },
+    {
+      "name": "VentureBeat AI",
+      "type": "rss",
+      "url": "https://venturebeat.com/category/ai/feed/",
+      "weight": 0.78
+    },
+    {
+      "name": "ZDNET AI",
+      "type": "rss",
+      "url": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "InfoQ AI ML Data",
+      "type": "rss",
+      "url": "https://feed.infoq.com/ai-ml-data-eng",
+      "weight": 0.78
+    },
+    {
+      "name": "IEEE Spectrum AI",
+      "type": "rss",
+      "url": "https://spectrum.ieee.org/rss/artificial-intelligence",
+      "weight": 0.85
+    },
+    {
+      "name": "The Register AI and ML",
+      "type": "rss",
+      "url": "https://www.theregister.com/software/ai_ml/headlines.atom",
+      "weight": 0.78
+    },
+    {
+      "name": "The Next Web",
+      "type": "rss",
+      "url": "https://thenextweb.com/feed/",
+      "weight": 0.72
+    },
+    {
+      "name": "Engadget",
+      "type": "rss",
+      "url": "https://www.engadget.com/rss.xml",
+      "weight": 0.72
+    },
+    {
+      "name": "Tom's Hardware",
+      "type": "rss",
+      "url": "https://www.tomshardware.com/feeds.xml",
+      "weight": 0.74
+    },
+    {
+      "name": "TechRadar Pro",
+      "type": "rss",
+      "url": "https://www.techradar.com/rss",
+      "weight": 0.72
+    },
+    {
+      "name": "Fast Company Technology",
+      "type": "rss",
+      "url": "https://www.fastcompany.com/technology/rss",
+      "weight": 0.72
+    },
+    {
+      "name": "CNBC Technology",
+      "type": "rss",
+      "url": "https://www.cnbc.com/id/19854910/device/rss/rss.html",
+      "weight": 0.78
+    },
+    {
+      "name": "Bloomberg Technology",
+      "type": "rss",
+      "url": "https://feeds.bloomberg.com/technology/news.rss",
+      "weight": 0.86
+    },
+    {
+      "name": "Financial Times Technology",
+      "type": "rss",
+      "url": "https://www.ft.com/technology?format=rss",
+      "weight": 0.86
+    },
+    {
+      "name": "The Economist Science and Technology",
+      "type": "rss",
+      "url": "https://www.economist.com/science-and-technology/rss.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "New York Times Technology",
+      "type": "rss",
+      "url": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+      "weight": 0.84
+    },
+    {
+      "name": "arXiv cs.AI",
+      "type": "rss",
+      "url": "https://rss.arxiv.org/rss/cs.AI",
+      "weight": 0.88
+    },
+    {
+      "name": "arXiv cs.CL",
+      "type": "rss",
+      "url": "https://rss.arxiv.org/rss/cs.CL",
+      "weight": 0.88
+    },
+    {
+      "name": "arXiv cs.LG",
+      "type": "rss",
+      "url": "https://rss.arxiv.org/rss/cs.LG",
+      "weight": 0.88
+    },
+    {
+      "name": "arXiv cs.CV",
+      "type": "rss",
+      "url": "https://rss.arxiv.org/rss/cs.CV",
+      "weight": 0.86
+    },
+    {
+      "name": "arXiv stat.ML",
+      "type": "rss",
+      "url": "https://rss.arxiv.org/rss/stat.ML",
+      "weight": 0.86
+    },
+    {
+      "name": "MIT News AI",
+      "type": "rss",
+      "url": "http://news.mit.edu/rss/topic/artificial-intelligence2",
+      "weight": 0.88
+    },
+    {
+      "name": "BAIR Blog",
+      "type": "rss",
+      "url": "https://bair.berkeley.edu/blog/feed.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "Stanford Hazy Research Blog",
+      "type": "rss",
+      "url": "https://rsshub.zhisii.com/stanford/hazyresearch/blog",
+      "weight": 0.86
+    },
+    {
+      "name": "CMU Machine Learning Blog",
+      "type": "rss",
+      "url": "https://blog.ml.cmu.edu/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "Nature Machine Intelligence",
+      "type": "rss",
+      "url": "https://www.nature.com/natmachintell.rss",
+      "weight": 0.9
+    },
+    {
+      "name": "ScienceDaily AI",
+      "type": "rss",
+      "url": "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "ACM TechNews",
+      "type": "rss",
+      "url": "https://technews.acm.org/rss/technews.xml",
+      "weight": 0.8
+    },
+    {
+      "name": "Microsoft Research Blog",
+      "type": "rss",
+      "url": "https://www.microsoft.com/en-us/research/feed/",
+      "weight": 0.86
+    },
+    {
+      "name": "DeepLearning.AI The Batch",
+      "type": "rss",
+      "url": "https://rsshub.zhisii.com/deeplearning/the-batch",
+      "weight": 0.78
+    },
+    {
+      "name": "Semiconductor Engineering",
+      "type": "rss",
+      "url": "https://semiengineering.com/feed/",
+      "weight": 0.78
+    },
+    {
+      "name": "EE Times",
+      "type": "rss",
+      "url": "https://www.eetimes.com/feed/",
+      "weight": 0.76
+    },
+    {
+      "name": "Stratechery",
+      "type": "rss",
+      "url": "https://stratechery.com/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "Rest of World Technology",
+      "type": "rss",
+      "url": "https://restofworld.org/feed/latest/",
+      "weight": 0.78
+    },
+    {
+      "name": "AI Now Institute",
+      "type": "rss",
+      "url": "https://ainowinstitute.org/feed",
+      "weight": 0.82
+    },
+    {
+      "name": "Center for Data Innovation",
+      "type": "rss",
+      "url": "https://datainnovation.org/feed/",
+      "weight": 0.76
+    },
+    {
+      "name": "NIST AI News",
+      "type": "rss",
+      "url": "https://www.nist.gov/news-events/news/rss.xml",
+      "weight": 0.82
+    },
+    {
+      "name": "量子位",
+      "type": "rss",
+      "url": "https://www.qbitai.com/feed",
+      "weight": 0.7
+    },
+    {
+      "name": "36氪 AI",
+      "type": "rss",
+      "url": "https://36kr.com/feed",
+      "weight": 0.66
+    },
+    {
+      "name": "钛媒体",
+      "type": "rss",
+      "url": "https://plink.anyfeeder.com/tmtpost",
+      "weight": 0.66
+    },
+    {
+      "name": "少数派",
+      "type": "rss",
+      "url": "https://sspai.com/feed",
+      "weight": 0.64
+    },
+    {
+      "name": "WSJ Markets",
+      "type": "rss",
+      "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "FT Markets",
+      "type": "rss",
+      "url": "https://www.ft.com/markets?format=rss",
+      "weight": 0.86
+    },
+    {
+      "name": "Bloomberg Markets",
+      "type": "rss",
+      "url": "https://feeds.bloomberg.com/markets/news.rss",
+      "weight": 0.86
+    },
+    {
+      "name": "MarketWatch",
+      "type": "rss",
+      "url": "https://feeds.marketwatch.com/marketwatch/topstories/",
+      "weight": 0.82
+    },
+    {
+      "name": "Yahoo Finance",
+      "type": "rss",
+      "url": "https://finance.yahoo.com/news/rssindex",
+      "weight": 0.78
+    },
+    {
+      "name": "Seeking Alpha",
+      "type": "rss",
+      "url": "https://seekingalpha.com/market_currents.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "CNBC Top News",
+      "type": "rss",
+      "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114",
+      "weight": 0.82
+    },
+    {
+      "name": "WSJ World",
+      "type": "rss",
+      "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "Crunchbase News",
+      "type": "rss",
+      "url": "https://news.crunchbase.com/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "Sequoia Blog",
+      "type": "rss",
+      "url": "https://www.sequoiacap.com/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "Y Combinator Blog",
+      "type": "rss",
+      "url": "https://www.ycombinator.com/blog/rss/",
+      "weight": 0.82
+    },
+    {
+      "name": "CB Insights",
+      "type": "rss",
+      "url": "https://www.cbinsights.com/research/feed/",
+      "weight": 0.8
+    },
+    {
+      "name": "Inc.",
+      "type": "rss",
+      "url": "https://www.inc.com/rss/",
+      "weight": 0.78
+    },
+    {
+      "name": "SaaStr Blog",
+      "type": "rss",
+      "url": "https://www.saastr.com/feed/",
+      "weight": 0.76
+    },
+    {
+      "name": "Product Hunt",
+      "type": "rss",
+      "url": "https://www.producthunt.com/feed",
+      "weight": 0.74
+    },
+    {
+      "name": "Hacker News Best",
+      "type": "rss",
+      "url": "https://hnrss.org/best",
+      "weight": 0.76
+    },
+    {
+      "name": "Marketing Week",
+      "type": "rss",
+      "url": "https://www.marketingweek.com/feed/",
+      "weight": 0.78
+    },
+    {
+      "name": "Moz Blog",
+      "type": "rss",
+      "url": "https://moz.com/posts/rss/blog",
+      "weight": 0.76
+    },
+    {
+      "name": "HubSpot Blog",
+      "type": "rss",
+      "url": "https://blog.hubspot.com/marketing/rss.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "Social Media Examiner",
+      "type": "rss",
+      "url": "https://www.socialmediaexaminer.com/feed/",
+      "weight": 0.76
+    },
+    {
+      "name": "Contently",
+      "type": "rss",
+      "url": "https://contently.com/feed/",
+      "weight": 0.72
+    },
+    {
+      "name": "CoinDesk",
+      "type": "rss",
+      "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+      "weight": 0.8
+    },
+    {
+      "name": "CoinTelegraph",
+      "type": "rss",
+      "url": "https://cointelegraph.com/rss",
+      "weight": 0.76
+    },
+    {
+      "name": "Decrypt",
+      "type": "rss",
+      "url": "https://decrypt.co/feed",
+      "weight": 0.76
+    },
+    {
+      "name": "Bankless",
+      "type": "rss",
+      "url": "https://www.bankless.com/feed",
+      "weight": 0.74
+    },
+    {
+      "name": "The Defiant",
+      "type": "rss",
+      "url": "https://thedefiant.io/feed",
+      "weight": 0.74
+    },
+    {
+      "name": "MIT Sloan Management Review",
+      "type": "rss",
+      "url": "https://sloanreview.mit.edu/feed/",
+      "weight": 0.86
+    },
+    {
+      "name": "Fortune",
+      "type": "rss",
+      "url": "https://fortune.com/feed/fortune-feeds/?id=3230629",
+      "weight": 0.82
+    },
+    {
+      "name": "Forbes",
+      "type": "rss",
+      "url": "https://www.forbes.com/business/feed/",
+      "weight": 0.8
+    },
+    {
+      "name": "Fast Company",
+      "type": "rss",
+      "url": "https://www.fastcompany.com/latest/rss",
+      "weight": 0.78
+    },
+    {
+      "name": "Economist Business",
+      "type": "rss",
+      "url": "https://www.economist.com/business/rss.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "CNBC Business",
+      "type": "rss",
+      "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
+      "weight": 0.8
+    },
+    {
+      "name": "TechCrunch Policy",
+      "type": "rss",
+      "url": "https://techcrunch.com/category/government-policy/feed/",
+      "weight": 0.78
+    },
+    {
+      "name": "Ars Technica Policy",
+      "type": "rss",
+      "url": "https://feeds.arstechnica.com/arstechnica/tech-policy",
+      "weight": 0.82
+    },
+    {
+      "name": "EFF Deeplinks",
+      "type": "rss",
+      "url": "https://www.eff.org/rss/updates.xml",
+      "weight": 0.82
+    },
+    {
+      "name": "Wired Security",
+      "type": "rss",
+      "url": "https://www.wired.com/feed/category/security/latest/rss",
+      "weight": 0.8
+    },
+    {
+      "name": "Foreign Affairs",
+      "type": "rss",
+      "url": "https://www.foreignaffairs.com/rss.xml",
+      "weight": 0.88
+    },
+    {
+      "name": "RAND Blog",
+      "type": "rss",
+      "url": "https://www.rand.org/blog.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "Atlantic Council",
+      "type": "rss",
+      "url": "https://www.atlanticcouncil.org/feed/",
+      "weight": 0.82
+    },
+    {
+      "name": "Foreign Policy",
+      "type": "rss",
+      "url": "https://foreignpolicy.com/feed/",
+      "weight": 0.84
+    },
+    {
+      "name": "The Diplomat",
+      "type": "rss",
+      "url": "https://thediplomat.com/feed/",
+      "weight": 0.78
+    },
+    {
+      "name": "War on the Rocks",
+      "type": "rss",
+      "url": "https://warontherocks.com/feed/",
+      "weight": 0.78
+    },
+    {
+      "name": "NYT World",
+      "type": "rss",
+      "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "NYT Business",
+      "type": "rss",
+      "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "NYT Science",
+      "type": "rss",
+      "url": "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "Washington Post World",
+      "type": "rss",
+      "url": "https://feeds.washingtonpost.com/rss/world",
+      "weight": 0.84
+    },
+    {
+      "name": "The Guardian World",
+      "type": "rss",
+      "url": "https://www.theguardian.com/world/rss",
+      "weight": 0.82
+    },
+    {
+      "name": "The Guardian Business",
+      "type": "rss",
+      "url": "https://www.theguardian.com/uk/business/rss",
+      "weight": 0.82
+    },
+    {
+      "name": "BBC World",
+      "type": "rss",
+      "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+      "weight": 0.86
+    },
+    {
+      "name": "BBC Business",
+      "type": "rss",
+      "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+      "weight": 0.84
+    },
+    {
+      "name": "BBC Technology",
+      "type": "rss",
+      "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+      "weight": 0.84
+    },
+    {
+      "name": "AP News",
+      "type": "rss",
+      "url": "https://rsshub.zhisii.com/apnews/topics/technology",
+      "weight": 0.88
+    },
+    {
+      "name": "NPR World",
+      "type": "rss",
+      "url": "https://feeds.npr.org/1004/rss.xml",
+      "weight": 0.82
+    },
+    {
+      "name": "Al Jazeera",
+      "type": "rss",
+      "url": "https://www.aljazeera.com/xml/rss/all.xml",
+      "weight": 0.78
+    },
+    {
+      "name": "South China Morning Post",
+      "type": "rss",
+      "url": "https://www.scmp.com/rss/91/feed",
+      "weight": 0.8
+    },
+    {
+      "name": "Daily Telegraph",
+      "type": "rss",
+      "url": "https://www.telegraph.co.uk/rss.xml",
+      "weight": 0.8
+    },
+    {
+      "name": "Google News World",
+      "type": "rss",
+      "url": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB?hl=en",
+      "weight": 0.8
+    },
+    {
+      "name": "Google News Business",
+      "type": "rss",
+      "url": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en",
+      "weight": 0.8
+    },
+    {
+      "name": "Google News Tech",
+      "type": "rss",
+      "url": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en",
+      "weight": 0.8
+    },
+    {
+      "name": "Google News Science",
+      "type": "rss",
+      "url": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp0Y1RjU0FtVnVHZ0pWVXlnQVAB?hl=en",
+      "weight": 0.8
+    },
+    {
+      "name": "Federal Reserve Press",
+      "type": "rss",
+      "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+      "weight": 0.92
+    },
+    {
+      "name": "ECB Press",
+      "type": "rss",
+      "url": "https://www.ecb.europa.eu/rss/press.html",
+      "weight": 0.9
+    },
+    {
+      "name": "Congress.gov",
+      "type": "rss",
+      "url": "https://www.congress.gov/rss/most-viewed-bills.xml",
+      "weight": 0.88
+    },
+    {
+      "name": "Bitcoin Magazine",
+      "type": "rss",
+      "url": "https://bitcoinmagazine.com/feed",
+      "weight": 0.78
+    },
+    {
+      "name": "Ethereum Blog",
+      "type": "rss",
+      "url": "https://blog.ethereum.org/feed.xml",
+      "weight": 0.82
+    }
+  ],
+  "domains": [
+    {
+      "key": "ai",
+      "label_zh": "AI 大模型",
+      "label_en": "AI",
+      "weight": 1.0
+    },
+    {
+      "key": "tech",
+      "label_zh": "科技",
+      "label_en": "Tech",
+      "weight": 0.9
+    },
+    {
+      "key": "business",
+      "label_zh": "商业",
+      "label_en": "Business",
+      "weight": 0.8
+    },
+    {
+      "key": "chinese",
+      "label_zh": "中文源",
+      "label_en": "Chinese",
+      "weight": 0.6
+    },
+    {
+      "key": "finance",
+      "label_zh": "金融",
+      "label_en": "Finance",
+      "weight": 0.9
+    },
+    {
+      "key": "investment",
+      "label_zh": "投资",
+      "label_en": "Investment",
+      "weight": 0.8
+    },
+    {
+      "key": "startups",
+      "label_zh": "创业",
+      "label_en": "Startups",
+      "weight": 0.8
+    },
+    {
+      "key": "marketing",
+      "label_zh": "营销",
+      "label_en": "Marketing",
+      "weight": 0.7
+    },
+    {
+      "key": "crypto",
+      "label_zh": "加密",
+      "label_en": "Crypto",
+      "weight": 0.7
+    },
+    {
+      "key": "policy",
+      "label_zh": "政策",
+      "label_en": "Policy",
+      "weight": 0.7
+    },
+    {
+      "key": "geopolitics",
+      "label_zh": "地缘",
+      "label_en": "Geopolitics",
+      "weight": 0.7
+    },
+    {
+      "key": "news",
+      "label_zh": "全球新闻",
+      "label_en": "Global News",
+      "weight": 0.85
+    }
+  ],
+  "members": [
+    {
+      "name": "NVIDIA",
+      "label_zh": "英伟达",
+      "symbol": "NVDA",
+      "domains": [
+        "tech",
+        "ai"
+      ],
+      "aliases": [
+        "nvda",
+        "英伟达"
+      ]
+    },
+    {
+      "name": "OpenAI",
+      "label_zh": "OpenAI",
+      "domains": [
+        "tech",
+        "ai"
+      ],
+      "aliases": [
+        "openai",
+        "chatgpt"
+      ]
+    },
+    {
+      "name": "Apple",
+      "label_zh": "苹果",
+      "symbol": "AAPL",
+      "domains": [
+        "tech"
+      ],
+      "aliases": [
+        "aapl",
+        "苹果"
+      ]
+    },
+    {
+      "name": "Anthropic",
+      "label_zh": "Anthropic",
+      "domains": [
+        "tech",
+        "ai"
+      ],
+      "aliases": [
+        "anthropic",
+        "claude"
+      ]
+    },
+    {
+      "name": "Microsoft",
+      "label_zh": "微软",
+      "symbol": "MSFT",
+      "domains": [
+        "tech",
+        "ai"
+      ],
+      "aliases": [
+        "msft",
+        "微软"
+      ]
+    }
+  ],
+  "models": [
+    {
+      "label": "Base Model",
+      "base_url": "ARGUS_MODEL_BASE_URL",
+      "api_key": "ARGUS_MODEL_API_KEY",
+      "model": "ARGUS_MODEL_NAME",
+      "web_search": 1,
+      "role": "base"
+    }
+  ],
+  "settings": {
+    "pro_enabled": "false",
+    "tavily_enabled": "false",
+    "stale_threshold_min": "90",
+    "global_fail_count": "2",
+    "open_mode": "drawer",
+    "refresh_min": "60"
+  }
+}

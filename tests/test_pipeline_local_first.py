@@ -8,7 +8,7 @@ import os
 import tempfile
 import unittest
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from pipeline.db import init_db
 import pipeline.pipeline as pipeline_module
@@ -68,7 +68,7 @@ class TestPipelineLocalFirst(unittest.TestCase):
         old_call_model = pipeline_module.call_model
         model_calls = []
 
-        def fake_parse(_url):
+        def fake_parse(_content):
             return SimpleNamespace(entries=[], feed=SimpleNamespace())
 
         def fake_call_model(model_cfg, _system, _user):
@@ -88,13 +88,18 @@ class TestPipelineLocalFirst(unittest.TestCase):
                 "impactRationale": "test impact",
             }
 
+        mock_resp = MagicMock()
+        mock_resp.content = b""
+        mock_resp.raise_for_status = MagicMock()
+
         pipeline_module.feedparser.parse = fake_parse
         pipeline_module.call_model = fake_call_model
-        try:
-            pipeline_module.run_pipeline(self.tmp.name)
-        finally:
-            pipeline_module.feedparser.parse = old_parse
-            pipeline_module.call_model = old_call_model
+        with patch("pipeline.rss.requests.get", return_value=mock_resp):
+            try:
+                pipeline_module.run_pipeline(self.tmp.name)
+            finally:
+                pipeline_module.feedparser.parse = old_parse
+                pipeline_module.call_model = old_call_model
 
         # Verify pipeline completed (health was written)
         row = self.conn.execute(

@@ -5,12 +5,15 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+import feedparser
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 from db import init_db
-import pipeline as pipeline_module
+import pipeline.pipeline as pipeline_module
 
 
 class PipelineProJudgementTests(unittest.TestCase):
@@ -55,11 +58,11 @@ class PipelineProJudgementTests(unittest.TestCase):
                 os.unlink(path)
 
     def test_pipeline_uses_pro_result_for_event_judgement_when_requested(self):
-        old_parse = pipeline_module.feedparser.parse
+        old_parse = feedparser.parse
         old_call_model = pipeline_module.call_model
         calls = []
 
-        def fake_parse(_url):
+        def fake_parse(_content):
             return SimpleNamespace(entries=[
                 {
                     "title": "OpenAI announces major platform release",
@@ -99,13 +102,18 @@ class PipelineProJudgementTests(unittest.TestCase):
                 "impactRationale": "平台级能力提升，持续影响较长",
             }
 
-        pipeline_module.feedparser.parse = fake_parse
+        mock_resp = MagicMock()
+        mock_resp.content = b"<rss></rss>"
+        mock_resp.raise_for_status = MagicMock()
+
+        feedparser.parse = fake_parse
         pipeline_module.call_model = fake_call_model
-        try:
-            pipeline_module.run_pipeline(self.tmp.name)
-        finally:
-            pipeline_module.feedparser.parse = old_parse
-            pipeline_module.call_model = old_call_model
+        with patch("pipeline.rss.requests.get", return_value=mock_resp):
+            try:
+                pipeline_module.run_pipeline(self.tmp.name)
+            finally:
+                feedparser.parse = old_parse
+                pipeline_module.call_model = old_call_model
 
         self.assertEqual(calls, ["base-model", "pro-model"])
 
