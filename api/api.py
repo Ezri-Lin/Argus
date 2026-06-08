@@ -53,6 +53,7 @@ from .routes_search import router as search_router
 from .routes_pipeline import router as pipeline_router
 from .routes_budget import router as budget_router
 from .routes_widgets import router as widgets_router
+from .routes_subtitles import router as subtitles_router
 
 app.include_router(models_router)
 app.include_router(members_router)
@@ -65,6 +66,7 @@ app.include_router(search_router)
 app.include_router(pipeline_router)
 app.include_router(budget_router)
 app.include_router(widgets_router)
+app.include_router(subtitles_router)
 
 
 def _conn():

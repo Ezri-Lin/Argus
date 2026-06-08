@@ -1,7 +1,23 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import Hls from "hls.js";
 import { color, radius } from "@/design/tokens";
 import { claimActiveVideo, releaseActiveVideo, onActiveVideoChange } from "@/lib/active-video";
+import { translateSubtitles } from "@/dashboard/api";
+
+/** A single subtitle cue with timing. */
+export type SubtitleCue = {
+  startTime: number;
+  endTime: number;
+  text: string;
+};
+
+/** A detected subtitle track. */
+export type SubtitleTrack = {
+  id: number;
+  label: string;       // e.g. "English", "中文"
+  lang: string;        // BCP-47 code, e.g. "en", "zh"
+  cues: SubtitleCue[];
+};
 
 function isHlsStream(url: string): boolean {
   return /\.m3u8(\?|$)/i.test(url);
@@ -30,6 +46,16 @@ export const VideoPlayer = memo(function VideoPlayer({ src, widgetId, onReady, o
   const [currentTime, setCurrentTime] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Subtitle state
+  const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
+  const [activeTrackIdx, setActiveTrackIdx] = useState<number>(-1); // -1 = off
+  const [currentCueText, setCurrentCueText] = useState("");
+
+  // Translation state
+  const [translateLang, setTranslateLang] = useState<string>("");
+  const [translatedCues, setTranslatedCues] = useState<Map<number, string>>(new Map());
+  const [translating, setTranslating] = useState(false);
 
   // Exclusive playback: pause when another video becomes active
   useEffect(() => {
@@ -121,41 +147,86 @@ export const VideoPlayer = memo(function VideoPlayer({ src, widgetId, onReady, o
     };
   }, []);
 
+  // Track current subtitle cue based on video time
+  useEffect(() => {
+    if (activeTrackIdx < 0 || activeTrackIdx >= subtitleTracks.length) {
+      setCurrentCueText("");
+      return;
+    }
+    const cues = subtitleTracks[activeTrackIdx].cues;
+    const t = currentTime;
+    const active = cues.find(c => t >= c.startTime && t <= c.endTime);
+    if (active) {
+      // Show translated text if available, otherwise original
+      const cueIdx = cues.indexOf(active);
+      const translated = translatedCues.get(cueIdx);
+      setCurrentCueText(translated ?? active.text);
+    } else {
+      setCurrentCueText("");
+    }
+  }, [currentTime, activeTrackIdx, subtitleTracks, translatedCues]);
+
   // HLS loading — hls.js for non-Safari, native for Safari
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !src) return;
+    setSubtitleTracks([]);
+    setActiveTrackIdx(-1);
+    setCurrentCueText("");
 
     if (isHlsStream(src)) {
       if (Hls.isSupported()) {
-        // Suppress metadata text track overlay (codec/codec debug text)
-        // 1. Prevent new cues from being added to any text track
-        const origAddCue = TextTrack.prototype.addCue;
-        TextTrack.prototype.addCue = function () { /* suppressed */ };
-        // 2. Remove any <track> elements HLS.js injects into the <video>
-        const mo = new MutationObserver(() => {
-          v.querySelectorAll("track").forEach((t) => t.remove());
-        });
-        mo.observe(v, { childList: true });
-
         const hls = new Hls({
-          enableCEA708Captions: false,
+          enableCEA708Captions: true,
           renderTextTracksNatively: false,
         });
         hls.loadSource(proxyUrl(src));
         hls.attachMedia(v);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
           claimActiveVideo(widgetId);
           v.play().catch(() => {});
+          // Detect subtitle tracks from manifest
+          const subs = data.subtitles ?? [];
+          if (subs.length > 0) {
+            const tracks: SubtitleTrack[] = subs.map((s: { id: number; name?: string; lang?: string }, i: number) => ({
+              id: s.id,
+              label: s.name || s.lang || `Track ${i + 1}`,
+              lang: s.lang || "",
+              cues: [],
+            }));
+            setSubtitleTracks(tracks);
+          }
+        });
+        // Collect cues when a subtitle track is loaded
+        hls.on(Hls.Events.SUBTITLE_TRACK_LOADED, (_e, data) => {
+          const trackId = data.id;
+          const vttCues = data.details?.fragments?.flatMap(
+            (f: { initPTS?: number; text?: string }) => []
+          ) ?? [];
+          // Extract cues from the track element after hls.js renders them
+          setTimeout(() => {
+            const tracks = v.textTracks;
+            for (let ti = 0; ti < tracks.length; ti++) {
+              const tt = tracks[ti];
+              const cues: SubtitleCue[] = [];
+              if (tt.cues) {
+                for (let ci = 0; ci < tt.cues.length; ci++) {
+                  const c = tt.cues[ci] as VTTCue;
+                  cues.push({ startTime: c.startTime, endTime: c.endTime, text: c.text });
+                }
+              }
+              if (cues.length > 0) {
+                setSubtitleTracks(prev => prev.map(st =>
+                  st.id === trackId ? { ...st, cues } : st
+                ));
+              }
+            }
+          }, 500);
         });
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) onErrorRef.current();
         });
-        return () => {
-          mo.disconnect();
-          TextTrack.prototype.addCue = origAddCue;
-          hls.destroy();
-        };
+        return () => { hls.destroy(); };
       }
       // Safari native HLS
       v.src = proxyUrl(src);
@@ -228,6 +299,35 @@ export const VideoPlayer = memo(function VideoPlayer({ src, widgetId, onReady, o
               <polygon points="6,3 20,12 6,21" />
             </svg>
           </div>
+        </div>
+      )}
+
+      {/* Subtitle overlay */}
+      {activeTrackIdx >= 0 && currentCueText && (
+        <div
+          className="absolute left-0 right-0 flex justify-center"
+          style={{
+            bottom: 52,
+            padding: "0 16px",
+            pointerEvents: "none",
+          }}
+        >
+          <span
+            style={{
+              background: "rgba(0,0,0,0.75)",
+              color: "#fff",
+              fontSize: 14,
+              fontWeight: 500,
+              lineHeight: 1.4,
+              padding: "4px 10px",
+              borderRadius: 4,
+              maxWidth: "85%",
+              textAlign: "center",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {currentCueText}
+          </span>
         </div>
       )}
 
@@ -346,6 +446,99 @@ export const VideoPlayer = memo(function VideoPlayer({ src, widgetId, onReady, o
               />
             )}
           </div>
+
+          {/* CC subtitle button — only shown when tracks exist */}
+          {subtitleTracks.length > 0 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveTrackIdx(prev => prev >= 0 ? -1 : 0)}
+                style={{
+                  background: activeTrackIdx >= 0 ? "rgba(255,255,255,0.25)" : "none",
+                  border: "none",
+                  color: color.white,
+                  cursor: "pointer",
+                  padding: "1px 4px",
+                  borderRadius: 3,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title={activeTrackIdx >= 0 ? "Turn off subtitles" : "Turn on subtitles"}
+              >
+                CC
+              </button>
+              {activeTrackIdx >= 0 && subtitleTracks.length > 1 && (
+                <select
+                  value={activeTrackIdx}
+                  onChange={(e) => setActiveTrackIdx(Number(e.target.value))}
+                  style={{
+                    background: "rgba(0,0,0,0.6)",
+                    color: color.white,
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 3,
+                    fontSize: 10,
+                    padding: "1px 3px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {subtitleTracks.map((st, i) => (
+                    <option key={i} value={i}>{st.label}</option>
+                  ))}
+                </select>
+              )}
+              {/* Translate button — when CC is on */}
+              {activeTrackIdx >= 0 && (
+                <select
+                  value={translateLang}
+                  onChange={async (e) => {
+                    const lang = e.target.value;
+                    setTranslateLang(lang);
+                    if (!lang) {
+                      setTranslatedCues(new Map());
+                      return;
+                    }
+                    // Trigger translation
+                    const track = subtitleTracks[activeTrackIdx];
+                    if (!track?.cues.length) return;
+                    setTranslating(true);
+                    try {
+                      const res = await translateSubtitles(track.cues, lang);
+                      if (res?.ok && res.cues) {
+                        const map = new Map<number, string>();
+                        res.cues.forEach((c, i) => {
+                          if (c.translated) map.set(i, c.translated);
+                        });
+                        setTranslatedCues(map);
+                      }
+                    } catch { /* ignore */ }
+                    setTranslating(false);
+                  }}
+                  style={{
+                    background: "rgba(0,0,0,0.6)",
+                    color: translateLang ? color.accent : color.white,
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 3,
+                    fontSize: 10,
+                    padding: "1px 3px",
+                    cursor: "pointer",
+                    opacity: translating ? 0.6 : 1,
+                  }}
+                  title="Translate subtitles"
+                >
+                  <option value="">Translate...</option>
+                  <option value="zh">中文</option>
+                  <option value="en">English</option>
+                  <option value="ja">日本語</option>
+                  <option value="ko">한국어</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              )}
+            </div>
+          )}
 
           {/* Fullscreen */}
           <button
