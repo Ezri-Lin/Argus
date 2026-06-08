@@ -248,35 +248,37 @@ function TierSection({
         ))}
       </div>
 
-      {/* Add member: name + alias + button */}
-      <div className="flex gap-1" style={{ marginBottom: available.length > 0 ? 4 : 0 }}>
-        <input
-          value={addName}
-          onChange={(e) => onAddNameChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") onAdd(); }}
-          placeholder="名称"
-          style={{ ...smallInput, flex: 1, padding: "3px 6px", fontSize: 11 }}
-        />
-        <input
-          value={addAlias}
-          onChange={(e) => onAddAliasChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") onAdd(); }}
-          placeholder="别名"
-          style={{ ...smallInput, flex: 1, padding: "3px 6px", fontSize: 11 }}
-        />
-        <button
-          onClick={onAdd}
-          disabled={adding || !addName.trim()}
-          style={{ ...btnPrimary, padding: "3px 8px", fontSize: 11, opacity: adding ? 0.6 : 1 }}
-        >
-          {adding ? "..." : "+"}
-        </button>
-      </div>
+      {/* Manual add (name + alias) — only for primary/secondary */}
+      {tierDef.showInterval && (
+        <div className="flex gap-1">
+          <input
+            value={addName}
+            onChange={(e) => onAddNameChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") onAdd(); }}
+            placeholder="名称"
+            style={{ ...smallInput, flex: 1, padding: "3px 6px", fontSize: 11 }}
+          />
+          <input
+            value={addAlias}
+            onChange={(e) => onAddAliasChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") onAdd(); }}
+            placeholder="别名"
+            style={{ ...smallInput, flex: 1, padding: "3px 6px", fontSize: 11 }}
+          />
+          <button
+            onClick={onAdd}
+            disabled={adding || !addName.trim()}
+            style={{ ...btnPrimary, padding: "3px 8px", fontSize: 11, opacity: adding ? 0.6 : 1 }}
+          >
+            {adding ? "..." : "+"}
+          </button>
+        </div>
+      )}
 
-      {/* Quick-add (click to add as this tier) */}
-      {available.length > 0 && (
+      {/* Quick-add tiles — only for ai_candidate */}
+      {tierDef.key === "ai_candidate" && available.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
-          {available.slice(0, 15).map((m) => (
+          {available.map((m) => (
             <button
               key={m.id}
               onClick={() => onQuickAdd(m.id, m.name)}
