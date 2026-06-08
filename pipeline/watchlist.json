@@ -1001,6 +1001,7 @@
     "stale_threshold_min": "90",
     "global_fail_count": "2",
     "open_mode": "drawer",
-    "refresh_min": "60"
+    "refresh_min": "60",
+    "fetch_before_process": "true"
   }
 }

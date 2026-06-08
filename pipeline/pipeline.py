@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from article_lifecycle import ArticleLifecycle
+from article_lifecycle import ArticleLifecycle, ARCHIVE_MAX_DAYS
 from db import get_db, get_model_for_role, get_setting, init_db
 from helpers import fingerprint, now_iso, safe_text
 from local_search import LocalArticleSearch
@@ -81,28 +81,35 @@ def run_pipeline(db_path: str | None = None):
         conn.close()
         return
 
+    fetch_before_process = get_setting(conn, "fetch_before_process", "true") == "true"
+
     print(f"Pipeline: {len(members)} members due, {len(sources)} sources")
     print(f"  base_model: {base_model['label']} ({base_model['model']})")
     print(f"  deep_search: {'on' if deep_search_enabled else 'off'}, pro: {'on' if pro_enabled else 'off'}")
 
-    # Fetch all RSS items (pass feedparser.parse so tests can monkey-patch)
-    _update_progress(rss_sources_total=len(sources), rss_sources_done=0)
+    # RSS fetch (can be disabled if fetch.py runs as separate cron)
+    all_items: list[dict] = []
+    rss_errors: list[tuple[str, str]] = []
+    if fetch_before_process:
+        _update_progress(rss_sources_total=len(sources), rss_sources_done=0)
 
-    def _rss_progress(done: int, total: int):
-        _update_progress(rss_sources_done=done)
+        def _rss_progress(done: int, total: int):
+            _update_progress(rss_sources_done=done)
 
-    all_items, rss_errors = fetch_rss_items(sources, conn, feedparser.parse, _rss_progress)
-    _update_progress(rss_sources_done=len(sources))
-    for src_name, err_msg in rss_errors:
-        write_health(conn, "rss", "degraded", err_msg)
-    if not rss_errors:
-        write_health(conn, "rss", "ok")
-    print(f"  Fetched {len(all_items)} RSS items total ({len(rss_errors)} source errors)")
+        all_items, rss_errors = fetch_rss_items(sources, conn, feedparser.parse, _rss_progress)
+        _update_progress(rss_sources_done=len(sources))
+        for src_name, err_msg in rss_errors:
+            write_health(conn, "rss", "degraded", err_msg)
+        if not rss_errors:
+            write_health(conn, "rss", "ok")
+        print(f"  Fetched {len(all_items)} RSS items ({len(rss_errors)} errors)")
+    else:
+        print("  RSS fetch: skipped (fetch_before_process=false, use fetch.py separately)")
 
     # ── Local-first: lifecycle cleanup ──
     lifecycle = ArticleLifecycle(conn)
     discarded = lifecycle.auto_discard_stale()
-    archived = lifecycle.archive_stale(max_age_days=14)
+    archived = lifecycle.archive_stale()
     if discarded or archived:
         print(f"  Lifecycle: discarded {len(discarded)}, archived {len(archived)} stale articles")
 
@@ -141,13 +148,17 @@ def run_pipeline(db_path: str | None = None):
     total_kept = 0
     total_dropped = 0
 
-    # ── Phase 1: Pre-filter + deduplicate per member (main thread, needs DB) ──
+    # ── Phase 1: Local-first matching per member ──
+    # Primary: search local rss_articles (FTS5 + relevance scoring)
+    # Fallback: match against RSS items from this fetch run
     work_queue: list[tuple[int, dict, list, str, str]] = []
     members_progress: list[dict] = []
     for member_idx, member in enumerate(members):
         mb = dict(member)
         domains_list = member_domains(conn, mb["id"])
         domain_str = ", ".join(domains_list) if domains_list else ""
+        aliases = member_aliases(mb)
+        aliases_str = ", ".join(aliases)
 
         members_progress.append({
             "name": mb["name"],
@@ -157,29 +168,29 @@ def run_pipeline(db_path: str | None = None):
             "log": "",
         })
 
-        result = filter_and_deduplicate(member, all_items, conn)
-        if result is None:
-            # Try local RSS cache as fallback
-            aliases = member_aliases(mb)
-            local_items = get_local_candidates(conn, mb, aliases)
-            # Deduplicate against existing events
-            new_locals = []
-            for item in local_items:
-                fp = fingerprint(item["url"], item["title"])
-                exists = conn.execute(
-                    "SELECT id FROM events WHERE fingerprint = ?", (fp,)
-                ).fetchone()
-                if not exists:
-                    new_locals.append(item)
-            if not new_locals:
-                members_progress[-1]["status"] = "done"
-                members_progress[-1]["log"] = "0 matching items"
-                continue
-            aliases_str = ", ".join(aliases)
-            work_queue.append((member_idx, mb, new_locals[:10], aliases_str, domain_str))
-        else:
-            mb, new_items, aliases_str, domains_str = result
-            work_queue.append((member_idx, mb, new_items, aliases_str, domains_str))
+        # PRIMARY: local article search (FTS5 + relevance)
+        local_items = get_local_candidates(conn, mb, aliases)
+        new_items = []
+        for item in local_items:
+            fp = fingerprint(item["url"], item["title"])
+            exists = conn.execute(
+                "SELECT id FROM events WHERE fingerprint = ?", (fp,)
+            ).fetchone()
+            if not exists:
+                new_items.append(item)
+
+        # FALLBACK: match against RSS items from this fetch run
+        if not new_items:
+            result = filter_and_deduplicate(member, all_items, conn)
+            if result is not None:
+                mb, new_items, aliases_str, domain_str = result
+
+        if not new_items:
+            members_progress[-1]["status"] = "done"
+            members_progress[-1]["log"] = "0 matching items"
+            continue
+
+        work_queue.append((member_idx, mb, new_items[:10], aliases_str, domain_str))
 
     _update_progress(step="analyzing", members_total=len(members), members_done=0, members=members_progress)
 

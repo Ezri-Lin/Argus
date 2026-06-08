@@ -1,6 +1,21 @@
-"""Article lifecycle state machine: fresh -> processed -> archived, with discard."""
+"""Article lifecycle state machine: fresh -> processed -> archived, with discard.
 
-from pipeline.helpers import now_iso
+Lifecycle flow:
+  fresh      — newly fetched, not yet seen by pipeline
+  processed  — seen by pipeline or older than FRESH_MAX_DAYS
+  archived   — older than ARCHIVE_MAX_DAYS, filtered from active queries
+  discarded  — low relevance or noise, permanently excluded
+
+Articles are never deleted — only status changes.
+"""
+
+try:
+    from pipeline.helpers import now_iso
+except ImportError:
+    from helpers import now_iso
+
+FRESH_MAX_DAYS = 3
+ARCHIVE_MAX_DAYS = 14
 
 VALID_TRANSITIONS = {
     "fresh": {"processed", "archived", "discarded"},
@@ -109,12 +124,12 @@ class ArticleLifecycle:
         self.conn.commit()
         return discarded
 
-    def archive_stale(self, max_age_days: int = 14) -> list:
-        """Archive processed articles older than max_age_days."""
+    def archive_stale(self, max_age_days: int = ARCHIVE_MAX_DAYS) -> list:
+        """Archive processed (and very old fresh) articles older than max_age_days."""
         rows = self.conn.execute(
             """
             SELECT id FROM rss_articles
-            WHERE lifecycle_status = 'processed'
+            WHERE lifecycle_status IN ('fresh', 'processed')
               AND julianday('now') - julianday(fetched_at) > ?
             """,
             (max_age_days,),
@@ -138,3 +153,26 @@ class ArticleLifecycle:
             (limit,),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def mark_processed_batch(self, article_ids: list[str]) -> int:
+        """Batch transition fresh → processed for articles analyzed by pipeline."""
+        count = 0
+        now = now_iso()
+        for aid in article_ids:
+            self.conn.execute(
+                """UPDATE rss_articles
+                   SET lifecycle_status = 'processed', processed_at = ?
+                   WHERE id = ? AND lifecycle_status = 'fresh'""",
+                (now, aid),
+            )
+            count += self.conn.total_changes
+        self.conn.commit()
+        return count
+
+    def get_stats(self) -> dict:
+        """Return lifecycle distribution counts."""
+        rows = self.conn.execute(
+            "SELECT lifecycle_status, COUNT(*) as cnt "
+            "FROM rss_articles GROUP BY lifecycle_status"
+        ).fetchall()
+        return {r["lifecycle_status"]: r["cnt"] for r in rows}
