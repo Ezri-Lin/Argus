@@ -63,21 +63,27 @@ const btnSegmentActive = {
   borderColor: color.textSecondary,
 } as const;
 
+const dividerStyle = {
+  border: "none",
+  borderTop: `1px solid ${color.hairline}`,
+  margin: "8px 0",
+} as const;
+
 // ── Tier config ──
 
 type TierKey = "primary" | "secondary" | "ai_candidate";
 
 interface TierDef {
   key: TierKey;
-  labelKey: I18nKey;
+  label: string;
   color: string;
   showInterval: boolean;
 }
 
 const TIERS: TierDef[] = [
-  { key: "primary", labelKey: "config.treemap.tierPrimary", color: color.accent, showInterval: true },
-  { key: "secondary", labelKey: "config.treemap.tierSecondary", color: color.textSecondary, showInterval: true },
-  { key: "ai_candidate", labelKey: "config.treemap.tierCandidate", color: color.textMuted, showInterval: false },
+  { key: "primary", label: "主力", color: color.accent, showInterval: true },
+  { key: "secondary", label: "观察", color: color.textSecondary, showInterval: true },
+  { key: "ai_candidate", label: "推荐", color: color.textMuted, showInterval: false },
 ];
 
 // ── Types ──
@@ -93,13 +99,11 @@ interface DraftMember {
 
 function MemberRow({
   member,
-  interval,
   tierDef,
   onRemove,
   onDragStart,
 }: {
   member: DraftMember;
-  interval?: number;
   tierDef: TierDef;
   onRemove: () => void;
   onDragStart: (e: React.DragEvent) => void;
@@ -124,11 +128,6 @@ function MemberRow({
       <span style={{ fontSize: 12, color: color.textPrimary, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {member.name}
       </span>
-      {tierDef.showInterval && interval != null && (
-        <span style={{ fontSize: 10, color: color.textMuted, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
-          {interval}m
-        </span>
-      )}
       <button
         onClick={onRemove}
         style={{ padding: "0 4px", border: "none", background: "transparent", color: color.neg, fontSize: 10, cursor: "pointer", flexShrink: 0 }}
@@ -139,24 +138,42 @@ function MemberRow({
   );
 }
 
-// ── Tier section (drop target) ──
+// ── Tier section ──
 
 function TierSection({
   tierDef,
   members,
   interval,
+  onIntervalChange,
   candidateHint,
   onDrop,
   onRemove,
   onDragStartMember,
+  addName,
+  addAlias,
+  adding,
+  onAddNameChange,
+  onAddAliasChange,
+  onAdd,
+  onQuickAdd,
+  available,
 }: {
   tierDef: TierDef;
   members: DraftMember[];
   interval?: number;
+  onIntervalChange?: (v: number) => void;
   candidateHint?: string;
   onDrop: (tier: TierKey) => void;
   onRemove: (memberId: number) => void;
   onDragStartMember: (memberId: number, e: React.DragEvent) => void;
+  addName: string;
+  addAlias: string;
+  adding: boolean;
+  onAddNameChange: (v: string) => void;
+  onAddAliasChange: (v: string) => void;
+  onAdd: () => void;
+  onQuickAdd: (memberId: number, name: string) => void;
+  available: MemberItem[];
 }) {
   const [dragOver, setDragOver] = useState(false);
 
@@ -185,21 +202,23 @@ function TierSection({
         borderRadius: radius.inner,
         border: `1px dashed ${dragOver ? tierDef.color : "transparent"}`,
         transition: "all 0.15s",
-        marginBottom: 4,
       }}
     >
-      {/* Section header */}
-      <div className="flex items-center justify-between" style={{ marginBottom: 6, paddingLeft: 2 }}>
-        <div className="flex items-center gap-1.5">
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: tierDef.color }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: color.textPrimary }}>
-            {tierDef.labelKey.includes("tierPrimary") ? "主力" : tierDef.labelKey.includes("tierSecondary") ? "观察" : "推荐"}
-          </span>
-          <span style={{ fontSize: 10, color: color.textMuted }}>{members.length}</span>
-        </div>
-        {tierDef.showInterval && interval != null && (
-          <span style={{ fontSize: 10, color: color.textMuted, fontVariantNumeric: "tabular-nums" }}>
-            {interval}m
+      {/* Header: dot + label + count + interval */}
+      <div className="flex items-center gap-1.5" style={{ marginBottom: 6, paddingLeft: 2 }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: tierDef.color, flexShrink: 0 }} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: color.textPrimary }}>{tierDef.label}</span>
+        <span style={{ fontSize: 10, color: color.textMuted }}>{members.length}</span>
+        {tierDef.showInterval && interval != null && onIntervalChange && (
+          <span className="flex items-center gap-1" style={{ marginLeft: "auto" }}>
+            <input
+              type="number"
+              min={1}
+              value={interval}
+              onChange={(e) => onIntervalChange(Math.max(1, parseInt(e.target.value) || 90))}
+              style={{ ...smallInput, padding: "2px 4px", width: 40, fontSize: 10, textAlign: "right" }}
+            />
+            <span style={{ fontSize: 10, color: color.textMuted }}>m</span>
           </span>
         )}
       </div>
@@ -211,10 +230,10 @@ function TierSection({
         </div>
       )}
 
-      {/* Member rows */}
-      <div className="flex flex-col gap-0.5">
+      {/* Member list */}
+      <div className="flex flex-col gap-0.5" style={{ marginBottom: 6 }}>
         {members.length === 0 && (
-          <div style={{ fontSize: 10, color: color.textMuted, padding: "6px 2px", textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: color.textMuted, padding: "4px 2px", textAlign: "center" }}>
             拖拽成员到此处
           </div>
         )}
@@ -222,46 +241,57 @@ function TierSection({
           <MemberRow
             key={m.memberId}
             member={m}
-            interval={tierDef.showInterval ? interval : undefined}
             tierDef={tierDef}
             onRemove={() => onRemove(m.memberId)}
             onDragStart={(e) => onDragStartMember(m.memberId, e)}
           />
         ))}
       </div>
+
+      {/* Add member: name + alias + button */}
+      <div className="flex gap-1" style={{ marginBottom: available.length > 0 ? 4 : 0 }}>
+        <input
+          value={addName}
+          onChange={(e) => onAddNameChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") onAdd(); }}
+          placeholder="名称"
+          style={{ ...smallInput, flex: 1, padding: "3px 6px", fontSize: 11 }}
+        />
+        <input
+          value={addAlias}
+          onChange={(e) => onAddAliasChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") onAdd(); }}
+          placeholder="别名"
+          style={{ ...smallInput, flex: 1, padding: "3px 6px", fontSize: 11 }}
+        />
+        <button
+          onClick={onAdd}
+          disabled={adding || !addName.trim()}
+          style={{ ...btnPrimary, padding: "3px 8px", fontSize: 11, opacity: adding ? 0.6 : 1 }}
+        >
+          {adding ? "..." : "+"}
+        </button>
+      </div>
+
+      {/* Quick-add (click to add as this tier) */}
+      {available.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
+          {available.slice(0, 15).map((m) => (
+            <button
+              key={m.id}
+              onClick={() => onQuickAdd(m.id, m.name)}
+              style={{
+                ...btnGhost,
+                padding: "1px 6px",
+                fontSize: 10,
+              }}
+            >
+              {m.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
-  );
-}
-
-// ── Quick add button ──
-
-function QuickAddBtn({
-  name,
-  tier,
-  tierColor,
-  onClick,
-}: {
-  name: string;
-  tier: TierKey;
-  tierColor: string;
-  onClick: (tier: TierKey) => void;
-}) {
-  return (
-    <button
-      onClick={() => onClick(tier)}
-      style={{
-        ...btnGhost,
-        padding: "1px 5px",
-        fontSize: 10,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 3,
-        margin: "1px 2px",
-      }}
-    >
-      <span style={{ width: 4, height: 4, borderRadius: "50%", background: tierColor, flexShrink: 0 }} />
-      {name}
-    </button>
   );
 }
 
@@ -290,11 +320,13 @@ export function TreemapConfig({
   const [showAddDomain, setShowAddDomain] = useState(false);
   const [dk, setDk] = useState("");
   const [dl, setDl] = useState("");
-  const [mn, setMn] = useState("");
-  const [ma, setMa] = useState("");
-  const [addingMember, setAddingMember] = useState(false);
   const [editingDomain, setEditingDomain] = useState<string | null>(null);
   const [editDomainLabel, setEditDomainLabel] = useState("");
+
+  // Per-tier add form state
+  const [addName, setAddName] = useState<Record<TierKey, string>>({ primary: "", secondary: "", ai_candidate: "" });
+  const [addAlias, setAddAlias] = useState<Record<TierKey, string>>({ primary: "", secondary: "", ai_candidate: "" });
+  const [adding, setAdding] = useState(false);
 
   const [draft, setDraft] = useState<DraftMember[]>([]);
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -331,14 +363,13 @@ export function TreemapConfig({
     [members, draftIds],
   );
 
-  // Group draft by tier
   const byTier = useMemo(() => {
     const map: Record<TierKey, DraftMember[]> = { primary: [], secondary: [], ai_candidate: [] };
     for (const m of draft) map[m.tier].push(m);
     return map;
   }, [draft]);
 
-  function addToDraft(memberId: number, name: string, tier: TierKey = "secondary") {
+  function addToDraft(memberId: number, name: string, tier: TierKey) {
     setDraft((prev) => [...prev, { memberId, name, tier, enabled: true }]);
   }
 
@@ -350,7 +381,6 @@ export function TreemapConfig({
     setDraft((prev) => prev.map((d) => (d.memberId === memberId ? { ...d, tier: newTier } : d)));
   }
 
-  // Drag-and-drop handlers
   const handleDragStart = useCallback((memberId: number, e: React.DragEvent) => {
     setDragMemberId(memberId);
     e.dataTransfer.effectAllowed = "move";
@@ -364,19 +394,20 @@ export function TreemapConfig({
     }
   }, [dragMemberId]);
 
-  async function handleAddMember() {
-    if (!mn.trim() || addingMember) return;
-    setAddingMember(true);
+  async function handleAddMember(tier: TierKey) {
+    const name = addName[tier].trim();
+    if (!name || adding) return;
+    setAdding(true);
     try {
-      const aliases = ma.split(",").map((s) => s.trim()).filter(Boolean);
-      const res = await createMember({ name: mn.trim(), aliases });
+      const aliases = addAlias[tier].split(",").map((s) => s.trim()).filter(Boolean);
+      const res = await createMember({ name, aliases });
       if (res?.id) {
-        addToDraft(res.id, mn.trim());
-        setMn("");
-        setMa("");
+        addToDraft(res.id, name, tier);
+        setAddName((prev) => ({ ...prev, [tier]: "" }));
+        setAddAlias((prev) => ({ ...prev, [tier]: "" }));
       }
     } finally {
-      setAddingMember(false);
+      setAdding(false);
     }
   }
 
@@ -451,117 +482,36 @@ export function TreemapConfig({
         </div>
       )}
 
-      {/* Tier sections (vertical) */}
+      {/* Tier sections with dividers */}
       <label style={{ fontSize: 11, color: color.textMuted, marginBottom: 8, display: "block" }}>
         {t("config.treemap.members")} ({domain?.label || selectedDomain})
       </label>
 
       {!draftLoaded && <div style={{ fontSize: 11, color: color.textMuted }}>Loading...</div>}
 
-      {draftLoaded && (
-        <div style={{ marginBottom: 12 }}>
-          {TIERS.map((tierDef) => (
-            <TierSection
-              key={tierDef.key}
-              tierDef={tierDef}
-              members={byTier[tierDef.key]}
-              interval={tierDef.key === "primary" ? primaryInterval : tierDef.key === "secondary" ? secondaryInterval : undefined}
-              candidateHint={tierDef.key === "ai_candidate" ? t("config.treemap.candidateHint") : undefined}
-              onDrop={handleDrop}
-              onRemove={removeFromDraft}
-              onDragStartMember={handleDragStart}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Interval controls */}
-      <div className="flex gap-2" style={{ marginBottom: 12 }}>
-        <div className="flex items-center gap-1.5" style={{ flex: 1 }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: color.accent }} />
-          <label style={{ fontSize: 10, color: color.textMuted }}>{t("config.treemap.interval")}</label>
-          <input
-            type="number"
-            min={1}
-            value={primaryInterval}
-            onChange={(e) => setPrimaryInterval(Math.max(1, parseInt(e.target.value) || 90))}
-            style={{ ...smallInput, padding: "2px 6px", width: 56 }}
+      {draftLoaded && TIERS.map((tierDef, i) => (
+        <div key={tierDef.key}>
+          {i > 0 && <hr style={dividerStyle} />}
+          <TierSection
+            tierDef={tierDef}
+            members={byTier[tierDef.key]}
+            interval={tierDef.key === "primary" ? primaryInterval : tierDef.key === "secondary" ? secondaryInterval : undefined}
+            onIntervalChange={tierDef.key === "primary" ? setPrimaryInterval : tierDef.key === "secondary" ? setSecondaryInterval : undefined}
+            candidateHint={tierDef.key === "ai_candidate" ? t("config.treemap.candidateHint") : undefined}
+            onDrop={handleDrop}
+            onRemove={removeFromDraft}
+            onDragStartMember={handleDragStart}
+            addName={addName[tierDef.key]}
+            addAlias={addAlias[tierDef.key]}
+            adding={adding}
+            onAddNameChange={(v) => setAddName((prev) => ({ ...prev, [tierDef.key]: v }))}
+            onAddAliasChange={(v) => setAddAlias((prev) => ({ ...prev, [tierDef.key]: v }))}
+            onAdd={() => handleAddMember(tierDef.key)}
+            onQuickAdd={(id, name) => addToDraft(id, name, tierDef.key)}
+            available={available}
           />
-          <span style={{ fontSize: 10, color: color.textMuted }}>min</span>
         </div>
-        <div className="flex items-center gap-1.5" style={{ flex: 1 }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: color.textSecondary }} />
-          <label style={{ fontSize: 10, color: color.textMuted }}>{t("config.treemap.interval")}</label>
-          <input
-            type="number"
-            min={1}
-            value={secondaryInterval}
-            onChange={(e) => setSecondaryInterval(Math.max(1, parseInt(e.target.value) || 90))}
-            style={{ ...smallInput, padding: "2px 6px", width: 56 }}
-          />
-          <span style={{ fontSize: 10, color: color.textMuted }}>min</span>
-        </div>
-      </div>
-
-      {/* Add member (name + aliases) */}
-      <div className="flex gap-1 mb-1">
-        <input value={mn} onChange={(e) => setMn(e.target.value)} placeholder={t("config.common.name")} style={{ ...smallInput, flex: 1 }} />
-        <input value={ma} onChange={(e) => setMa(e.target.value)} placeholder={t("config.common.aliases")} style={{ ...smallInput, flex: 1 }} />
-        <button
-          onClick={handleAddMember}
-          disabled={addingMember || !mn.trim()}
-          style={{ ...btnPrimary, padding: "4px 10px", fontSize: 11, opacity: addingMember ? 0.6 : 1 }}
-        >
-          {addingMember ? "..." : "+"}
-        </button>
-      </div>
-
-      {/* Quick-add from existing members with tier selection */}
-      {available.length > 0 && (
-        <div style={{ fontSize: 10, color: color.textMuted, marginTop: 6 }}>
-          <div style={{ marginBottom: 3 }}>{t("config.treemap.quickAdd")}:</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-            {available.slice(0, 20).map((m) => (
-              <div key={m.id} className="flex items-center" style={{ display: "inline-flex" }}>
-                <span style={{ fontSize: 10, color: color.textPrimary, padding: "1px 4px", background: color.surface2, borderRadius: `${radius.inner} 0 0 ${radius.inner}`, border: `1px solid ${color.hairline}`, borderRight: "none" }}>
-                  {m.name}
-                </span>
-                {TIERS.map((tierDef) => (
-                  <button
-                    key={tierDef.key}
-                    onClick={() => addToDraft(m.id, m.name, tierDef.key)}
-                    title={tierDef.labelKey.includes("tierPrimary") ? "主力" : tierDef.labelKey.includes("tierSecondary") ? "观察" : "推荐"}
-                    style={{
-                      padding: "1px 5px",
-                      fontSize: 9,
-                      cursor: "pointer",
-                      background: "transparent",
-                      border: `1px solid ${color.hairline}`,
-                      borderRight: "none",
-                      color: tierDef.color,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {tierDef.labelKey.includes("tierPrimary") ? "主" : tierDef.labelKey.includes("tierSecondary") ? "观" : "推"}
-                  </button>
-                ))}
-                <button
-                  onClick={() => addToDraft(m.id, m.name, "secondary")}
-                  style={{
-                    padding: "1px 5px",
-                    fontSize: 9,
-                    cursor: "pointer",
-                    background: "transparent",
-                    border: `1px solid ${color.hairline}`,
-                    color: color.textMuted,
-                    display: "none",
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      ))}
 
       <DraftSaveHandler onSave={handleSave} />
     </div>
