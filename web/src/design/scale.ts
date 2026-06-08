@@ -50,3 +50,50 @@ export const charW = (ch: string): number =>
 /** Estimate total width in em for a string (CJK-aware). */
 export const estEm = (s: string): number =>
   [...s].reduce((w, c) => w + charW(c), 0);
+
+export type MetricMode =
+  | "micro"
+  | "compact"
+  | "regular"
+  | "wide"
+  | "tall"
+  | "hero";
+
+export function pickMetricMode(w: number, h: number): MetricMode {
+  const area = w * h;
+  const aspect = w / Math.max(1, h);
+  if (w < 88 || h < 58 || area < 6500) return "micro";
+  if (aspect >= 2.25 && h < 124) return "wide";
+  if (aspect <= 0.72 && h >= 112) return "tall";
+  if (area >= 42000 && w >= 180 && h >= 150) return "hero";
+  if (area < 15000) return "compact";
+  return "regular";
+}
+
+export function fitPrimaryLine(args: {
+  width: number;
+  height: number;
+  valueEm: number;
+  unitEm?: number;
+  unitRatio?: number;
+  min: number;
+  max: number;
+  heightRatio: number;
+}): number {
+  const unitWidth = (args.unitEm ?? 0) * (args.unitRatio ?? 0);
+  const totalEm = args.valueEm + unitWidth + (unitWidth > 0 ? 0.35 : 0);
+  return clamp(
+    Math.min(args.width / Math.max(0.1, totalEm), args.height * args.heightRatio),
+    args.min,
+    args.max,
+  );
+}
+
+/** Compact number: 10000→"10k", 1500000→"1.5M". Does NOT compact percentages or small decimals. */
+export function compactNumber(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (abs >= 10_000) return `${(value / 1_000).toFixed(1)}k`;
+  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
