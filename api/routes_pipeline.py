@@ -3,6 +3,7 @@
 import os
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from pipeline.db import get_db
 
@@ -37,7 +38,7 @@ def trigger_pipeline():
 @router.get("/progress")
 def get_pipeline_progress():
     """Return current pipeline progress (for frontend polling)."""
-    from pipeline import get_progress
+    from pipeline.health import get_progress
     return get_progress()
 
 
@@ -50,3 +51,22 @@ def last_run():
         return result or {"status": "no_runs"}
     finally:
         conn.close()
+
+
+class DomainTrigger(BaseModel):
+    domain: str
+
+
+@router.post("/trigger-domain")
+def trigger_domain(body: DomainTrigger):
+    """Reset scan schedule for a domain's members and trigger pipeline."""
+    conn = _conn()
+    conn.execute(
+        "UPDATE memberships SET next_scan_at = NULL WHERE domain = ? AND enabled = 1",
+        (body.domain,),
+    )
+    conn.commit()
+    conn.close()
+    from .scheduler import trigger_now
+    trigger_now()
+    return {"ok": True, "message": f"Domain '{body.domain}' queued for scan"}

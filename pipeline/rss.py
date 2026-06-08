@@ -4,7 +4,10 @@ import hashlib
 
 import requests
 
-from pipeline.helpers import now_iso, safe_text
+try:
+    from pipeline.helpers import now_iso, safe_text
+except ImportError:
+    from helpers import now_iso, safe_text
 
 _UA = "Mozilla/5.0 (compatible; ArgusFeed/1.0; +https://github.com/argus)"
 
@@ -89,7 +92,7 @@ def fetch_rss_items(sources, conn, parse_fn, progress_callback=None) -> tuple[li
             fetched_at = now_iso()
             row = conn.execute(
                 "SELECT consecutive_failures FROM sources WHERE id = ?",
-                (src["id"]),
+                (src["id"],),
             ).fetchone()
             failures = (row["consecutive_failures"] if row else 0) + 1
             health = "failing" if failures >= 3 else "degraded"

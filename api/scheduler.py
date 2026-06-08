@@ -29,7 +29,7 @@ def _run_pipeline_job():
     logger.info("Pipeline job starting...")
     t0 = time.monotonic()
     try:
-        from pipeline import run_pipeline
+        from pipeline.pipeline import run_pipeline
         run_pipeline(_db_path)
         elapsed = time.monotonic() - t0
         logger.info("Pipeline job completed in %.1fs", elapsed)
