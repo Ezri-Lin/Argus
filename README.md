@@ -1,165 +1,141 @@
-# Argus
+<p align="center">
+  <img src="argus_logo.png" alt="Argus" width="180" />
+</p>
 
-**Ambient information radar for tech intelligence workers.**
+<h1 align="center">Argus</h1>
 
-AI-powered news filtering that compresses the flood of tech news into just the most important items. Glance at it 5-10 times a day, 30 seconds each, and you're caught up.
+<p align="center">
+  <strong>为科技情报工作者打造的环境信息雷达</strong><br/>
+  <em>Ambient information radar for tech intelligence workers</em>
+</p>
 
-## Features
+<p align="center">
+  AI 驱动的新闻过滤，将海量科技资讯压缩为最重要的条目。每天扫 5-10 次，每次 30 秒，即可掌握全局。<br/>
+  AI-powered news filtering that compresses the flood of tech news into just the most important items.<br/>
+  Glance at it 5–10 times a day, 30 seconds each, and you're caught up.
+</p>
 
-- **AI Subtraction** — Keep/drop decisions + one-sentence summaries, not full analysis
-- **Treemap Dashboard** — Sentiment-colored, heat-weighted visualization of your watchlist
-- **Live Feed** — RSS + AI-filtered news stream with importance scoring
-- **Multi-language** — Chinese/English bilingual UI
-- **Ambient Design** — Wall-mountable, glanceable, zero-animation idle states
-- **Self-hosted** — Your data stays on your machine
+---
 
-## Quick Start
+## Features / 功能特性
 
-### Prerequisites
+- **AI 减法** — 保留/丢弃决策 + 一句话摘要，不做长篇分析 / Keep/drop decisions + one-sentence summaries
+- **Treemap 仪表盘** — 情绪着色、热度加权的监视列表可视化 / Sentiment-colored, heat-weighted treemap dashboard
+- **实时 Feed** — RSS + AI 过滤的新闻流，带重要性评分 / RSS + AI-filtered news stream with importance scoring
+- **领域预设** — 一键添加 AI、芯片、加密、金融等领域预设 / One-click domain presets (AI, Chips, Crypto, Finance, etc.)
+- **视频播放器** — HLS/MP4 播放，自动检测字幕轨，支持 LLM 翻译字幕 / Video player with HLS subtitle detection + LLM translation
+- **倒计时** — 浏览器本地时区，AI 推荐关键日期节点 / Countdown with browser-local timezone, AI date suggestions
+- **天气 / 时钟 / 搜索** — 多种实用组件 / Weather, clock, search, and more widgets
+- **中英双语** — 全界面中英文切换 / Full Chinese/English bilingual UI
+- **环境设计** — 适合壁挂，可扫视，零动画空闲态 / Wall-mountable, glanceable, zero-animation idle states
+- **自托管** — 数据留在你自己的机器上 / Self-hosted, your data stays on your machine
 
-- Python 3.12+ & Node.js 18+ (for local development)
-- **Or** Docker (for production deployment)
-- An OpenAI-compatible API key (e.g. OpenAI, Mimo, DeepSeek)
+## Quick Start / 快速开始
 
-### 1. Clone & Install
+### Prerequisites / 前置条件
+
+- **Docker**（推荐，无需安装 Python/Node.js）/ Docker (recommended, no Python/Node.js needed)
+- 或 Python 3.12+ & Node.js 18+（本地开发）/ Or Python 3.12+ & Node.js 18+ (local dev)
+- 一个 OpenAI 兼容的 API key（OpenAI / Mimo / DeepSeek 等）/ An OpenAI-compatible API key
+
+### Docker 部署（推荐）
 
 ```bash
-git clone https://github.com/Ezri-Lin/Argus.git
-cd Argus
-
-# Backend
-pip install -r pipeline/requirements.txt
-
-# Frontend
-cd web && npm install && cd ..
-```
-
-### 2. Configure
-
-```bash
+git clone https://github.com/Ezri-Lin/Argus.git && cd Argus
 cp .env.example .env
+# 编辑 .env，填入 ARGUS_MODEL_API_KEY（可选，也可启动后在设置面板配置）
+docker compose up -d
+# 打开 http://localhost:8000
 ```
 
-Edit `.env` and fill in your API key:
+首次启动会自动初始化数据库和示例监视列表。
 
-```env
-ARGUS_MODEL_BASE_URL=https://api.openai.com/v1
-ARGUS_MODEL_API_KEY=sk-your-key-here
-ARGUS_MODEL_NAME=gpt-4o-mini
-```
-
-### 3. Seed & Run
+### 本地开发
 
 ```bash
-# Initialize the database with example watchlist
-cp pipeline/watchlist.example.json pipeline/watchlist.json
-python pipeline/seed.py
-
-# Start both backend and frontend
+git clone https://github.com/Ezri-Lin/Argus.git && cd Argus
+pip install -r pipeline/requirements.txt
+cd web && npm install && cd ..
+cp .env.example .env  # 可选
 ./dev.sh
 ```
 
-Open `http://localhost:5173` in your browser.
+- 后端: `http://localhost:8000`
+- 前端: `http://localhost:5173`
 
-## Customization
+## Widgets / 组件
 
-### Watchlist
+| 组件 | 说明 |
+|------|------|
+| **Treemap** | 热力图式监视列表，情绪着色，点击查看详情 |
+| **Feed** | 实时新闻流，AI 评分，支持信号/时间线视图 |
+| **Stat** | 数值指标卡片，支持趋势显示 |
+| **Countdown** | 倒计时组件，浏览器本地时区，AI 推荐日期 |
+| **Weather** | 天气显示 |
+| **Clock** | 多时区时钟 |
+| **Search** | 搜索组件 |
+| **Embed** | 视频/直播播放器，HLS/MP4/iframe，自动字幕检测 + 翻译 |
 
-Edit `pipeline/watchlist.json` to add your own entities:
+## Domain Presets / 领域预设
 
-```json
-{
-  "members": [
-    { "name": "Your Company", "domains": ["tech"], "aliases": ["alias1"] }
-  ],
-  "domains": [
-    { "key": "tech", "label_zh": "科技", "label_en": "Tech", "weight": 1.0 }
-  ]
-}
+一键添加预配置的监视列表，包含领域语义上下文和推荐成员：
+
+- **AI 大模型** — NVIDIA, OpenAI, Anthropic, DeepMind, Meta AI ...
+- **科技巨头** — Apple, Microsoft, Google, Amazon, Meta ...
+- **芯片半导体** — TSMC, ASML, Samsung, Intel, AMD ...
+- **加密货币** — Bitcoin, Ethereum, Solana, Coinbase ...
+- **金融市场** — JPMorgan, Goldman Sachs, BlackRock ...
+- **中概科技** — Tencent, Alibaba, BYD, ByteDance ...
+- **新能源** — Tesla, BYD, CATL, Rivian ...
+
+每个预设包含 primary/secondary 成员分层和领域搜索意图。
+
+## Architecture / 架构
+
 ```
+pipeline/              # RSS → AI 过滤 → 事件提取 → 快照
+  pipeline.py          # 核心 pipeline 调度
+  db.py                # SQLite schema + migrations
+  models.py            # AI 模型调用 + system prompts
+  processing.py        # 新闻处理 + 去重
+  scheduling.py        # 成员扫描调度
+  snapshot.py          # Treemap 快照构建
+  search/              # 搜索路由 + SearXNG 集成
 
-Then re-seed: `python pipeline/seed.py`
+api/                   # FastAPI 服务
+  api.py               # 核心端点 + 路由注册
+  routes_ai.py         # AI 模型管理
+  routes_members.py    # 监视列表 CRUD + 领域管理
+  routes_sources.py    # RSS 源管理
+  routes_dates.py      # AI 日期推荐
+  routes_video.py      # 视频解析 + 流代理
+  routes_subtitles.py  # 字幕翻译
+  routes_widgets.py    # Widget 配置持久化
+  scheduler.py         # 后台任务调度
 
-### RSS Sources
-
-Add feeds in the Sources panel (Settings) or edit `pipeline/sources.json`.
-
-### AI Models
-
-Configure models in Settings → Config. Supports any OpenAI-compatible API.
-
-## Architecture
-
-```
-pipeline/          # RSS → AI filter → events → snapshot
-  pipeline.py      # Core pipeline (single file, MVP)
-  db.py            # SQLite schema + migrations
-  seed.py          # Database seeder
-
-api/               # FastAPI server
-  api.py           # Core endpoints (/data, /layout, /health)
-  routes_ai.py     # AI model management
-  routes_members.py # Watchlist CRUD
-  routes_sources.py # RSS source management
-  scheduler.py     # Background task scheduler
-
-web/               # React + Vite + D3 treemap
+web/                   # React + Vite + D3 treemap
   src/
-    widgets/       # Treemap, feed, stat, countdown, etc.
-    components/    # Detail panel, config panel, settings
-    dashboard/     # Zustand store, API client, types
-    design/        # Tokens, grid, typography
-    lib/           # i18n, theme, utilities
+    widgets/           # Treemap, Feed, Countdown, Embed 等组件
+    components/        # 配置面板、详情面板、设置
+    dashboard/         # Zustand store, API client, 类型定义
+    design/            # 设计 token、网格、排版
+    lib/               # i18n, 主题, 工具函数
 ```
 
-## Self-hosted search with SearXNG
+## Self-hosted Search / 自托管搜索
 
-Argus can optionally run SearXNG as a local metasearch sidecar for low-cost discovery search.
-
-Start with:
+Argus 可选运行 SearXNG 作为本地元搜索 sidecar：
 
 ```bash
 docker compose --profile search up -d
 ```
 
-If you already have a SearXNG instance:
-
+已有 SearXNG 实例？设置环境变量：
 ```bash
 SEARXNG_BASE_URL=https://your-search.example.com
 ```
 
-SearXNG is an independent open-source project licensed under AGPL-3.0. Argus runs the official container image by default and does not modify SearXNG source code. Do not expose your SearXNG instance publicly without authentication and rate limiting.
-
-## RSS intelligence engine
-
-- Preloaded official/news/research sources are enabled by default.
-- Articles are cached locally in SQLite.
-- Local matching uses full title/snippet/content relevance, not title-only matching.
-- Backend automatically discovers official feeds for newly added members.
-- Users normally only configure domains and members.
-
-## Deployment
-
-### Docker (Recommended)
-
-The easiest way to run Argus in production — no Python/Node.js installation required.
-
-```bash
-# 1. Clone & configure
-git clone https://github.com/Ezri-Lin/Argus.git && cd Argus
-cp .env.example .env
-# Edit .env — at minimum set ARGUS_MODEL_API_KEY
-
-# 2. Prepare watchlist (optional, for auto-seed on first run)
-cp pipeline/watchlist.example.json pipeline/watchlist.json
-
-# 3. Build & start
-docker compose up -d
-
-# 4. Open http://localhost:8000
-```
-
-**Update:**
+## Update / 更新
 
 ```bash
 docker compose down
@@ -168,39 +144,25 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-**Data persistence:** SQLite + config stored in Docker volume `argus-data`. To use a local directory instead (easier backup), edit `docker-compose.yml`:
+## Data Persistence / 数据持久化
+
+SQLite 数据库和配置存储在 Docker volume `argus-data` 中。如需使用本地目录（方便备份），编辑 `docker-compose.yml`：
 
 ```yaml
 volumes:
   - ./data:/app/data
 ```
 
-### Local Development
+## Tech Stack / 技术栈
 
-```bash
-./dev.sh
-# Backend: http://localhost:8000
-# Frontend: http://localhost:5173
-```
-
-### Static Host
-
-Build the frontend and deploy to Vercel, Cloudflare Pages, etc.:
-
-```bash
-cd web && npm run build
-# Output: web/dist/
-```
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
+| 层级 | 技术 |
+|------|------|
 | Frontend | React, Vite, D3, Zustand, Tailwind CSS |
 | Backend | Python, FastAPI, SQLite (WAL) |
-| AI | OpenAI-compatible API (configurable) |
-| Pipeline | RSS parsing → AI filtering → event extraction |
+| AI | OpenAI-compatible API (可配置) |
+| Pipeline | RSS → AI 过滤 → 事件提取 → 快照 |
+| Search | SearXNG (可选) + Web search APIs |
 
-## License
+## License / 协议
 
 MIT
