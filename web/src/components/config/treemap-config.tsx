@@ -89,9 +89,9 @@ interface DraftMember {
   enabled: boolean;
 }
 
-// ── Member card (draggable) ──
+// ── Member row (draggable) ──
 
-function MemberCard({
+function MemberRow({
   member,
   interval,
   tierDef,
@@ -108,9 +108,9 @@ function MemberCard({
     <div
       draggable
       onDragStart={onDragStart}
-      className="flex items-center gap-1"
+      className="flex items-center gap-1.5"
       style={{
-        padding: "5px 8px",
+        padding: "4px 8px",
         background: color.surface2,
         borderRadius: radius.inner,
         border: `1px solid ${color.hairline}`,
@@ -120,7 +120,7 @@ function MemberCard({
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = tierDef.color)}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = color.hairline)}
     >
-      <span style={{ fontSize: 11, color: tierDef.color, flexShrink: 0, width: 4, height: 4, borderRadius: "50%", background: tierDef.color }} />
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: tierDef.color, flexShrink: 0 }} />
       <span style={{ fontSize: 12, color: color.textPrimary, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {member.name}
       </span>
@@ -131,7 +131,7 @@ function MemberCard({
       )}
       <button
         onClick={onRemove}
-        style={{ ...btnGhost, padding: "0 4px", border: "none", color: color.neg, fontSize: 10, flexShrink: 0 }}
+        style={{ padding: "0 4px", border: "none", background: "transparent", color: color.neg, fontSize: 10, cursor: "pointer", flexShrink: 0 }}
       >
         ✕
       </button>
@@ -139,9 +139,9 @@ function MemberCard({
   );
 }
 
-// ── Tier column (drop target) ──
+// ── Tier section (drop target) ──
 
-function TierColumn({
+function TierSection({
   tierDef,
   members,
   interval,
@@ -180,21 +180,20 @@ function TierColumn({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       style={{
-        flex: 1,
-        minWidth: 0,
-        padding: "8px 6px",
+        padding: "8px",
         background: dragOver ? tierDef.color + "0A" : "transparent",
         borderRadius: radius.inner,
         border: `1px dashed ${dragOver ? tierDef.color : "transparent"}`,
         transition: "all 0.15s",
+        marginBottom: 4,
       }}
     >
-      {/* Column header */}
+      {/* Section header */}
       <div className="flex items-center justify-between" style={{ marginBottom: 6, paddingLeft: 2 }}>
         <div className="flex items-center gap-1.5">
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: tierDef.color }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: color.textPrimary }}>
-            {tierDef.labelKey ? (tierDef.labelKey.includes("tierPrimary") ? "主力" : tierDef.labelKey.includes("tierSecondary") ? "观察" : "推荐") : tierDef.key}
+          <span style={{ fontSize: 12, fontWeight: 600, color: color.textPrimary }}>
+            {tierDef.labelKey.includes("tierPrimary") ? "主力" : tierDef.labelKey.includes("tierSecondary") ? "观察" : "推荐"}
           </span>
           <span style={{ fontSize: 10, color: color.textMuted }}>{members.length}</span>
         </div>
@@ -212,15 +211,15 @@ function TierColumn({
         </div>
       )}
 
-      {/* Member cards */}
+      {/* Member rows */}
       <div className="flex flex-col gap-0.5">
         {members.length === 0 && (
-          <div style={{ fontSize: 10, color: color.textMuted, padding: "8px 2px", textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: color.textMuted, padding: "6px 2px", textAlign: "center" }}>
             拖拽成员到此处
           </div>
         )}
         {members.map((m) => (
-          <MemberCard
+          <MemberRow
             key={m.memberId}
             member={m}
             interval={tierDef.showInterval ? interval : undefined}
@@ -231,6 +230,38 @@ function TierColumn({
         ))}
       </div>
     </div>
+  );
+}
+
+// ── Quick add button ──
+
+function QuickAddBtn({
+  name,
+  tier,
+  tierColor,
+  onClick,
+}: {
+  name: string;
+  tier: TierKey;
+  tierColor: string;
+  onClick: (tier: TierKey) => void;
+}) {
+  return (
+    <button
+      onClick={() => onClick(tier)}
+      style={{
+        ...btnGhost,
+        padding: "1px 5px",
+        fontSize: 10,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        margin: "1px 2px",
+      }}
+    >
+      <span style={{ width: 4, height: 4, borderRadius: "50%", background: tierColor, flexShrink: 0 }} />
+      {name}
+    </button>
   );
 }
 
@@ -264,10 +295,6 @@ export function TreemapConfig({
   const [addingMember, setAddingMember] = useState(false);
   const [editingDomain, setEditingDomain] = useState<string | null>(null);
   const [editDomainLabel, setEditDomainLabel] = useState("");
-  const [showDomainFields, setShowDomainFields] = useState(false);
-  const [editSearchIntent, setEditSearchIntent] = useState("");
-  const [editIncludeTerms, setEditIncludeTerms] = useState("");
-  const [editExcludeTerms, setEditExcludeTerms] = useState("");
 
   const [draft, setDraft] = useState<DraftMember[]>([]);
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -368,16 +395,6 @@ export function TreemapConfig({
     });
   }
 
-  // Translate tier labels using the i18n function
-  function tierLabel(key: TierKey): string {
-    const map: Record<TierKey, I18nKey> = {
-      primary: "config.treemap.tierPrimary",
-      secondary: "config.treemap.tierSecondary",
-      ai_candidate: "config.treemap.tierCandidate",
-    };
-    return t(map[key]);
-  }
-
   return (
     <div>
       {/* Domain selector */}
@@ -385,28 +402,19 @@ export function TreemapConfig({
       <div className="flex gap-1 mb-2" style={{ flexWrap: "wrap" }}>
         {domains.map((d) => (
           editingDomain === d.key ? (
-            <div key={d.key} className="flex flex-col gap-1" style={{ padding: 4, background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
-              <div className="flex items-center gap-1">
-                <input
-                  value={editDomainLabel}
-                  onChange={(e) => setEditDomainLabel(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { onEditDomain(d.key, { label: editDomainLabel }); setEditingDomain(null); }
-                    if (e.key === "Escape") setEditingDomain(null);
-                  }}
-                  style={{ ...smallInput, width: 80, padding: "2px 6px" }}
-                  autoFocus
-                />
-                <button onClick={() => { onEditDomain(d.key, { label: editDomainLabel }); setEditingDomain(null); }} style={{ ...btnGhost, padding: "2px 4px", fontSize: 10, color: color.pos }}>✓</button>
-                <button onClick={() => setEditingDomain(null)} style={{ ...btnGhost, padding: "2px 4px", fontSize: 10 }}>✕</button>
-              </div>
-              {showDomainFields && (
-                <div className="flex flex-col gap-1" style={{ marginTop: 4 }}>
-                  <input value={editSearchIntent} onChange={(e) => setEditSearchIntent(e.target.value)} placeholder="search intent" style={{ ...smallInput, padding: "2px 6px" }} />
-                  <input value={editIncludeTerms} onChange={(e) => setEditIncludeTerms(e.target.value)} placeholder="include terms (comma)" style={{ ...smallInput, padding: "2px 6px" }} />
-                  <input value={editExcludeTerms} onChange={(e) => setEditExcludeTerms(e.target.value)} placeholder="exclude terms (comma)" style={{ ...smallInput, padding: "2px 6px" }} />
-                </div>
-              )}
+            <div key={d.key} className="flex items-center gap-1" style={{ padding: 4, background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
+              <input
+                value={editDomainLabel}
+                onChange={(e) => setEditDomainLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { onEditDomain(d.key, { label: editDomainLabel }); setEditingDomain(null); }
+                  if (e.key === "Escape") setEditingDomain(null);
+                }}
+                style={{ ...smallInput, width: 80, padding: "2px 6px" }}
+                autoFocus
+              />
+              <button onClick={() => { onEditDomain(d.key, { label: editDomainLabel }); setEditingDomain(null); }} style={{ ...btnGhost, padding: "2px 4px", fontSize: 10, color: color.pos }}>✓</button>
+              <button onClick={() => setEditingDomain(null)} style={{ ...btnGhost, padding: "2px 4px", fontSize: 10 }}>✕</button>
             </div>
           ) : (
             <div key={d.key} className="flex items-center gap-0.5">
@@ -420,10 +428,6 @@ export function TreemapConfig({
                 onClick={() => {
                   setEditingDomain(d.key);
                   setEditDomainLabel(d.label || d.key);
-                  setEditSearchIntent((d as Record<string, unknown>).search_intent as string || "");
-                  setEditIncludeTerms(((d as Record<string, unknown>).include_terms as string[] || []).join(", "));
-                  setEditExcludeTerms(((d as Record<string, unknown>).exclude_terms as string[] || []).join(", "));
-                  setShowDomainFields(false);
                 }}
                 title={t("config.common.edit")}
                 style={{ ...btnGhost, padding: "1px 3px", fontSize: 9, color: color.textMuted }}
@@ -447,7 +451,7 @@ export function TreemapConfig({
         </div>
       )}
 
-      {/* Three-tier columns */}
+      {/* Tier sections (vertical) */}
       <label style={{ fontSize: 11, color: color.textMuted, marginBottom: 8, display: "block" }}>
         {t("config.treemap.members")} ({domain?.label || selectedDomain})
       </label>
@@ -455,11 +459,11 @@ export function TreemapConfig({
       {!draftLoaded && <div style={{ fontSize: 11, color: color.textMuted }}>Loading...</div>}
 
       {draftLoaded && (
-        <div className="flex gap-1" style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 12 }}>
           {TIERS.map((tierDef) => (
-            <TierColumn
+            <TierSection
               key={tierDef.key}
-              tierDef={{ ...tierDef, labelKey: tierDef.labelKey }}
+              tierDef={tierDef}
               members={byTier[tierDef.key]}
               interval={tierDef.key === "primary" ? primaryInterval : tierDef.key === "secondary" ? secondaryInterval : undefined}
               candidateHint={tierDef.key === "ai_candidate" ? t("config.treemap.candidateHint") : undefined}
@@ -499,7 +503,7 @@ export function TreemapConfig({
         </div>
       </div>
 
-      {/* Add member */}
+      {/* Add member (name + aliases) */}
       <div className="flex gap-1 mb-1">
         <input value={mn} onChange={(e) => setMn(e.target.value)} placeholder={t("config.common.name")} style={{ ...smallInput, flex: 1 }} />
         <input value={ma} onChange={(e) => setMa(e.target.value)} placeholder={t("config.common.aliases")} style={{ ...smallInput, flex: 1 }} />
@@ -512,25 +516,50 @@ export function TreemapConfig({
         </button>
       </div>
 
-      {/* Quick-add from existing members */}
+      {/* Quick-add from existing members with tier selection */}
       {available.length > 0 && (
-        <div style={{ fontSize: 10, color: color.textMuted, marginTop: 4 }}>
-          <span>{t("config.treemap.quickAdd")}: </span>
-          {available.slice(0, 20).map((m) => (
-            <button
-              key={m.id}
-              onClick={() => addToDraft(m.id, m.name)}
-              style={{
-                ...btnGhost,
-                padding: "1px 5px",
-                fontSize: 10,
-                display: "inline-block",
-                margin: "1px 2px",
-              }}
-            >
-              {m.name}
-            </button>
-          ))}
+        <div style={{ fontSize: 10, color: color.textMuted, marginTop: 6 }}>
+          <div style={{ marginBottom: 3 }}>{t("config.treemap.quickAdd")}:</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {available.slice(0, 20).map((m) => (
+              <div key={m.id} className="flex items-center" style={{ display: "inline-flex" }}>
+                <span style={{ fontSize: 10, color: color.textPrimary, padding: "1px 4px", background: color.surface2, borderRadius: `${radius.inner} 0 0 ${radius.inner}`, border: `1px solid ${color.hairline}`, borderRight: "none" }}>
+                  {m.name}
+                </span>
+                {TIERS.map((tierDef) => (
+                  <button
+                    key={tierDef.key}
+                    onClick={() => addToDraft(m.id, m.name, tierDef.key)}
+                    title={tierDef.labelKey.includes("tierPrimary") ? "主力" : tierDef.labelKey.includes("tierSecondary") ? "观察" : "推荐"}
+                    style={{
+                      padding: "1px 5px",
+                      fontSize: 9,
+                      cursor: "pointer",
+                      background: "transparent",
+                      border: `1px solid ${color.hairline}`,
+                      borderRight: "none",
+                      color: tierDef.color,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {tierDef.labelKey.includes("tierPrimary") ? "主" : tierDef.labelKey.includes("tierSecondary") ? "观" : "推"}
+                  </button>
+                ))}
+                <button
+                  onClick={() => addToDraft(m.id, m.name, "secondary")}
+                  style={{
+                    padding: "1px 5px",
+                    fontSize: 9,
+                    cursor: "pointer",
+                    background: "transparent",
+                    border: `1px solid ${color.hairline}`,
+                    color: color.textMuted,
+                    display: "none",
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
