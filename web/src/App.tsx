@@ -8,8 +8,10 @@ import { MinimizedBar } from "@/components/minimized-bar";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import type { DashboardWidget, WidgetType } from "@/dashboard/dashboard-types";
 import type { DomainPreset } from "@/dashboard/domain-presets";
+import { useI18n } from "@/lib/use-i18n";
 
 export default function App() {
+  const { t } = useI18n();
   const [configTarget, setConfigTarget] = useState<DashboardWidget | null>(null);
   const [detailTarget, setDetailTarget] = useState<DashboardWidget | null>(null);
   const [creatingType, setCreatingType] = useState<WidgetType | null>(null);
@@ -127,7 +129,7 @@ export default function App() {
     const { applyDomainPreset, saveWidgetConfig, triggerDomainPipeline } = await import("./dashboard/api");
     const result = await applyDomainPreset(preset);
     if (!result) return;
-    useDashboardStore.getState().addWidget(preset.widget.type, preset.widget.title, preset.widget.config);
+    useDashboardStore.getState().addWidget(preset.widget.type, t(preset.titleKey), preset.widget.config);
     // Save widget members to registry
     const ws = useDashboardStore.getState().doc.widgets;
     const newId = ws[ws.length - 1]?.id;
@@ -138,7 +140,7 @@ export default function App() {
       });
     }
     triggerDomainPipeline(preset.domain.key).then(() => startProgressPolling()).catch(() => {});
-  }, [startProgressPolling]);
+  }, [startProgressPolling, t]);
 
   const handleCreated = useCallback((id: string) => {
     requestAnimationFrame(() => {

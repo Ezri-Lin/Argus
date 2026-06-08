@@ -6,10 +6,13 @@
  *  - Members chosen for domain-specific relevance
  */
 
+import type { I18nKey } from "@/lib/i18n";
+
 export type DomainPreset = {
   id: string;
-  label: string;
-  description: string;
+  labelKey: I18nKey;
+  descKey: I18nKey;
+  titleKey: I18nKey;
   domain: {
     key: string;
     label_zh: string;
@@ -27,15 +30,16 @@ export type DomainPreset = {
     aliases?: string[];
     tier?: "primary" | "secondary";
   }>;
-  widget: { type: "treemap" | "feed"; title: string; config: Record<string, unknown> };
+  widget: { type: "treemap" | "feed"; config: Record<string, unknown> };
 };
 
 export const DOMAIN_PRESETS: DomainPreset[] = [
-  // ── AI / 大模型 ──
+  // ── AI / LLM ──
   {
     id: "ai-leaders",
-    label: "AI 大模型",
-    description: "模型厂商、芯片算力、AI 基础设施",
+    labelKey: "preset.ai.label",
+    descKey: "preset.ai.desc",
+    titleKey: "preset.ai.title",
     domain: {
       key: "ai",
       label_zh: "AI 大模型",
@@ -59,14 +63,15 @@ export const DOMAIN_PRESETS: DomainPreset[] = [
       { name: "DeepSeek", label_zh: "深度求索", aliases: ["deepseek", "深度求索"], tier: "secondary" },
       { name: "xAI", label_zh: "xAI", aliases: ["xai", "grok", "马斯克AI"], tier: "secondary" },
     ],
-    widget: { type: "treemap", title: "AI 大模型", config: { group: "ai" } },
+    widget: { type: "treemap", config: { group: "ai" } },
   },
 
-  // ── 科技巨头 ──
+  // ── Big Tech ──
   {
     id: "big-tech",
-    label: "科技巨头",
-    description: "Apple, Google, Amazon, Meta, Microsoft 综合动态",
+    labelKey: "preset.bigtech.label",
+    descKey: "preset.bigtech.desc",
+    titleKey: "preset.bigtech.title",
     domain: {
       key: "tech",
       label_zh: "科技巨头",
@@ -89,14 +94,15 @@ export const DOMAIN_PRESETS: DomainPreset[] = [
       { name: "Salesforce", label_zh: "Salesforce", symbol: "CRM", aliases: ["salesforce", "crm"], tier: "secondary" },
       { name: "Uber", label_zh: "Uber", symbol: "UBER", aliases: ["uber", "优步"], tier: "secondary" },
     ],
-    widget: { type: "treemap", title: "科技巨头", config: { group: "tech" } },
+    widget: { type: "treemap", config: { group: "tech" } },
   },
 
-  // ── 芯片半导体 ──
+  // ── Semiconductors ──
   {
     id: "semiconductors",
-    label: "芯片半导体",
-    description: "设计、制造、封测、设备全产业链",
+    labelKey: "preset.chips.label",
+    descKey: "preset.chips.desc",
+    titleKey: "preset.chips.title",
     domain: {
       key: "chips",
       label_zh: "芯片半导体",
@@ -121,14 +127,15 @@ export const DOMAIN_PRESETS: DomainPreset[] = [
       { name: "Arm", label_zh: "Arm", symbol: "ARM", aliases: ["arm holdings"], tier: "secondary" },
       { name: "Applied Materials", label_zh: "应用材料", symbol: "AMAT", aliases: ["amat", "应用材料"], tier: "secondary" },
     ],
-    widget: { type: "treemap", title: "芯片半导体", config: { group: "chips" } },
+    widget: { type: "treemap", config: { group: "chips" } },
   },
 
-  // ── 加密货币 ──
+  // ── Crypto ──
   {
     id: "crypto",
-    label: "加密货币",
-    description: "BTC, ETH, 交易所, DeFi, 监管",
+    labelKey: "preset.crypto.label",
+    descKey: "preset.crypto.desc",
+    titleKey: "preset.crypto.title",
     domain: {
       key: "crypto",
       label_zh: "加密货币",
@@ -151,14 +158,15 @@ export const DOMAIN_PRESETS: DomainPreset[] = [
       { name: "MicroStrategy", label_zh: "MicroStrategy", symbol: "MSTR", aliases: ["microstrategy", "mstr"], tier: "secondary" },
       { name: "Grayscale", label_zh: "Grayscale", aliases: ["grayscale", "gbtc"], tier: "secondary" },
     ],
-    widget: { type: "treemap", title: "加密货币", config: { group: "crypto" } },
+    widget: { type: "treemap", config: { group: "crypto" } },
   },
 
-  // ── 金融市场 ──
+  // ── Finance ──
   {
     id: "finance",
-    label: "金融市场",
-    description: "投行、资管、支付、宏观经济",
+    labelKey: "preset.finance.label",
+    descKey: "preset.finance.desc",
+    titleKey: "preset.finance.title",
     domain: {
       key: "finance",
       label_zh: "金融市场",
@@ -181,14 +189,15 @@ export const DOMAIN_PRESETS: DomainPreset[] = [
       { name: "Citigroup", label_zh: "花旗", symbol: "C", aliases: ["citigroup", "citi", "花旗"], tier: "secondary" },
       { name: "HSBC", label_zh: "汇丰", symbol: "HSBC", aliases: ["hsbc", "汇丰"], tier: "secondary" },
     ],
-    widget: { type: "treemap", title: "金融市场", config: { group: "finance" } },
+    widget: { type: "treemap", config: { group: "finance" } },
   },
 
-  // ── 中概股 / 中国科技 ──
+  // ── China Tech ──
   {
     id: "china-tech",
-    label: "中概科技",
-    description: "腾讯、阿里、字节、比亚迪等中国科技巨头",
+    labelKey: "preset.chinatech.label",
+    descKey: "preset.chinatech.desc",
+    titleKey: "preset.chinatech.title",
     domain: {
       key: "china-tech",
       label_zh: "中概科技",
@@ -211,14 +220,15 @@ export const DOMAIN_PRESETS: DomainPreset[] = [
       { name: "NIO", label_zh: "蔚来", symbol: "NIO", aliases: ["nio", "蔚来"], tier: "secondary" },
       { name: "SMIC", label_zh: "中芯国际", symbol: "0981", aliases: ["smic", "中芯"], tier: "secondary" },
     ],
-    widget: { type: "treemap", title: "中概科技", config: { group: "china-tech" } },
+    widget: { type: "treemap", config: { group: "china-tech" } },
   },
 
-  // ── 新能源 / 电动车 ──
+  // ── EV & Energy ──
   {
     id: "ev-energy",
-    label: "新能源",
-    description: "电动车、电池、光伏、充电基础设施",
+    labelKey: "preset.evenergy.label",
+    descKey: "preset.evenergy.desc",
+    titleKey: "preset.evenergy.title",
     domain: {
       key: "ev-energy",
       label_zh: "新能源",
@@ -241,6 +251,6 @@ export const DOMAIN_PRESETS: DomainPreset[] = [
       { name: "Enphase", label_zh: "Enphase", symbol: "ENPH", aliases: ["enphase"], tier: "secondary" },
       { name: "ChargePoint", label_zh: "ChargePoint", symbol: "CHPT", aliases: ["chargepoint"], tier: "secondary" },
     ],
-    widget: { type: "treemap", title: "新能源", config: { group: "ev-energy" } },
+    widget: { type: "treemap", config: { group: "ev-energy" } },
   },
 ];

@@ -65,8 +65,8 @@ export function AddWidgetMenu({ onSelect, onPresetSelect, onClose }: { onSelect:
               e.currentTarget.style.background = "transparent";
             }}
           >
-            <span>{preset.label}</span>
-            <span style={{ fontSize: 11, color: color.textMuted }}>{preset.description}</span>
+            <span>{t(preset.labelKey)}</span>
+            <span style={{ fontSize: 11, color: color.textMuted }}>{t(preset.descKey)}</span>
           </button>
         ))}
         <div style={{ height: 1, background: color.hairline, margin: "4px 0" }} />
