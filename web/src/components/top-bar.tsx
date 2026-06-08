@@ -6,8 +6,9 @@ import { useDashboardStore } from "@/dashboard/dashboard-store";
 import { useTheme } from "@/lib/theme";
 import { useI18n } from "@/lib/use-i18n";
 import type { WidgetType } from "@/dashboard/dashboard-types";
+import type { DomainPreset } from "@/dashboard/domain-presets";
 
-export function TopBar({ onStartCreate }: { onStartCreate?: (type: WidgetType, defaults: Record<string, unknown>) => void }) {
+export function TopBar({ onStartCreate, onPresetSelect }: { onStartCreate?: (type: WidgetType, defaults: Record<string, unknown>) => void; onPresetSelect?: (preset: DomainPreset) => void }) {
   const autoLayout = useDashboardStore((s) => s.autoLayout);
   const editMode = useDashboardStore((s) => s.editMode);
   const toggleEditMode = useDashboardStore((s) => s.toggleEditMode);
@@ -55,6 +56,10 @@ export function TopBar({ onStartCreate }: { onStartCreate?: (type: WidgetType, d
                   <AddWidgetMenu
                     onSelect={(type, defaults) => {
                       onStartCreate?.(type, defaults);
+                      setMenuOpen(false);
+                    }}
+                    onPresetSelect={(preset) => {
+                      onPresetSelect?.(preset);
                       setMenuOpen(false);
                     }}
                     onClose={() => setMenuOpen(false)}

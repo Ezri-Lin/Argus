@@ -51,7 +51,7 @@ const LOGO_DOMAINS: Record<string, string> = {
   // ── Treemap members (name → domain) ──
   Anthropic: "anthropic.com", OpenAI: "openai.com",
   "Meta AI": "meta.com", Cloudflare: "cloudflare.com",
-  Arm: "arm.com", ASML: "asml.com", Broadcom: "broadcom.com",
+  Arm: "arm.com", Broadcom: "broadcom.com",
   "Samsung HBM": "samsung.com", TSMC: "tsmc.com",
   Apple: "apple.com", NVIDIA: "nvidia.com",
   Gemini: "gemini.google.com", Copilot: "copilot.microsoft.com",
@@ -65,7 +65,6 @@ const LOGO_DOMAINS: Record<string, string> = {
   CNBC: "cnbc.com", "The Verge": "theverge.com",
   "Ars Technica": "arstechnica.com", "BBC News": "bbc.com",
   "Financial Times": "ft.com", "Wall Street Journal": "wsj.com",
-  "Wall Street Journal": "wsj.com",
   CoinDesk: "coindesk.com", CoinTelegraph: "cointelegraph.com",
   "Nikkei Asia": "asia.nikkei.com", "Seeking Alpha": "seekingalpha.com",
   "The Information": "theinformation.com", "Semafor": "semafor.com",

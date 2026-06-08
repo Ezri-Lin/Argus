@@ -6,7 +6,7 @@ const API_TARGET = "http://localhost:8000";
 const API_PATHS = [
   "/data", "/layout", "/health", "/settings",
   "/models", "/domains", "/members", "/sources",
-  "/ai", "/pipeline",
+  "/ai", "/pipeline", "/search", "/budget-status",
 ];
 
 export default defineConfig({
