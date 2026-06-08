@@ -200,9 +200,8 @@ export const VideoPlayer = memo(function VideoPlayer({ src, widgetId, onReady, o
         // Collect cues when a subtitle track is loaded
         hls.on(Hls.Events.SUBTITLE_TRACK_LOADED, (_e, data) => {
           const trackId = data.id;
-          const vttCues = data.details?.fragments?.flatMap(
-            (f: { initPTS?: number; text?: string }) => []
-          ) ?? [];
+          // Cues are extracted from v.textTracks below, fragments not needed here
+          void data.details?.fragments;
           // Extract cues from the track element after hls.js renders them
           setTimeout(() => {
             const tracks = v.textTracks;
