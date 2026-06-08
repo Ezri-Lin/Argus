@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "pipeline"))
 from db import get_db, get_model_for_role, get_setting
-from pipeline import build_snapshot
+from pipeline.snapshot import build_snapshot
 
 router = APIRouter(tags=["members"])
 
@@ -76,7 +76,7 @@ def _get_judgement_model(conn) -> tuple[str, dict | None]:
     return "fallback", None
 
 
-def _score_baseline_influence(conn, body: "MemberCreate") -> dict:
+def _score_baseline_influence(conn, name: str, domains: list[str], aliases: list[str]) -> dict:
     model_role, model_cfg = _get_judgement_model(conn)
     if not model_cfg:
         return {
@@ -87,9 +87,9 @@ def _score_baseline_influence(conn, body: "MemberCreate") -> dict:
         }
 
     prompt = BASELINE_PROMPT.format(
-        name=body.name,
-        domain=_domain_labels(conn, body.domains),
-        aliases=", ".join(body.aliases),
+        name=name,
+        domain=_domain_labels(conn, domains),
+        aliases=", ".join(aliases),
     )
     try:
         client = OpenAI(
@@ -147,15 +147,23 @@ class DomainCreate(BaseModel):
     label_zh: str = ""
     label_en: str = ""
     weight: float = 1.0
+    description: str = ""
+    search_intent: str = ""
+    include_terms: list[str] = []
+    exclude_terms: list[str] = []
 
 
 @router.post("/domains")
 def create_domain(body: DomainCreate):
     conn = _conn()
     conn.execute(
-        "INSERT INTO domains (key, label_zh, label_en, weight) VALUES (?, ?, ?, ?) "
-        "ON CONFLICT(key) DO UPDATE SET label_zh=excluded.label_zh, label_en=excluded.label_en, weight=excluded.weight",
-        (body.key, body.label_zh, body.label_en, body.weight),
+        "INSERT INTO domains (key, label_zh, label_en, weight, description, search_intent, include_terms, exclude_terms) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET label_zh=excluded.label_zh, label_en=excluded.label_en, "
+        "weight=excluded.weight, description=excluded.description, search_intent=excluded.search_intent, "
+        "include_terms=excluded.include_terms, exclude_terms=excluded.exclude_terms",
+        (body.key, body.label_zh, body.label_en, body.weight, body.description,
+         body.search_intent, json.dumps(body.include_terms), json.dumps(body.exclude_terms)),
     )
     conn.commit()
     conn.close()
@@ -166,6 +174,10 @@ class DomainUpdate(BaseModel):
     label_zh: str | None = None
     label_en: str | None = None
     weight: float | None = None
+    description: str | None = None
+    search_intent: str | None = None
+    include_terms: list[str] | None = None
+    exclude_terms: list[str] | None = None
 
 
 @router.put("/domains/{key}")
@@ -178,6 +190,14 @@ def update_domain(key: str, body: DomainUpdate):
         fields.append("label_en = ?"); values.append(body.label_en)
     if body.weight is not None:
         fields.append("weight = ?"); values.append(body.weight)
+    if body.description is not None:
+        fields.append("description = ?"); values.append(body.description)
+    if body.search_intent is not None:
+        fields.append("search_intent = ?"); values.append(body.search_intent)
+    if body.include_terms is not None:
+        fields.append("include_terms = ?"); values.append(json.dumps(body.include_terms))
+    if body.exclude_terms is not None:
+        fields.append("exclude_terms = ?"); values.append(json.dumps(body.exclude_terms))
     if fields:
         values.append(key)
         conn.execute(f"UPDATE domains SET {', '.join(fields)} WHERE key = ?", values)
@@ -225,39 +245,25 @@ class MemberCreate(BaseModel):
     label_en: str = ""
     symbol: str = ""
     aliases: list[str] = []
-    domains: list[str] = []  # domain keys
 
 
 @router.post("/members")
 def create_member(body: MemberCreate):
+    """Create or reuse global member metadata. No LLM, no memberships write."""
     conn = _conn()
-    baseline = _score_baseline_influence(conn, body)
+    existing = conn.execute("SELECT id FROM members WHERE name = ?", (body.name,)).fetchone()
+    if existing:
+        conn.close()
+        return {"id": existing["id"]}
+
     cur = conn.execute(
-        "INSERT INTO members (name, label_zh, label_en, aliases, symbol, "
-        "baseline_influence, baseline_confidence, baseline_rationale) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (
-            body.name,
-            body.label_zh,
-            body.label_en,
-            json.dumps(body.aliases),
-            body.symbol,
-            baseline["baseline"],
-            baseline["confidence"],
-            baseline["rationale"],
-        ),
+        "INSERT INTO members (name, label_zh, label_en, aliases, symbol) VALUES (?, ?, ?, ?, ?)",
+        (body.name, body.label_zh, body.label_en, json.dumps(body.aliases), body.symbol),
     )
     member_id = cur.lastrowid
-    for domain in body.domains:
-        conn.execute(
-            "INSERT INTO memberships (member_id, domain, role, role_weight) VALUES (?, ?, 'Primary', 1.0) "
-            "ON CONFLICT(member_id, domain) DO NOTHING",
-            (member_id, domain),
-        )
-    _write_snapshot(conn)
     conn.commit()
     conn.close()
-    return {"id": member_id, "baseline": baseline}
+    return {"id": member_id}
 
 
 @router.post("/members/{member_id}/baseline")
@@ -280,15 +286,7 @@ def rescore_member_baseline(member_id: int):
     except Exception:
         aliases = []
 
-    body = MemberCreate(
-        name=row["name"],
-        label_zh=row["label_zh"] or "",
-        label_en=row["label_en"] or "",
-        symbol=row["symbol"] or "",
-        aliases=aliases,
-        domains=domains,
-    )
-    baseline = _score_baseline_influence(conn, body)
+    baseline = _score_baseline_influence(conn, row["name"], domains, aliases)
     conn.execute(
         "UPDATE members SET baseline_influence = ?, baseline_confidence = ?, baseline_rationale = ? "
         "WHERE id = ?",

@@ -7,6 +7,7 @@ import { DetailOverlay } from "@/components/detail-overlay";
 import { MinimizedBar } from "@/components/minimized-bar";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import type { DashboardWidget, WidgetType } from "@/dashboard/dashboard-types";
+import type { DomainPreset } from "@/dashboard/domain-presets";
 
 export default function App() {
   const [configTarget, setConfigTarget] = useState<DashboardWidget | null>(null);
@@ -122,6 +123,23 @@ export default function App() {
     setCreateDefaults(defaults);
   }, []);
 
+  const handlePresetSelect = useCallback(async (preset: DomainPreset) => {
+    const { applyDomainPreset, saveWidgetConfig, triggerDomainPipeline } = await import("./dashboard/api");
+    const result = await applyDomainPreset(preset);
+    if (!result) return;
+    useDashboardStore.getState().addWidget(preset.widget.type, preset.widget.title, preset.widget.config);
+    // Save widget members to registry
+    const ws = useDashboardStore.getState().doc.widgets;
+    const newId = ws[ws.length - 1]?.id;
+    if (newId && result.widgetMembers.length > 0) {
+      await saveWidgetConfig(newId, {
+        group: result.domainKey,
+        members: result.widgetMembers,
+      });
+    }
+    triggerDomainPipeline(preset.domain.key).then(() => startProgressPolling()).catch(() => {});
+  }, [startProgressPolling]);
+
   const handleCreated = useCallback((id: string) => {
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-widget-id="${id}"]`);
@@ -139,7 +157,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)]">
-      <TopBar onStartCreate={handleStartCreate} />
+      <TopBar onStartCreate={handleStartCreate} onPresetSelect={handlePresetSelect} />
       <MinimizedBar widgets={minimizedWidgets} onRestore={handleRestoreWidget} />
       <DashboardCanvas onConfigWidget={handleOpenConfig} onDetailWidget={handleOpenDetail} onDeleteWidget={handleDeleteWidget} onMinimizeWidget={handleMinimizeWidget} />
       {configTarget && (

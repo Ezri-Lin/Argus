@@ -43,6 +43,7 @@ export type TreemapItem = EntityLogoFields & {
   refuted?: boolean;
   headline?: string;
   related?: Array<string | RelatedNews>;
+  dataState?: "hydrating" | "ready" | "stale" | "failed";
 };
 
 export type TreemapGroup = {

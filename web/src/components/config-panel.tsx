@@ -7,11 +7,9 @@ import { appendVideoSource, normalizeParsedVideoSource, type VideoSource } from 
 import {
   fetchDomains, fetchMembers, fetchSources,
   createDomain, updateDomain, deleteDomain,
-  createMember, deleteMember, updateMember,
-  rescoreMemberBaseline,
   createSource, deleteSource, updateSource,
   aiSuggestDates, aiParseVideo, aiStatApi,
-  fetchSourcesLibrary,
+  fetchSourcesLibrary, triggerDomainPipeline,
   type DomainItem, type MemberItem, type SourceItem,
   type LibraryDoc,
 } from "@/dashboard/api";
@@ -156,8 +154,25 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
       const ws = useDashboardStore.getState().doc.widgets;
       const newId = ws[ws.length - 1]?.id;
       if (newId && onCreated) onCreated(newId);
+      // Save treemap draft members to registry
+      if (widgetType === "treemap" && newId) {
+        const draftSave = (window as unknown as Record<string, unknown>).__treemapDraftSave as ((id: string) => Promise<void>) | undefined;
+        if (draftSave) draftSave(newId).catch(() => {});
+      }
+      // Trigger pipeline for data widgets with a domain
+      if (["treemap", "feed", "timeseries"].includes(widgetType)) {
+        const domain = (configPatch.group as string) || "";
+        if (domain) {
+          triggerDomainPipeline(domain).then(() => onPipelineTriggered?.()).catch(() => {});
+        }
+      }
     } else {
       updateWidgetConfig(widget!.id, { ...configPatch, _title: title });
+      // Save treemap draft members to registry
+      if (widgetType === "treemap") {
+        const draftSave = (window as unknown as Record<string, unknown>).__treemapDraftSave as ((id: string) => Promise<void>) | undefined;
+        if (draftSave) draftSave(widget!.id).catch(() => {});
+      }
     }
     onClose();
   };
@@ -323,6 +338,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
           {/* Treemap: domain + members */}
           {widgetType === "treemap" && (
             <TreemapConfig
+              widgetId={widget?.id ?? null}
               domains={domains}
               members={allMembers}
               selectedDomain={config.group || "tech"}
@@ -341,29 +357,6 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
                 await updateDomain(key, patch);
                 const d = await fetchDomains();
                 if (d) setDomains(d);
-              }}
-              onAddMember={async (name, aliases, domain) => {
-                await createMember({ name, aliases: aliases.split(",").map((s) => s.trim()).filter(Boolean), domains: [domain] });
-                const m = await fetchMembers();
-                if (m) setAllMembers(m);
-                await refreshData();
-              }}
-              onDeleteMember={async (id) => {
-                await deleteMember(id);
-                const m = await fetchMembers();
-                if (m) setAllMembers(m);
-              }}
-              onEditMember={async (id, patch) => {
-                await updateMember(id, patch);
-                const m = await fetchMembers();
-                if (m) setAllMembers(m);
-                await refreshData();
-              }}
-              onScoreMember={async (id) => {
-                await rescoreMemberBaseline(id);
-                const m = await fetchMembers();
-                if (m) setAllMembers(m);
-                await refreshData();
               }}
             />
           )}

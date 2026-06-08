@@ -141,7 +141,10 @@ export function TreemapCellSVG({
 }) {
   const s = cellVisualStyle(cell.item.sentiment, cell.item.freshness ?? cell.item.heat, cell.item.previousSentiment);
   const tier = cellTextTier(cell.w, cell.h);
-  const tooltip = `${cell.item.name} · ${cell.item.metric} · value ${cell.item.value}`;
+  const isHydrating = cell.item.dataState === "hydrating";
+  const tooltip = isHydrating
+    ? `${cell.item.name} · 补充数据中...`
+    : `${cell.item.name} · ${cell.item.metric} · value ${cell.item.value}`;
   const sideSafe = clamp(Math.min(cell.w, cell.h) * 0.1, cell.w < 40 ? 4 : 9, 16);
   const topSafe = clamp(Math.min(cell.w, cell.h) * 0.08, cell.h < 30 ? 4 : 8, 14);
   const labelMaxW = Math.max(18, cell.w - sideSafe * 2);
@@ -181,13 +184,26 @@ export function TreemapCellSVG({
         stroke={isHovered ? s.text : s.border}
         strokeWidth={isHovered ? 2.5 : 1.5}
         strokeDasharray={
-          cell.item.confidence === "watch" ? "5 4" : undefined
+          cell.item.dataState === "hydrating" ? "3 3" : cell.item.confidence === "watch" ? "5 4" : undefined
         }
         filter={glowFilter(cell.item.heat)}
         style={{ transition: "stroke-width 0.15s, fill 0.15s" }}
       >
         <title>{tooltip}</title>
       </rect>
+      {/* Hydrating shimmer overlay */}
+      {cell.item.dataState === "hydrating" && (
+        <rect
+          x={cell.x + 2}
+          y={cell.y + 2}
+          width={Math.max(0, cell.w - 4)}
+          height={Math.max(0, cell.h - 4)}
+          rx={radius.inner - 1}
+          fill="url(#shimmer)"
+          opacity={0.15}
+          pointerEvents="none"
+        />
+      )}
       {tier !== "none" && (
         <>
           {/* Full: name + metric + value (large cells) */}
@@ -226,7 +242,7 @@ export function TreemapCellSVG({
                   >
                     {displayName}
                   </text>
-                  {metricTag(cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
+                  {metricTag(isHydrating ? "补充数据中" : cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
                 </>
               );
             })()
@@ -256,7 +272,7 @@ export function TreemapCellSVG({
                   >
                     {displayName}
                   </text>
-                  {metricTag(cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
+                  {metricTag(isHydrating ? "补充数据中" : cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
                 </>
               );
             })()

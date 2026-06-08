@@ -8,6 +8,35 @@ import sys
 import threading
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+def _parse_terms(value):
+    """Parse JSON string or return list as-is."""
+    if isinstance(value, list):
+        return value
+    if not value:
+        return []
+    try:
+        return json.loads(value)
+    except Exception:
+        return []
+
+
+def _build_domain_query(member_name: str, domain_key: str, conn) -> str:
+    """Build domain-aware search query for a member."""
+    if not domain_key:
+        return member_name
+    row = conn.execute(
+        "SELECT name, search_intent, include_terms FROM domains WHERE key = ?",
+        (domain_key,),
+    ).fetchone()
+    if not row:
+        return member_name
+    terms = _parse_terms(row["include_terms"])[:3]
+    intent = row["search_intent"] or row["name"]
+    if terms:
+        return f"{member_name} {' '.join(terms)}"
+    return f"{member_name} {intent}"
 from pathlib import Path
 
 import feedparser
@@ -123,9 +152,11 @@ def run_pipeline(db_path: str | None = None):
         discovery_router = SearchRouter(conn, profile="discovery")
         for member in members:
             mb = dict(member)
+            domain_key = mb.get("domain_key", "")
+            query = _build_domain_query(mb["name"], domain_key, conn)
             try:
                 response = discovery_router.discovery(
-                    mb["name"], max_results=ai_search_max, member_id=str(mb["id"]),
+                    query, max_results=ai_search_max, member_id=str(mb["id"]),
                 )
                 for sr in response.results:
                     all_items.append({
@@ -233,7 +264,7 @@ def run_pipeline(db_path: str | None = None):
                 all_events.extend(events)
                 mb = next((m for i, m, *_ in work_queue if i == idx), None)
                 if mb:
-                    update_scan_schedule(conn, mb["id"])
+                    update_scan_schedule(conn, mb.get("domain_key", ""), mb["id"])
                 _update_member_status(idx, "done", events=len(events), log=f"{len(events)} events")
                 _update_progress(events_found=_pipeline_progress["events_found"] + len(events))
             except Exception as e:

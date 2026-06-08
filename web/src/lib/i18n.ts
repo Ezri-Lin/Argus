@@ -30,6 +30,9 @@ const zh = {
   "config.treemap.domains": "领域",
   "config.treemap.members": "成员",
   "config.treemap.emptyMembers": "暂无成员",
+  "config.treemap.quickAdd": "快速添加",
+  "config.treemap.primaryInterval": "主成员刷新 (min)",
+  "config.treemap.secondaryInterval": "副成员刷新 (min)",
 
   // ── Config panel — feed ──
   "config.feed.mode": "模式",
@@ -241,6 +244,9 @@ const en: Record<keyof typeof zh, string> = {
   "config.treemap.domains": "Domains",
   "config.treemap.members": "Members",
   "config.treemap.emptyMembers": "No members",
+  "config.treemap.quickAdd": "Quick add",
+  "config.treemap.primaryInterval": "Primary interval (min)",
+  "config.treemap.secondaryInterval": "Secondary interval (min)",
 
   // ── Config panel — feed ──
   "config.feed.mode": "Mode",

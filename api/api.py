@@ -13,8 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "pipeline"))
-from db import get_db, get_setting, set_setting
+_project_root = str(Path(__file__).parent.parent)
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+from pipeline.db import get_db, get_setting, set_setting
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -50,6 +52,7 @@ from .routes_video import router as video_router
 from .routes_search import router as search_router
 from .routes_pipeline import router as pipeline_router
 from .routes_budget import router as budget_router
+from .routes_widgets import router as widgets_router
 
 app.include_router(models_router)
 app.include_router(members_router)
@@ -61,6 +64,7 @@ app.include_router(video_router)
 app.include_router(search_router)
 app.include_router(pipeline_router)
 app.include_router(budget_router)
+app.include_router(widgets_router)
 
 
 def _conn():

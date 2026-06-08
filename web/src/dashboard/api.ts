@@ -159,8 +159,38 @@ export async function deleteDomain(key: string): Promise<boolean> {
 
 // ── Members CRUD ──
 
-export async function createMember(member: { name: string; label_zh?: string; symbol?: string; aliases?: string[]; domains?: string[] }): Promise<{ id: number; baseline?: { baseline: number; confidence: number; rationale: string } } | null> {
+export async function createMember(member: { name: string; label_zh?: string; symbol?: string; aliases?: string[] }): Promise<{ id: number } | null> {
   return apiFetch("/members", jsonBody("POST", member));
+}
+
+// ── Widget config (widget_member_registry) ──
+
+export interface WidgetMemberConfig {
+  member_id: number;
+  tier: "primary" | "secondary" | "ai_candidate";
+  enabled: boolean;
+  display_order?: number;
+}
+
+export async function saveWidgetConfig(widgetId: string, body: {
+  group: string;
+  members: WidgetMemberConfig[];
+  primary_interval_minutes?: number;
+  secondary_interval_minutes?: number;
+}): Promise<{ ok: boolean; new_members: number } | null> {
+  return apiFetch(`/widgets/${widgetId}/treemap-config`, jsonBody("PUT", body));
+}
+
+export async function fetchWidgetMembers(widgetId: string): Promise<Array<{
+  widget_id: string;
+  domain_key: string;
+  member_id: number;
+  tier: string;
+  enabled: boolean;
+  display_order: number | null;
+  data_state: string;
+}> | null> {
+  return apiFetch(`/widgets/${widgetId}/members`);
 }
 
 export async function rescoreMemberBaseline(id: number): Promise<{ ok: boolean; baseline?: { baseline: number; confidence: number; rationale: string; modelRole?: string } } | null> {
@@ -286,4 +316,49 @@ export async function fetchBudgetStatus(): Promise<BudgetStatus | null> {
 
 export async function fetchLastRunSummary(): Promise<LastRunSummary | null> {
   return apiFetch<LastRunSummary>("/pipeline/last-run");
+}
+
+// ── Domain Presets ──
+
+import type { DomainPreset } from "./domain-presets";
+
+export async function applyDomainPreset(preset: DomainPreset): Promise<{
+  domainKey: string;
+  widgetMembers: WidgetMemberConfig[];
+} | null> {
+  try {
+    await apiFetch("/domains", jsonBody("POST", {
+      key: preset.domain.key,
+      label_zh: preset.domain.label_zh,
+      label_en: preset.domain.label_en,
+      weight: preset.domain.weight,
+      description: preset.domain.description ?? "",
+      search_intent: preset.domain.search_intent ?? "",
+      include_terms: preset.domain.include_terms ?? [],
+      exclude_terms: preset.domain.exclude_terms ?? [],
+    }));
+    const widgetMembers: WidgetMemberConfig[] = [];
+    for (const m of preset.members) {
+      const res = await apiFetch<{ id: number }>("/members", jsonBody("POST", {
+        name: m.name,
+        label_zh: m.label_zh,
+        symbol: m.symbol,
+        aliases: m.aliases,
+      }));
+      if (res?.id) {
+        widgetMembers.push({
+          member_id: res.id,
+          tier: m.tier ?? "secondary",
+          enabled: true,
+        });
+      }
+    }
+    return { domainKey: preset.domain.key, widgetMembers };
+  } catch {
+    return null;
+  }
+}
+
+export async function triggerDomainPipeline(domain: string): Promise<{ ok: boolean } | null> {
+  return apiFetch("/pipeline/trigger-domain", jsonBody("POST", { domain }));
 }

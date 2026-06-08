@@ -256,6 +256,26 @@ CREATE TABLE IF NOT EXISTS source_candidates (
     discovered_at TEXT,
     raw_json TEXT
 );
+
+-- Widget-member registry (new SoT for widget-domain-member relationships)
+CREATE TABLE IF NOT EXISTS widget_member_registry (
+  widget_id TEXT NOT NULL,
+  domain_key TEXT NOT NULL,
+  member_id INTEGER NOT NULL,
+  tier TEXT NOT NULL CHECK (tier IN ('primary', 'secondary', 'ai_candidate')),
+  enabled INTEGER NOT NULL DEFAULT 1,
+  display_order INTEGER,
+  data_state TEXT NOT NULL DEFAULT 'saved_empty',
+  primary_interval_minutes INTEGER NOT NULL DEFAULT 90,
+  secondary_interval_minutes INTEGER NOT NULL DEFAULT 90,
+  next_scan_at TEXT,
+  last_scan_at TEXT,
+  last_hydrated_at TEXT,
+  hydration_requested_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (widget_id, domain_key, member_id)
+);
 """
 
 FTS_TRIGGERS = [
@@ -330,6 +350,12 @@ MIGRATIONS = {
     ],
     "search_logs": [
         ("decision_json", "TEXT"),
+    ],
+    "domains": [
+        ("description", "TEXT DEFAULT ''"),
+        ("search_intent", "TEXT DEFAULT ''"),
+        ("include_terms", "TEXT DEFAULT '[]'"),
+        ("exclude_terms", "TEXT DEFAULT '[]'"),
     ],
 }
 
