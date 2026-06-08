@@ -120,7 +120,10 @@ def save_widget_config(widget_id: str, body: WidgetConfigSave):
 def get_widget_members(widget_id: str):
     conn = _conn()
     rows = conn.execute(
-        "SELECT * FROM widget_member_registry WHERE widget_id = ? ORDER BY display_order, member_id",
+        "SELECT wmr.*, m.name as member_name, m.label as member_label, m.aliases as member_aliases "
+        "FROM widget_member_registry wmr "
+        "LEFT JOIN members m ON m.id = wmr.member_id "
+        "WHERE wmr.widget_id = ? ORDER BY wmr.display_order, wmr.member_id",
         (widget_id,),
     ).fetchall()
     conn.close()

@@ -206,6 +206,9 @@ export async function fetchWidgetMembers(widgetId: string): Promise<Array<{
   widget_id: string;
   domain_key: string;
   member_id: number;
+  member_name: string;
+  member_label: string;
+  member_aliases: string;
   tier: string;
   enabled: boolean;
   display_order: number | null;

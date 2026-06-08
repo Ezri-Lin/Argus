@@ -72,8 +72,7 @@ export function DetailOverlay({ widgetTitle, widgetType, onClose, onRefresh }: D
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(0,0,0,0.5)",
-        backdropFilter: "blur(4px)",
+        background: "rgba(0,0,0,0.55)",
       }}
       onClick={onClose}
     >

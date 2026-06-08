@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useI18n } from "@/lib/use-i18n";
 import { color, radius } from "@/design/tokens";
 import type { DomainItem, MemberItem } from "@/dashboard/api";
-import { createMember, fetchWidgetMembers, saveWidgetConfig, type WidgetMemberConfig } from "@/dashboard/api";
+import { createMember, updateMember as apiUpdateMember, fetchWidgetMembers, saveWidgetConfig, type WidgetMemberConfig } from "@/dashboard/api";
 import type { I18nKey } from "@/lib/i18n";
 
 // ── Style constants ──
@@ -91,6 +91,7 @@ const TIERS: TierDef[] = [
 interface DraftMember {
   memberId: number;
   name: string;
+  aliases: string;
   tier: TierKey;
   enabled: boolean;
 }
@@ -107,65 +108,34 @@ function MemberRow({
   member: DraftMember;
   tierDef: TierDef;
   onRemove: () => void;
-  onUpdate: (patch: { label?: string; aliases?: string }) => void;
+  onUpdate: (patch: { name?: string; aliases?: string }) => void;
   onDragStart: (e: React.DragEvent) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [editLabel, setEditLabel] = useState(member.name);
-  const [editAliases, setEditAliases] = useState("");
-
-  function handleSave() {
-    onUpdate({ label: editLabel, aliases: editAliases });
-    setEditing(false);
-  }
-
-  if (editing) {
-    return (
-      <div className="flex items-center gap-1" style={{ padding: "4px 6px", background: color.surface2, borderRadius: radius.inner, border: `1px solid ${tierDef.color}` }}>
-        <input
-          value={editLabel}
-          onChange={(e) => setEditLabel(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
-          style={{ ...smallInput, flex: 1, padding: "2px 6px", fontSize: 11 }}
-          autoFocus
-        />
-        <input
-          value={editAliases}
-          onChange={(e) => setEditAliases(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
-          placeholder="别名"
-          style={{ ...smallInput, flex: 1, padding: "2px 6px", fontSize: 11 }}
-        />
-        <button onClick={handleSave} style={{ padding: "0 4px", border: "none", background: "transparent", color: color.pos, fontSize: 11, cursor: "pointer" }}>✓</button>
-        <button onClick={() => setEditing(false)} style={{ padding: "0 4px", border: "none", background: "transparent", color: color.textMuted, fontSize: 11, cursor: "pointer" }}>✕</button>
-      </div>
-    );
-  }
-
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      className="flex items-center gap-1.5"
+      className="flex items-center gap-1"
       style={{
-        padding: "4px 8px",
+        padding: "4px 6px",
         background: color.surface2,
         borderRadius: radius.inner,
         border: `1px solid ${color.hairline}`,
-        cursor: "grab",
         transition: "border-color 0.15s",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = tierDef.color)}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = color.hairline)}
     >
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: tierDef.color, flexShrink: 0 }} />
-      <span style={{ fontSize: 12, color: color.textPrimary, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {member.name}
-      </span>
-      <button
-        onClick={() => setEditing(true)}
-        style={{ padding: "0 3px", border: "none", background: "transparent", color: color.textMuted, fontSize: 10, cursor: "pointer", flexShrink: 0 }}
-      >✎</button>
+      <input
+        value={member.name}
+        onChange={(e) => onUpdate({ name: e.target.value })}
+        style={{ ...smallInput, flex: 2, padding: "2px 4px", fontSize: 11, minWidth: 0 }}
+      />
+      <input
+        value={member.aliases}
+        onChange={(e) => onUpdate({ aliases: e.target.value })}
+        placeholder="别名"
+        style={{ ...smallInput, flex: 1, padding: "2px 4px", fontSize: 11, minWidth: 0 }}
+      />
       <button
         onClick={onRemove}
         style={{ padding: "0 4px", border: "none", background: "transparent", color: color.neg, fontSize: 10, cursor: "pointer", flexShrink: 0 }}
@@ -184,7 +154,7 @@ function TierSection({
   candidateHint,
   onDrop,
   onRemove,
-  onMoveTier,
+  onUpdateMember,
   onDragStartMember,
   addName,
   addAlias,
@@ -200,7 +170,7 @@ function TierSection({
   candidateHint?: string;
   onDrop: (tier: TierKey) => void;
   onRemove: (memberId: number) => void;
-  onUpdateMember: (memberId: number, patch: { label?: string; aliases?: string }) => void;
+  onUpdateMember: (memberId: number, patch: { name?: string; aliases?: string }) => void;
   onDragStartMember: (memberId: number, e: React.DragEvent) => void;
   addName: string;
   addAlias: string;
@@ -355,21 +325,28 @@ export function TreemapConfig({
 
   const domain = domains.find((d) => d.key === selectedDomain);
 
-  // Load existing widget members
+  // Load existing widget members (name comes from backend JOIN)
   useEffect(() => {
     if (!widgetId) { setDraftLoaded(true); return; }
     fetchWidgetMembers(widgetId).then((rows) => {
       if (rows) {
-        const memberMap = new Map(members.map((m) => [m.id, m.name]));
         setDraft(
           rows
             .filter((r) => r.enabled)
-            .map((r) => ({
-              memberId: r.member_id,
-              name: memberMap.get(r.member_id) ?? `#${r.member_id}`,
-              tier: r.tier as TierKey,
-              enabled: true,
-            }))
+            .map((r) => {
+              let aliases = "";
+              try {
+                const arr = JSON.parse(r.member_aliases || "[]");
+                if (Array.isArray(arr) && arr.length > 0) aliases = arr.join(", ");
+              } catch { aliases = r.member_aliases || ""; }
+              return {
+                memberId: r.member_id,
+                name: r.member_name || `#${r.member_id}`,
+                aliases,
+                tier: r.tier as TierKey,
+                enabled: true,
+              };
+            })
         );
       }
       setDraftLoaded(true);
@@ -380,7 +357,6 @@ export function TreemapConfig({
   const available = useMemo(
     () => {
       const unassigned = members.filter((m) => !draftIds.has(m.id));
-      // Prioritize members belonging to the current domain
       const inDomain = unassigned.filter((m) => m.domains.includes(selectedDomain));
       const others = unassigned.filter((m) => !m.domains.includes(selectedDomain));
       return [...inDomain, ...others];
@@ -395,7 +371,7 @@ export function TreemapConfig({
   }, [draft]);
 
   function addToDraft(memberId: number, name: string, tier: TierKey) {
-    setDraft((prev) => [...prev, { memberId, name, tier, enabled: true }]);
+    setDraft((prev) => [...prev, { memberId, name, aliases: "", tier, enabled: true }]);
   }
 
   function removeFromDraft(memberId: number) {
@@ -406,11 +382,16 @@ export function TreemapConfig({
     setDraft((prev) => prev.map((d) => (d.memberId === memberId ? { ...d, tier: newTier } : d)));
   }
 
-  function updateMember(memberId: number, patch: { label?: string; aliases?: string }) {
-    if (patch.label) {
-      setDraft((prev) => prev.map((d) => (d.memberId === memberId ? { ...d, name: patch.label! } : d)));
-    }
-    // TODO: persist alias changes to backend when API supports it
+  // Edit is local-only — just update draft state
+  function updateMember(memberId: number, patch: { name?: string; aliases?: string }) {
+    setDraft((prev) => prev.map((d) => {
+      if (d.memberId !== memberId) return d;
+      return {
+        ...d,
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.aliases !== undefined ? { aliases: patch.aliases } : {}),
+      };
+    }));
   }
 
   const handleDragStart = useCallback((memberId: number, e: React.DragEvent) => {
@@ -443,7 +424,19 @@ export function TreemapConfig({
     }
   }
 
+  // Save: persist edited members, then save widget config
   async function handleSave(widgetId: string) {
+    // 1. Persist any edited labels/aliases to members table
+    await Promise.all(
+      draft.map((d) =>
+        apiUpdateMember(d.memberId, {
+          label: d.name,
+          aliases: d.aliases.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
+        })
+      )
+    );
+
+    // 2. Save widget config
     const payload: WidgetMemberConfig[] = draft.map((d, i) => ({
       member_id: d.memberId,
       tier: d.tier,

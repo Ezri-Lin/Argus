@@ -4,6 +4,15 @@
 set -e
 cd "$(dirname "$0")"
 
+# ── Kill stale processes on our ports ──
+for port in 8000 5173; do
+  pid=$(lsof -ti:$port 2>/dev/null || true)
+  if [ -n "$pid" ]; then
+    echo "▸ Killing stale process on :$port (pid $pid)"
+    kill -9 $pid 2>/dev/null || true
+  fi
+done
+
 # ── Start Docker services (SearXNG) ──
 if command -v docker &>/dev/null; then
   if docker info &>/dev/null; then
@@ -47,7 +56,7 @@ if [ ! -d "web/node_modules" ]; then
 fi
 
 # ── Start ──
-trap 'kill 0' EXIT
+trap 'kill 0 2>/dev/null' EXIT INT TERM
 
 echo ""
 echo "  ╔══════════════════════════════════════╗"
