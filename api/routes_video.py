@@ -112,6 +112,57 @@ def parse_video(body: ParseVideoRequest, request: Request):
         except Exception:
             pass
 
+    # Fallback: parse HTML for stream URLs (meta tags, inline JSON, <source>/<video>)
+    if not sources:
+        try:
+            req = urllib.request.Request(url)
+            req.add_header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                content_type = resp.headers.get("Content-Type", "")
+                if "text/html" in content_type:
+                    html = resp.read().decode("utf-8", errors="replace")
+                    # 1. Look for url-json meta (Apple Events pattern)
+                    meta_match = re.search(r'property="url-json"\s+content="([^"]+)"', html)
+                    if not meta_match:
+                        meta_match = re.search(r'content="([^"]+)"\s+property="url-json"', html)
+                    if meta_match:
+                        try:
+                            json_url = meta_match.group(1)
+                            json_req = urllib.request.Request(json_url)
+                            json_req.add_header("User-Agent", "Mozilla/5.0")
+                            with urllib.request.urlopen(json_req, timeout=10) as json_resp:
+                                stream_data = json.loads(json_resp.read())
+                            # Navigate: {"videoSrc": {"hls": "url", ...}} or {"hls": "url"}
+                            src = stream_data.get("videoSrc") or stream_data
+                            for key in ("hls", "hlsASL", "dash", "mp4"):
+                                stream_url = src.get(key)
+                                if stream_url:
+                                    stype = "hls" if "hls" in key else ("dash" if "dash" in key else "video")
+                                    label = "HLS Stream" if stype == "hls" else key.upper()
+                                    _append_source(sources, stream_url, label, stype)
+                        except Exception:
+                            pass
+                    # 2. Regex: find .m3u8 URLs in HTML
+                    if not sources:
+                        for m in re.finditer(r'https?://[^\s"\'<>]+\.m3u8[^\s"\'<>]*', html):
+                            _append_source(sources, m.group(0), "HLS Stream", "hls")
+                    # 3. Regex: find .mpd URLs in HTML
+                    if not sources:
+                        for m in re.finditer(r'https?://[^\s"\'<>]+\.mpd[^\s"\'<>]*', html):
+                            _append_source(sources, m.group(0), "DASH Stream", "dash")
+                    # 4. og:video / twitter:player meta tags
+                    if not sources:
+                        for m in re.finditer(r'<meta[^>]+(?:og:video|twitter:player)[^>]+content="([^"]+)"', html):
+                            _append_source(sources, m.group(1), "Embedded Video", "video")
+                    # 5. <video src="..."> or <source src="...">
+                    if not sources:
+                        for m in re.finditer(r'<(?:video|source)[^>]+src="([^"]+\.(?:m3u8|mpd|mp4)[^"]*)"', html):
+                            _append_source(sources, m.group(1), "Video Source", "video")
+                elif "mpegurl" in content_type:
+                    sources.append({"url": url, "label": "HLS Stream", "type": "hls"})
+        except Exception:
+            pass
+
     # Fallback: detect from response headers
     if not sources:
         try:
