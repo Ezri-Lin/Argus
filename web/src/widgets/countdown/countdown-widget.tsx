@@ -33,6 +33,15 @@ function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
+/** Browser's local timezone abbreviation (e.g. "CST", "EST"). */
+function localTzAbbr(): string {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "short" }).formatToParts(new Date());
+    return parts.find(p => p.type === "timeZoneName")?.value || zone;
+  } catch { return "UTC"; }
+}
+
 /** Migrate old single-target config to targets array. */
 function resolveTargets(config: Record<string, unknown>): CountdownTarget[] {
   // New format: config.targets[]
@@ -160,6 +169,8 @@ export function CountdownWidget({ widget, onConfig, onDetail, onDelete, onMinimi
             {current.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
             {" "}
             {current.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+            {" "}
+            <span style={{ fontSize: 10, opacity: 0.7 }}>{localTzAbbr()}</span>
           </div>
         )}
       </div>
