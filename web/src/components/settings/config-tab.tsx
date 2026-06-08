@@ -34,7 +34,7 @@ export function ConfigTab({ settings, modelsData, setModelsData, markChanged }: 
     const res = await testModel(id);
     setTestResult((prev) => ({
       ...prev,
-      [id]: res ? { ok: res.ok, msg: res.ok ? res.response || "OK" : res.error || "Failed" } : { ok: false, msg: "Network error" },
+      [id]: res ? { ok: res.ok, msg: res.ok ? res.response || t("settings.config.ok") : res.error || t("settings.config.failed") } : { ok: false, msg: t("settings.config.networkError") },
     }));
     setTesting(null);
   };
@@ -86,7 +86,7 @@ export function ConfigTab({ settings, modelsData, setModelsData, markChanged }: 
 
       {/* Tavily API Key */}
       <section>
-        <SectionLabel>Tavily API Key</SectionLabel>
+        <SectionLabel>{t("settings.config.tavilyApiKey")}</SectionLabel>
         {settings.tavily_api_key && (
           <div style={{ fontSize: 11, color: color.textMuted, marginBottom: 6 }}>
             {t("settings.config.currentPrefix")} {maskKey(settings.tavily_api_key)}

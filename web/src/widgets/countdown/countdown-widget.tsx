@@ -52,7 +52,7 @@ export function CountdownWidget({ widget, onConfig, onDetail, onDelete, onMinimi
   const configLabel = (widget.config.label as string | undefined)?.trim();
   const configuredTitle = widget.title.trim();
   const title = configLabel ? configuredTitle || undefined : undefined;
-  const label = configLabel || configuredTitle || "Countdown";
+  const label = configLabel || configuredTitle || t("countdown.defaultLabel");
   const { ref, size } = useMeasuredSize<HTMLDivElement>();
 
   const targets = useMemo(() => resolveTargets(widget.config), [widget.config]);
@@ -79,7 +79,7 @@ export function CountdownWidget({ widget, onConfig, onDetail, onDelete, onMinimi
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <span style={{ fontSize: fontSize.label }}>Set a target date</span>
+          <span style={{ fontSize: fontSize.label }}>{t("countdown.setTargetDate")}</span>
         </div>
       </WidgetFrame>
     );
@@ -117,7 +117,7 @@ export function CountdownWidget({ widget, onConfig, onDetail, onDelete, onMinimi
           </div>
           {remainingCount > 0 && (
             <div style={{ fontSize: 10, color: color.textMuted, marginTop: 2 }}>
-              +{remainingCount} more
+              {t("countdown.more").replace("{count}", String(remainingCount))}
             </div>
           )}
         </div>

@@ -4,9 +4,11 @@ import { color, radius } from "@/design/tokens";
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
 import { useFreshness } from "@/lib/use-freshness";
 import { aiSearch, type AiSearchResult } from "@/dashboard/api";
+import { useI18n } from "@/lib/use-i18n";
 
 export function SearchWidget({ widget, onConfig, onDetail, onDelete, onMinimize }: { widget: DashboardWidget; onConfig?: () => void; onDetail?: () => void; onDelete?: () => void; onMinimize?: () => void }) {
   const { freshness, staleAge } = useFreshness();
+  const { t } = useI18n();
   const query = (widget.config.query as string) ?? "";
   const domain = (widget.config.domain as string) ?? "";
   const [result, setResult] = useState<AiSearchResult | null>(null);
@@ -30,7 +32,7 @@ export function SearchWidget({ widget, onConfig, onDetail, onDelete, onMinimize 
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${color.hairline}` }}>
           <span style={{ fontSize: 12, color: color.textSecondary, flex: 1 }}>
-            {query || "No query"}
+            {query || t("search.noQuery")}
             {domain && <span style={{ color: color.textMuted }}> · {domain}</span>}
           </span>
           <button
@@ -38,7 +40,7 @@ export function SearchWidget({ widget, onConfig, onDetail, onDelete, onMinimize 
             disabled={loading || !query.trim()}
             style={{ padding: "3px 10px", fontSize: 11, fontWeight: 650, color: color.bg, background: loading ? color.textMuted : color.accent, border: "none", borderRadius: 999, cursor: "pointer" }}
           >
-            {loading ? "..." : "Search"}
+            {loading ? "..." : t("search.button")}
           </button>
         </div>
 
@@ -46,17 +48,17 @@ export function SearchWidget({ widget, onConfig, onDetail, onDelete, onMinimize 
         <div className="flex-1 overflow-y-auto overflow-x-hidden argus-scroll px-3 py-2">
           {!query && (
             <div style={{ fontSize: 12, color: color.textMuted, textAlign: "center", marginTop: 40 }}>
-              Configure a search query in widget settings
+              {t("search.configureHint")}
             </div>
           )}
           {loading && (
             <div style={{ fontSize: 12, color: color.textMuted, textAlign: "center", marginTop: 40 }}>
-              Searching...
+              {t("search.searching")}
             </div>
           )}
           {!loading && result && !result.ok && (
             <div style={{ fontSize: 12, color: color.neg, textAlign: "center", marginTop: 40 }}>
-              {result.error || "Search failed"}
+              {result.error || t("search.failed")}
             </div>
           )}
           {!loading && result?.ok && (
@@ -71,7 +73,7 @@ export function SearchWidget({ widget, onConfig, onDetail, onDelete, onMinimize 
               {/* Events */}
               {result.events && result.events.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Key Events</div>
+                  <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("search.keyEvents")}</div>
                   <div className="flex flex-col gap-1">
                     {result.events.map((e, i) => (
                       <div key={i} style={{ padding: "6px 8px", background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
@@ -93,7 +95,7 @@ export function SearchWidget({ widget, onConfig, onDetail, onDelete, onMinimize 
               {/* Sources */}
               {result.sources && result.sources.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Sources</div>
+                  <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("search.sources")}</div>
                   <div className="flex flex-col gap-1">
                     {result.sources.map((s, i) => (
                       <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: color.textPrimary, textDecoration: "none", padding: "2px 0" }}>

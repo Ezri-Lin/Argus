@@ -1,5 +1,6 @@
 import type { DashboardWidget, WidgetType } from "@/dashboard/dashboard-types";
 import type { VideoSource } from "@/widgets/embed/video-source-label";
+import type { I18nKey } from "@/lib/i18n";
 
 export type ClockEntry = { label: string; tz: string };
 
@@ -64,6 +65,22 @@ export const WIDGET_TYPE_LABELS: Record<WidgetType, string> = {
   countdown: "Countdown",
   search: "AI Search",
 };
+
+const WIDGET_TYPE_I18N_KEYS: Record<WidgetType, I18nKey> = {
+  treemap: "widget.type.treemap",
+  feed: "widget.type.feed",
+  timeseries: "widget.type.timeseries",
+  embed: "widget.type.embed",
+  stat: "widget.type.stat",
+  clock: "widget.type.clock",
+  weather: "widget.type.weather",
+  countdown: "widget.type.countdown",
+  search: "widget.type.search",
+};
+
+export function getWidgetTypeLabel(type: WidgetType, t: (key: I18nKey) => string): string {
+  return t(WIDGET_TYPE_I18N_KEYS[type]) || WIDGET_TYPE_LABELS[type];
+}
 
 export const COMMON_TIMEZONES = [
   "UTC",

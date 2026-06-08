@@ -249,7 +249,7 @@ export function DetailOverlay({ widgetTitle, widgetType, onClose, onRefresh }: D
                     background: STATUS_DOT[mod.status] ?? STATUS_DOT.ok,
                   }} />
                   <span style={{ fontSize: 12, color: color.textPrimary }}>
-                    {MODULE_LABELS[key] ?? key}
+                    {getModuleLabels(t)[key] ?? key}
                   </span>
                 </div>
                 <span style={{ fontSize: 11, color: color.textMuted }}>
@@ -297,7 +297,7 @@ export function DetailOverlay({ widgetTitle, widgetType, onClose, onRefresh }: D
             transition: "all 0.2s",
           }}
         >
-          {isRunning ? t("detail.pipelineRunning") : refreshing ? "✓ Triggered" : t("detail.refreshNow")}
+          {isRunning ? t("detail.pipelineRunning") : refreshing ? t("detail.triggered") : t("detail.refreshNow")}
         </button>
       </div>
     </div>
@@ -320,10 +320,12 @@ function StatChip({ label, value }: { label: string; value: number }) {
   );
 }
 
-const MODULE_LABELS: Record<string, string> = {
-  pipeline: "Pipeline",
-  rss: "RSS",
-  base_model: "Base Model",
-  pro_model: "Pro Model",
-  tavily: "Tavily",
-};
+function getModuleLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    pipeline: t("detail.module.pipeline"),
+    rss: t("detail.module.rss"),
+    base_model: t("detail.module.baseModel"),
+    pro_model: t("detail.module.proModel"),
+    tavily: t("detail.module.tavily"),
+  };
+}

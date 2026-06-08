@@ -5,6 +5,7 @@ import { color } from "@/design/tokens";
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import { useFreshness } from "@/lib/use-freshness";
+import { useI18n } from "@/lib/use-i18n";
 
 export function StatWidget({
   widget,
@@ -20,6 +21,7 @@ export function StatWidget({
   onMinimize?: () => void;
 }) {
   const { freshness, staleAge } = useFreshness();
+  const { t } = useI18n();
   const selectItem = useDashboardStore((s) => s.selectItem);
 
   const rawValue = String(widget.config.value ?? "0");
@@ -28,7 +30,7 @@ export function StatWidget({
   const configuredLabel = typeof widget.config.label === "string" ? widget.config.label.trim() : "";
   const configuredTitle = widget.title.trim();
   const title = configuredLabel ? configuredTitle || undefined : undefined;
-  const label = configuredLabel || configuredTitle || "Stat";
+  const label = configuredLabel || configuredTitle || t("stat.defaultLabel");
   const trend = String(widget.config.trend ?? "none") as "up" | "down" | "flat" | "none";
   const showChange = widget.config.showChange !== false;
   const change = showChange ? String(widget.config.change ?? "") : "";
@@ -41,7 +43,7 @@ export function StatWidget({
     ? numericValue.toLocaleString("en-US", { maximumFractionDigits: 2 })
     : rawValue;
   const value = symbol && symbolPosition === "prefix" ? `${symbol}${formattedValue}` : formattedValue;
-  const unit = String(widget.config.unit ?? (symbol && symbolPosition === "suffix" ? symbol : "USD"));
+  const unit = String(widget.config.unit ?? (symbol && symbolPosition === "suffix" ? symbol : t("stat.defaultUnit")));
   const deltaPrefix = trend === "up" ? "▲" : trend === "down" ? "▼" : "";
   const delta = change ? `${deltaPrefix}${change.replace(/^[▲▼+-]/, "")}` : undefined;
 

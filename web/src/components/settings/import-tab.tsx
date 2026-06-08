@@ -137,8 +137,8 @@ export function ImportTab() {
             <strong style={{ color: color.textSecondary }}>MD / TXT</strong> -- {t("settings.import.mdFormatDesc")}
           </div>
           <div style={{ paddingLeft: 8 }}>
-            <div>Contains <code>.m3u8</code> / <code>.mpd</code> / <code>.mp4</code> -- video stream</div>
-            <div>Contains <code>.xml</code> / <code>.rss</code> / <code>/feed</code> -- RSS source</div>
+            <div>{t("settings.import.streamClassifyHint")}</div>
+            <div>{t("settings.import.rssClassifyHint")}</div>
             <div>{t("settings.import.defaultClassification")}</div>
           </div>
         </div>

@@ -119,7 +119,7 @@ def get_data():
                 "summary": e["note"] or "",
                 "sentiment": e["sentiment"] or 0,
                 "time": e["published"] or "",
-                "category": e["kind"] or "转载",
+                "category": e["kind"] or "secondary",
                 "body": e["note"] or "",
                 "url": e["url"] or "",
                 "importance": e["importance"] or 0,

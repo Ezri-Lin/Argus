@@ -7,12 +7,13 @@ import type { BudgetStatus, LastRunSummary } from "@/dashboard/api-types";
 import { SectionLabel, StatCard } from "./settings-ui";
 
 function ProviderHealthPanel({ health }: { health: HealthResponse | null }) {
+  const { t } = useI18n();
   const providers = [
     { provider: "RSS Ingest", key: "rss" },
     { provider: "SearXNG", key: "searxng" },
     { provider: "Tavily", key: "tavily" },
-    { provider: "BASE model", key: "base_model" },
-    { provider: "PRO model", key: "pro_model" },
+    { provider: t("settings.module.baseModel"), key: "base_model" },
+    { provider: t("settings.module.proModel"), key: "pro_model" },
   ];
 
   const getStatus = (key: string) => {
@@ -31,7 +32,7 @@ function ProviderHealthPanel({ health }: { health: HealthResponse | null }) {
 
   return (
     <section>
-      <SectionLabel>Provider Health</SectionLabel>
+      <SectionLabel>{t("settings.status.providerHealth")}</SectionLabel>
       <div style={{ padding: "10px 12px", background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
         {providers.map((p) => {
           const status = getStatus(p.key);
@@ -39,7 +40,7 @@ function ProviderHealthPanel({ health }: { health: HealthResponse | null }) {
             <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusColor(status) }} />
               <span style={{ fontSize: 12, flex: 1, color: color.textPrimary }}>{p.provider}</span>
-              <span style={{ fontSize: 11, color: color.textMuted }}>{status}</span>
+              <span style={{ fontSize: 11, color: color.textMuted }}>{status === "unknown" ? t("settings.status.unknown") : status}</span>
             </div>
           );
         })}
@@ -49,6 +50,7 @@ function ProviderHealthPanel({ health }: { health: HealthResponse | null }) {
 }
 
 function BudgetStatusBadge() {
+  const { t } = useI18n();
   const [budget, setBudget] = useState<BudgetStatus | null>(null);
 
   useEffect(() => {
@@ -58,15 +60,15 @@ function BudgetStatusBadge() {
   if (!budget) return null;
 
   const items = [
-    { label: "AI calls", ...budget.daily_ai_calls },
-    { label: "LLM tokens", ...budget.daily_llm_tokens },
-    { label: "Tavily spend", ...budget.daily_tavily_budget_usd },
-    { label: "Deep search", ...budget.daily_deep_search_calls },
+    { label: t("settings.budget.aiCalls"), ...budget.daily_ai_calls },
+    { label: t("settings.budget.llmTokens"), ...budget.daily_llm_tokens },
+    { label: t("settings.budget.tavilySpend"), ...budget.daily_tavily_budget_usd },
+    { label: t("settings.budget.deepSearch"), ...budget.daily_deep_search_calls },
   ];
 
   return (
     <section>
-      <SectionLabel>Budget Today</SectionLabel>
+      <SectionLabel>{t("settings.status.budgetToday")}</SectionLabel>
       <div style={{ padding: "10px 12px", background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
         {items.map((item) => (
           <div key={item.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -82,6 +84,7 @@ function BudgetStatusBadge() {
 }
 
 function LastRunPanel() {
+  const { t } = useI18n();
   const [lastRun, setLastRun] = useState<LastRunSummary | null>(null);
 
   useEffect(() => {
@@ -92,11 +95,11 @@ function LastRunPanel() {
 
   return (
     <section>
-      <SectionLabel>Last Pipeline Run</SectionLabel>
+      <SectionLabel>{t("settings.status.lastPipelineRun")}</SectionLabel>
       <div style={{ padding: "10px 12px", background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}`, fontSize: 12, color: color.textSecondary }}>
-        {lastRun.last_ok && <div>Time: {new Date(lastRun.last_ok).toLocaleString()}</div>}
-        {lastRun.module && <div>Module: {lastRun.module}</div>}
-        {lastRun.last_error && <div style={{ color: color.neg }}>Error: {lastRun.last_error}</div>}
+        {lastRun.last_ok && <div>{t("settings.status.time")}{new Date(lastRun.last_ok).toLocaleString()}</div>}
+        {lastRun.module && <div>{t("settings.status.module")}{lastRun.module}</div>}
+        {lastRun.last_error && <div style={{ color: color.neg }}>{t("settings.status.error")}{lastRun.last_error}</div>}
       </div>
     </section>
   );

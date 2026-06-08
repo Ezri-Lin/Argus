@@ -179,7 +179,7 @@ export function FeedConfig({ variant, sources, members, keywords, filterPrompt, 
             value={fp}
             onChange={(e) => setFp(e.target.value)}
             onBlur={() => onChangeFilterPrompt(fp)}
-            placeholder={"只保留 AI、半导体、大模型相关的新闻\n忽略广告和推广内容"}
+            placeholder={t("config.feed.filterPromptPlaceholder")}
             rows={3}
             style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
           />

@@ -2,6 +2,8 @@ import { color, radius } from "@/design/tokens";
 import { sentimentStyle } from "@/lib/treemap-style";
 import { EntityLogo } from "@/widgets/primitives/entity-logo";
 import { useI18n } from "@/lib/use-i18n";
+import { getCategoryLabel } from "@/lib/category-label";
+import { getKindLabel } from "@/lib/kind-label";
 import type { SignalItem, FeedItem } from "@/dashboard/mock-data";
 
 export function DetailContentSignal({ item }: { item: SignalItem }) {
@@ -35,7 +37,7 @@ export function DetailContentSignal({ item }: { item: SignalItem }) {
             fontWeight: 600,
           }}
         >
-          {item.category}
+          {getCategoryLabel(item.category, t)}
         </span>
         <span style={{ fontSize: 11, color: color.textMuted }}>{item.time}</span>
       </div>
@@ -68,7 +70,7 @@ export function DetailContentSignal({ item }: { item: SignalItem }) {
             color: color.textMuted, background: color.surface2,
             border: `1px solid ${color.hairline}`,
           }}>
-            {item.kind}
+            {getKindLabel(item.kind, t)}
           </span>
         )}
       </div>
@@ -134,7 +136,7 @@ export function DetailContentSignal({ item }: { item: SignalItem }) {
           justifyContent: "space-between",
         }}
       >
-        <span style={{ fontSize: 11, color: color.textMuted }}>Sentiment</span>
+        <span style={{ fontSize: 11, color: color.textMuted }}>{t("detail.sentiment")}</span>
         <span style={{ fontSize: 13, fontWeight: 600, color: s.text }}>
           {item.sentiment > 0 ? "+" : ""}
           {item.sentiment.toFixed(2)}

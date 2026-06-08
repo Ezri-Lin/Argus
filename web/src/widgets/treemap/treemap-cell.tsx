@@ -8,6 +8,7 @@ import {
 import { isLight } from "@/lib/treemap-style";
 import { clamp, estEm } from "@/design/scale";
 import type { PositionedCell } from "./treemap-layout";
+import { useI18n } from "@/lib/use-i18n";
 
 const TICKERS: Record<string, string> = {
   NVIDIA: "NVDA",
@@ -139,12 +140,13 @@ export function TreemapCellSVG({
   cell: PositionedCell;
   isHovered: boolean;
 }) {
+  const { t } = useI18n();
   const s = cellVisualStyle(cell.item.sentiment, cell.item.freshness ?? cell.item.heat, cell.item.previousSentiment);
   const tier = cellTextTier(cell.w, cell.h);
   const isHydrating = cell.item.dataState === "hydrating";
   const tooltip = isHydrating
-    ? `${cell.item.name} · 补充数据中...`
-    : `${cell.item.name} · ${cell.item.metric} · value ${cell.item.value}`;
+    ? `${cell.item.name} · ${t("treemap.hydrating")}`
+    : `${cell.item.name} · ${cell.item.metric} · ${t("treemap.value")} ${cell.item.value}`;
   const sideSafe = clamp(Math.min(cell.w, cell.h) * 0.1, cell.w < 40 ? 4 : 9, 16);
   const topSafe = clamp(Math.min(cell.w, cell.h) * 0.08, cell.h < 30 ? 4 : 8, 14);
   const labelMaxW = Math.max(18, cell.w - sideSafe * 2);
@@ -242,7 +244,7 @@ export function TreemapCellSVG({
                   >
                     {displayName}
                   </text>
-                  {metricTag(isHydrating ? "补充数据中" : cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
+                  {metricTag(isHydrating ? t("treemap.hydratingShort") : cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
                 </>
               );
             })()
@@ -272,7 +274,7 @@ export function TreemapCellSVG({
                   >
                     {displayName}
                   </text>
-                  {metricTag(isHydrating ? "补充数据中" : cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
+                  {metricTag(isHydrating ? t("treemap.hydratingShort") : cell.item.metric, metricSize, centerX, tagY, labelMaxW, s)}
                 </>
               );
             })()

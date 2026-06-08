@@ -134,7 +134,7 @@ def process_member_items(
             impact_persistence_days = clamp_float(result.get("impactPersistenceDays", result.get("impact_persistence_days")), 1.0, 365.0, default_persistence_days(importance))
             impact_confidence = clamp_float(result.get("impactConfidence", result.get("impact_confidence")), 0.0, 1.0, 0.5)
             impact_rationale = result.get("impactRationale", result.get("impact_rationale", ""))
-            kind = result.get("kind", "转载")
+            kind = result.get("kind", "secondary")
             event_type = result.get("event_type", "other")
             valid_event_types = {
                 "model_release", "funding", "acquisition", "lawsuit", "policy",

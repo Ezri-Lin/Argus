@@ -6,6 +6,7 @@ import { DetailContentSignal, DetailContentFeed } from "./detail-content-feed";
 import { DetailContentWatchlist } from "./detail-content-watchlist";
 import { DetailContentStat } from "./detail-content-stat";
 import type { TreemapItem, SignalItem, FeedItem, WatchlistItem } from "@/dashboard/mock-data";
+import { useI18n } from "@/lib/use-i18n";
 
 type DetailPanelProps = {
   item: SelectedItem | null;
@@ -13,6 +14,7 @@ type DetailPanelProps = {
 };
 
 export function DetailPanel({ item, onClose }: DetailPanelProps) {
+  const { t } = useI18n();
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -54,7 +56,7 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
           style={{ padding: "16px 20px", borderBottom: `1px solid ${color.hairline}`, flexShrink: 0 }}
         >
           <span style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Detail
+            {t("detail.panelTitle")}
           </span>
           <button
             onClick={onClose}

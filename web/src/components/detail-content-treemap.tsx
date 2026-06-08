@@ -1,6 +1,7 @@
 import { color, radius } from "@/design/tokens";
 import { sentimentStyle } from "@/lib/treemap-style";
 import { useI18n } from "@/lib/use-i18n";
+import { getKindLabel } from "@/lib/kind-label";
 import { formatLocalShort } from "@/lib/format-time";
 import type { TreemapItem, RelatedNews } from "@/dashboard/mock-data";
 
@@ -9,10 +10,10 @@ function isRelatedNews(r: string | RelatedNews): r is RelatedNews {
 }
 
 /** Visual indicator for impact weight — higher = more prominent */
-function impactBadge(impactWeight?: number) {
+function impactBadge(impactWeight: number | undefined, t: (key: string) => string) {
   if (impactWeight == null || impactWeight < 30) return null;
   const level = impactWeight >= 70 ? "high" : impactWeight >= 50 ? "med" : "low";
-  const label = level === "high" ? "HIGH IMPACT" : level === "med" ? "IMPACT" : null;
+  const label = level === "high" ? t("detail.highImpact") : level === "med" ? t("detail.impact") : null;
   if (!label) return null;
   return (
     <span style={{
@@ -57,7 +58,7 @@ export function DetailContentTreemap({ item, source }: { item: TreemapItem; sour
               fontWeight: 600,
             }}
           >
-            {item.confidence === "watch" ? "WATCH" : "CONFIRMED"}
+            {item.confidence === "watch" ? t("detail.treemap.confidence.watch") : t("detail.treemap.confidence.confirmed")}
           </span>
         </div>
         {source && (
@@ -76,7 +77,7 @@ export function DetailContentTreemap({ item, source }: { item: TreemapItem; sour
       <div className="flex items-center gap-2" style={{ flexWrap: "wrap" }}>
         {topKind && (
           <span style={{ fontSize: 10, color: color.textSecondary, background: color.surface2, border: `1px solid ${color.hairline}`, borderRadius: 4, padding: "2px 6px" }}>
-            {topKind}
+            {getKindLabel(topKind, t)}
           </span>
         )}
         <span style={{ fontSize: 10, color: color.textMuted, background: color.surface2, border: `1px solid ${color.hairline}`, borderRadius: 4, padding: "2px 6px" }}>
@@ -86,19 +87,19 @@ export function DetailContentTreemap({ item, source }: { item: TreemapItem; sour
 
       {/* Metric cards */}
       <div className="grid grid-cols-2 gap-2">
-        <MetricCard label="Value" value={String(item.value)} />
+        <MetricCard label={t("detail.value")} value={String(item.value)} />
         <MetricCard
-          label="Sentiment"
+          label={t("detail.sentiment")}
           value={item.sentiment > 0 ? `+${item.sentiment.toFixed(2)}` : item.sentiment.toFixed(2)}
           color={s.text}
         />
-        <MetricCard label="Heat" value={item.heat.toFixed(2)} />
+        <MetricCard label={t("detail.heat")} value={item.heat.toFixed(2)} />
         <MetricCard label="Confidence" value={item.confidence === "watch" ? t("detail.treemap.confidence.watch") : t("detail.treemap.confidence.confirmed")} />
       </div>
 
       {/* Sentiment bar */}
       <div>
-        <div style={{ fontSize: 11, color: color.textMuted, marginBottom: 6 }}>Sentiment</div>
+        <div style={{ fontSize: 11, color: color.textMuted, marginBottom: 6 }}>{t("detail.sentiment")}</div>
         <div style={{ height: 6, borderRadius: 3, background: color.surface2, overflow: "hidden" }}>
           <div
             style={{
@@ -156,10 +157,10 @@ export function DetailContentTreemap({ item, source }: { item: TreemapItem; sour
                       <div className="flex items-center gap-2" style={{ marginTop: 4, flexWrap: "wrap" }}>
                         {rel.kind && (
                           <span style={{ fontSize: 9, color: color.textSecondary, background: color.surface2, border: `1px solid ${color.hairline}`, borderRadius: 3, padding: "1px 4px" }}>
-                            {rel.kind}
+                            {getKindLabel(rel.kind, t)}
                           </span>
                         )}
-                        {impactBadge(rel.impactWeight)}
+                        {impactBadge(rel.impactWeight, t)}
                         {rel.outlet && (
                           <span style={{ fontSize: 10, color: color.textMuted }}>{rel.outlet}</span>
                         )}

@@ -4,6 +4,7 @@ import { color, fontFamily } from "@/design/tokens";
 import { clamp } from "@/design/scale";
 import { useMeasuredSize } from "@/design/use-measured-size";
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
+import { useI18n } from "@/lib/use-i18n";
 
 type ClockEntry = { label: string; tz: string };
 
@@ -60,6 +61,7 @@ function getOffset(tz: string): string {
 
 export function ClockWidget({ widget, onConfig, onDetail, onDelete, onMinimize }: { widget: DashboardWidget; onConfig?: () => void; onDetail?: () => void; onDelete?: () => void; onMinimize?: () => void }) {
   const [, setTick] = useState(0);
+  const { t } = useI18n();
   const clocks = resolveClocks(widget.config);
   const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const localLabel = (widget.config.localLabel as string) ?? "Shanghai";
@@ -90,10 +92,10 @@ export function ClockWidget({ widget, onConfig, onDetail, onDelete, onMinimize }
       <div ref={ref} className="flex h-full min-h-0 flex-col overflow-hidden">
         <div className="flex items-center justify-between" style={{ flexShrink: 0, height: 18, marginBottom: 4 }}>
           <div style={{ fontFamily, fontSize: titleSize, fontWeight: 680, color: color.textPrimary, lineHeight: 1 }}>
-            Clock
+            {t("clock.title")}
           </div>
           <div style={{ fontFamily, fontSize: metaTopSize, fontWeight: 560, color: color.textMuted, lineHeight: 1 }}>
-            now
+            {t("clock.now")}
           </div>
         </div>
         <div

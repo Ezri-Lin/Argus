@@ -89,7 +89,7 @@ export function SearchTab({ settings, markChanged }: {
             cursor: "pointer",
           }}
         >
-          {p.enabled ? t("search.enabled") : "OFF"}
+          {p.enabled ? t("search.enabled") : t("settings.search.off")}
         </button>
       </div>
       <div className="flex items-center gap-3" style={{ fontSize: 11, color: color.textSecondary }}>
@@ -125,7 +125,7 @@ export function SearchTab({ settings, markChanged }: {
     <div className="flex flex-col gap-5">
       {/* Search mode */}
       <section style={{ marginBottom: 4 }}>
-        <SectionLabel>搜索模式</SectionLabel>
+        <SectionLabel>{t("settings.search.mode")}</SectionLabel>
         <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
           {(["auto", "fallback", "fixed"] as const).map((mode) => (
             <button
@@ -142,23 +142,23 @@ export function SearchTab({ settings, markChanged }: {
                 fontWeight: searchMode === mode ? 600 : 400,
               }}
             >
-              {mode === "auto" ? "Auto" : mode === "fallback" ? "Fallback" : "Fixed"}
+              {mode === "auto" ? t("settings.search.auto") : mode === "fallback" ? t("settings.search.fallback") : t("settings.search.fixed")}
             </button>
           ))}
         </div>
         <p style={{ fontSize: 11, color: color.textMuted, margin: 0 }}>
           {searchMode === "auto"
-            ? "RSS 本地缓存优先，SearXNG 补漏，Tavily 仅在 Budget Guard 内付费补证。"
+            ? t("settings.search.modeAutoDesc")
             : searchMode === "fallback"
-            ? "按优先级依次尝试，失败时降级到下一个 provider。"
-            : "只使用指定的 provider，不降级。"}
+            ? t("settings.search.modeFallbackDesc")
+            : t("settings.search.modeFixedDesc")}
         </p>
       </section>
 
       {/* Discovery providers */}
       <section>
         <SectionLabel>Discovery {t("search.provider")}</SectionLabel>
-        <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>SearXNG / Serper / Bocha -- low-cost scanning, per member per round</div>
+        <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>{t("settings.search.discoveryDesc")}</div>
         <div className="flex flex-col gap-2">
           {discoveryProviders.length === 0 && (
             <div style={{ fontSize: 12, color: color.textMuted, padding: 12 }}>{t("search.noProviders")}</div>
@@ -170,7 +170,7 @@ export function SearchTab({ settings, markChanged }: {
       {/* Deep search providers */}
       <section>
         <SectionLabel>Deep Search {t("search.provider")}</SectionLabel>
-        <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>Tavily -- high-quality corroboration, triggered on-demand by EscalationPolicy</div>
+        <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>{t("settings.search.deepSearchDesc")}</div>
         <div className="flex flex-col gap-2">
           {deepProviders.length === 0 && (
             <div style={{ fontSize: 12, color: color.textMuted, padding: 12 }}>{t("search.noProviders")}</div>
@@ -191,7 +191,7 @@ export function SearchTab({ settings, markChanged }: {
                 <tr style={{ color: color.textMuted, textAlign: "left" }}>
                   <th style={{ padding: "4px 6px", fontWeight: 500 }}>{t("search.time")}</th>
                   <th style={{ padding: "4px 6px", fontWeight: 500 }}>{t("search.provider")}</th>
-                  <th style={{ padding: "4px 6px", fontWeight: 500 }}>Profile</th>
+                  <th style={{ padding: "4px 6px", fontWeight: 500 }}>{t("settings.search.profile")}</th>
                   <th style={{ padding: "4px 6px", fontWeight: 500 }}>{t("search.results")}</th>
                   <th style={{ padding: "4px 6px", fontWeight: 500 }}>{t("search.latency")}</th>
                   <th style={{ padding: "4px 6px", fontWeight: 500 }}>{t("search.fallback")}</th>

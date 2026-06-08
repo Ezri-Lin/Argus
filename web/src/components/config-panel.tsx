@@ -17,7 +17,7 @@ import { TreemapConfig } from "@/components/config/treemap-config";
 import { FeedConfig } from "@/components/config/feed-config";
 import { inputStyle, btnPrimary, btnSecondary, btnDanger } from "@/components/config/config-styles";
 import {
-  CONFIG_FIELDS, WIDGET_TYPE_LABELS,
+  CONFIG_FIELDS, WIDGET_TYPE_LABELS, getWidgetTypeLabel,
   resolveSourcesFromConfig, resolveClocks,
   type ClockEntry, type ConfigPanelProps,
 } from "@/components/config/config-fields";
@@ -38,7 +38,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
   const widgetType = widget?.type ?? createType!;
   const initialConfig = widget?.config ?? createDefaults ?? {};
 
-  const [title, setTitle] = useState(widget?.title ?? WIDGET_TYPE_LABELS[widgetType] ?? "");
+  const [title, setTitle] = useState(widget?.title ?? getWidgetTypeLabel(widgetType, t) ?? "");
   const [config, setConfig] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<VideoSource[]>([]);
   const [clocks, setClocks] = useState<ClockEntry[]>([]);
@@ -150,7 +150,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
     }
 
     if (isCreate) {
-      addWidget(widgetType, title || WIDGET_TYPE_LABELS[widgetType], configPatch);
+      addWidget(widgetType, title || getWidgetTypeLabel(widgetType, t), configPatch);
       const ws = useDashboardStore.getState().doc.widgets;
       const newId = ws[ws.length - 1]?.id;
       if (newId && onCreated) onCreated(newId);
@@ -254,7 +254,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
     if (res?.ok && res.dates) {
       setCountdownSuggestions(res.dates.map((d) => ({ date: d.date, label: d.label })));
     } else {
-      setCountdownError(res?.error || "Request failed — check model config");
+      setCountdownError(res?.error || t("config.common.requestFailed"));
     }
     setCountdownSuggesting(false);
   }, [countdownKeyword]);
@@ -274,7 +274,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
       >
         <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
           <span style={{ fontSize: 15, fontWeight: 600, color: color.textPrimary }}>
-            {isCreate ? `Add ${WIDGET_TYPE_LABELS[widgetType]}` : "Configure Widget"}
+            {isCreate ? `${t("config.common.add")} ${getWidgetTypeLabel(widgetType, t)}` : t("config.common.configureWidget")}
           </span>
           <button
             onClick={onClose}
@@ -287,8 +287,8 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
         <div className="flex flex-col gap-4 flex-1 overflow-y-auto">
           {/* Title */}
           <div>
-            <label style={{ fontSize: 11, color: color.textMuted, marginBottom: 4, display: "block" }}>Title</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={WIDGET_TYPE_LABELS[widgetType]} style={inputStyle} />
+            <label style={{ fontSize: 11, color: color.textMuted, marginBottom: 4, display: "block" }}>{t("config.common.title")}</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={getWidgetTypeLabel(widgetType, t)} style={inputStyle} />
           </div>
 
           {/* Embed sources + URL parse */}
@@ -408,7 +408,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
                 setStatTesting(true);
                 setStatTestResult(null);
                 const res = await aiStatApi(config.apiUrl || "", config.jsonPath || "");
-                setStatTestResult(res?.ok ? String(res.value) : res?.error || "Failed");
+                setStatTestResult(res?.ok ? String(res.value) : res?.error || t("config.common.failed"));
                 setStatTesting(false);
               }}
               testLabel={t("config.stat.testApi")}
@@ -490,7 +490,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
                     style={{ width: 16, height: 16, accentColor: color.textPrimary }}
                   />
                   <span style={{ fontSize: 12, color: color.textSecondary }}>
-                    {config[field.key] !== "false" ? "Enabled" : "Disabled"}
+                    {config[field.key] !== "false" ? t("config.common.enabled") : t("config.common.disabled")}
                   </span>
                 </label>
               ) : (
@@ -509,7 +509,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
             onClick={handleSave}
             style={{ ...btnPrimary, flex: 1, padding: "10px 0", fontSize: 13 }}
           >
-            {isCreate ? "Add" : "Save"}
+            {isCreate ? t("config.common.add") : t("config.common.save")}
           </button>
           {!isCreate && (
             <button
@@ -533,7 +533,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
               onClick={handleDelete}
               style={{ ...btnDanger, padding: "10px 16px", fontSize: 13 }}
             >
-              Delete
+              {t("config.common.delete")}
             </button>
           )}
         </div>

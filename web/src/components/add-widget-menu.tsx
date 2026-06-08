@@ -1,19 +1,23 @@
 import { color, radius, shadow } from "@/design/tokens";
 import type { WidgetType } from "@/dashboard/dashboard-types";
+import { DOMAIN_PRESETS, type DomainPreset } from "@/dashboard/domain-presets";
+import { useI18n } from "@/lib/use-i18n";
+import type { I18nKey } from "@/lib/i18n";
 
-const WIDGET_OPTIONS: { type: WidgetType; label: string; defaultConfig: Record<string, unknown> }[] = [
-  { type: "treemap", label: "Treemap", defaultConfig: { group: "tech" } },
-  { type: "feed", label: "Feed", defaultConfig: { variant: "signals" } },
-  { type: "timeseries", label: "Time Series", defaultConfig: { variant: "watchlist" } },
-  { type: "embed", label: "Embed", defaultConfig: { src: "", mode: "iframe" } },
-  { type: "stat", label: "Stat Card", defaultConfig: { value: "0", label: "", symbol: "", trend: "none", change: "" } },
-  { type: "clock", label: "Clock", defaultConfig: {} },
-  { type: "weather", label: "Weather", defaultConfig: { unit: "C" } },
-  { type: "countdown", label: "Countdown", defaultConfig: { label: "", showSeconds: true } },
-  { type: "search", label: "AI Search", defaultConfig: { query: "", domain: "" } },
+const WIDGET_OPTIONS: { type: WidgetType; labelKey: I18nKey; defaultConfig: Record<string, unknown> }[] = [
+  { type: "treemap", labelKey: "widget.type.treemap", defaultConfig: { group: "tech" } },
+  { type: "feed", labelKey: "widget.type.feed", defaultConfig: { variant: "signals" } },
+  { type: "timeseries", labelKey: "widget.type.timeseries", defaultConfig: { variant: "watchlist" } },
+  { type: "embed", labelKey: "widget.type.embed", defaultConfig: { src: "", mode: "iframe" } },
+  { type: "stat", labelKey: "widget.type.stat", defaultConfig: { value: "0", label: "", symbol: "", trend: "none", change: "" } },
+  { type: "clock", labelKey: "widget.type.clock", defaultConfig: {} },
+  { type: "weather", labelKey: "widget.type.weather", defaultConfig: { unit: "C" } },
+  { type: "countdown", labelKey: "widget.type.countdown", defaultConfig: { label: "", showSeconds: true } },
+  { type: "search", labelKey: "widget.type.search", defaultConfig: { query: "", domain: "" } },
 ];
 
-export function AddWidgetMenu({ onSelect, onClose }: { onSelect: (type: WidgetType, defaults: Record<string, unknown>) => void; onClose: () => void }) {
+export function AddWidgetMenu({ onSelect, onPresetSelect, onClose }: { onSelect: (type: WidgetType, defaults: Record<string, unknown>) => void; onPresetSelect?: (preset: DomainPreset) => void; onClose: () => void }) {
+  const { t } = useI18n();
   return (
     <>
       <div
@@ -31,6 +35,41 @@ export function AddWidgetMenu({ onSelect, onClose }: { onSelect: (type: WidgetTy
           padding: 4,
         }}
       >
+        <div style={{ padding: "6px 12px", fontSize: 11, color: color.textMuted, fontWeight: 600 }}>
+          {t("widget.menu.readyToUse")}
+        </div>
+        {DOMAIN_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            onClick={() => {
+              onPresetSelect?.(preset);
+            }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              textAlign: "left",
+              padding: "6px 12px",
+              fontSize: 13,
+              color: color.textPrimary,
+              background: "transparent",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+              gap: 2,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = color.surface2;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <span>{preset.label}</span>
+            <span style={{ fontSize: 11, color: color.textMuted }}>{preset.description}</span>
+          </button>
+        ))}
+        <div style={{ height: 1, background: color.hairline, margin: "4px 0" }} />
         {WIDGET_OPTIONS.map((opt) => (
           <button
             key={opt.type}
@@ -56,7 +95,7 @@ export function AddWidgetMenu({ onSelect, onClose }: { onSelect: (type: WidgetTy
               e.currentTarget.style.background = "transparent";
             }}
           >
-            {opt.label}
+            {t(opt.labelKey)}
           </button>
         ))}
       </div>

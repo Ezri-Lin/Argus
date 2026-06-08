@@ -1,5 +1,6 @@
-import { type ReactNode, useState, useMemo } from "react";
+import { type ReactNode, useState, useEffect, useMemo } from "react";
 import { WidgetFrame } from "@/components/widget-frame";
+import { WidgetLoadingOverlay } from "@/components/widget-loading-overlay";
 import { PopupBubble } from "@/components/popup-bubble";
 import { color } from "@/design/tokens";
 import { signals, feeds, type SignalItem, type FeedItem } from "@/dashboard/mock-data";
@@ -11,6 +12,7 @@ import type { ApiFeedItem } from "@/dashboard/api";
 import { formatLocalShort } from "@/lib/format-time";
 import { useI18n } from "@/lib/use-i18n";
 import { useFreshness } from "@/lib/use-freshness";
+import { getCategoryLabel } from "@/lib/category-label";
 
 // ── Decay scoring ──
 
@@ -74,11 +76,17 @@ function apiFeedToSignals(items: ApiFeedItem[]): SignalItem[] {
 export function FeedListWidget({ widget, onConfig, onDetail, onDelete, onMinimize }: { widget: DashboardWidget; onConfig?: () => void; onDetail?: () => void; onDelete?: () => void; onMinimize?: () => void }) {
   const { freshness, staleAge } = useFreshness();
   const variant = (widget.config.variant as string) ?? "signals";
+  const apiData = useDashboardStore((s) => s.apiData);
+  const pipelineProgress = useDashboardStore((s) => s.pipelineProgress);
+  const hasRealData = !!(apiData?.feed?.length);
+  const [firstLoadDone, setFirstLoadDone] = useState(hasRealData);
+  useEffect(() => { if (hasRealData) setFirstLoadDone(true); }, [hasRealData]);
+  const showLoading = !firstLoadDone && !!pipelineProgress?.running;
 
   return (
     <WidgetFrame widget={widget} freshness={freshness} staleAge={staleAge} onConfig={onConfig} onDetail={onDetail} onDelete={onDelete} onMinimize={onMinimize}>
-      <div className="flex h-full flex-col overflow-hidden">
-        {variant === "rss" ? <RssView /> : <SignalsView />}
+      <div className="relative flex h-full flex-col overflow-hidden">
+        {showLoading && <WidgetLoadingOverlay />}
       </div>
     </WidgetFrame>
   );
@@ -149,7 +157,7 @@ function SignalsView() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span style={{ fontSize: 10, color: color.textMuted, border: `1px solid ${color.hairline}`, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
-                {item.category}
+                {getCategoryLabel(item.category, t)}
               </span>
               <span style={{ fontSize: 11, color: color.textMuted, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
                 {formatLocalShort(item.time)}
@@ -351,7 +359,7 @@ function RssView() {
                 marginLeft: -6,
               }}
             >
-              {showFolded ? "收起" : `更早 (${foldedItems.length})`}
+              {showFolded ? t("feed.collapse") : `${t("feed.older")} (${foldedItems.length})`}
             </button>
             {showFolded && foldedItems.map((item, i) => renderItem(item, i, item.url || item.title))}
           </>

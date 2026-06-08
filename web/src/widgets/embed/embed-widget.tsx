@@ -4,6 +4,7 @@ import { color, radius } from "@/design/tokens";
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
 import { shortVideoSourceLabel, type VideoSource } from "./video-source-label";
 import { VideoPlayer, Fallback } from "./video-player";
+import { useI18n } from "@/lib/use-i18n";
 
 type PlaybackMode = "video" | "iframe" | "unsupported";
 
@@ -33,6 +34,7 @@ function resolvePlaybackMode(source: VideoSource | undefined, configuredMode: st
 }
 
 export function EmbedWidget({ widget, onConfig, onDetail, onDelete, onMinimize }: { widget: DashboardWidget; onConfig?: () => void; onDetail?: () => void; onDelete?: () => void; onMinimize?: () => void }) {
+  const { t } = useI18n();
   const [errored, setErrored] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -98,7 +100,7 @@ export function EmbedWidget({ widget, onConfig, onDetail, onDelete, onMinimize }
           {!current || errored ? (
             <Fallback src={current?.url ?? ""} />
           ) : playbackMode === "unsupported" ? (
-            <Fallback src={current.url} reason="Unsupported in-browser stream" />
+            <Fallback src={current.url} reason={t("embed.unsupportedStream")} />
           ) : playbackMode === "video" ? (
             <VideoPlayer
               key={current.url}

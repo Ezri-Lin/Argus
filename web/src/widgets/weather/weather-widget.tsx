@@ -7,6 +7,8 @@ import {
   Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain,
   CloudSnow, CloudLightning, Snowflake, Wind, Cloudy,
 } from "lucide-react";
+import { useI18n } from "@/lib/use-i18n";
+import type { I18nKey } from "@/lib/i18n";
 
 type WeatherData = {
   temperature: number;
@@ -40,17 +42,22 @@ const WMO_ICONS: Record<number, ReactNode> = {
   99: <CloudLightning size={28} />,
 };
 
-const WMO_DESC: Record<number, string> = {
-  0: "Clear", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
-  45: "Fog", 48: "Rime fog",
-  51: "Light drizzle", 53: "Drizzle", 55: "Dense drizzle",
-  61: "Light rain", 63: "Rain", 65: "Heavy rain",
-  71: "Light snow", 73: "Snow", 75: "Heavy snow",
-  80: "Light showers", 81: "Showers", 82: "Violent showers",
-  95: "Thunderstorm", 96: "T-storm w/ hail", 99: "T-storm w/ heavy hail",
+const WMO_I18N_KEYS: Record<number, I18nKey> = {
+  0: "weather.clear", 1: "weather.mainlyClear", 2: "weather.partlyCloudy", 3: "weather.overcast",
+  45: "weather.fog", 48: "weather.rimeFog",
+  51: "weather.lightDrizzle", 53: "weather.drizzle", 55: "weather.denseDrizzle",
+  61: "weather.lightRain", 63: "weather.rain", 65: "weather.heavyRain",
+  71: "weather.lightSnow", 73: "weather.snow", 75: "weather.heavySnow",
+  80: "weather.lightShowers", 81: "weather.showers", 82: "weather.violentShowers",
+  95: "weather.thunderstorm", 96: "weather.tstormHail", 99: "weather.tstormHeavyHail",
 };
 
+function getWmoDesc(code: number, t: (key: I18nKey) => string): string {
+  return t(WMO_I18N_KEYS[code]) || "Unknown";
+}
+
 export function WeatherWidget({ widget, onConfig, onDetail, onDelete, onMinimize }: { widget: DashboardWidget; onConfig?: () => void; onDetail?: () => void; onDelete?: () => void; onMinimize?: () => void }) {
+  const { t } = useI18n();
   const lat = widget.config.lat as number | undefined;
   const lon = widget.config.lon as number | undefined;
   const location = (widget.config.location as string) ?? "";
@@ -74,11 +81,11 @@ export function WeatherWidget({ widget, onConfig, onDetail, onDelete, onMinimize
       const res = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=${unit === "F" ? "mph" : "kmh"}&temperature_unit=${unit === "F" ? "fahrenheit" : "celsius"}`
       );
-      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.ok) throw new Error(t("weather.fetchFailed"));
       const data = await res.json();
       setWeather(data.current_weather);
     } catch {
-      setError("Could not load weather");
+      setError(t("weather.loadError"));
     } finally {
       setLoading(false);
     }
@@ -95,7 +102,7 @@ export function WeatherWidget({ widget, onConfig, onDetail, onDelete, onMinimize
       <WidgetFrame widget={widget} onConfig={onConfig} onDetail={onDetail} onDelete={onDelete} onMinimize={onMinimize}>
         <div className="flex h-full flex-col items-center justify-center gap-2" style={{ color: color.textMuted }}>
           <Cloud size={28} strokeWidth={1.5} />
-          <span style={{ fontSize: fontSize.label }}>Configure location to see weather</span>
+          <span style={{ fontSize: fontSize.label }}>{t("weather.configureLocation")}</span>
         </div>
       </WidgetFrame>
     );
@@ -106,7 +113,7 @@ export function WeatherWidget({ widget, onConfig, onDetail, onDelete, onMinimize
       {(() => {
         const current = weather ?? fallbackWeather;
         const city = location.split(",")[0] || location;
-        const desc = WMO_DESC[current.weathercode] ?? (error ? "Weather unavailable" : loading ? "Updating" : "Unknown");
+        const desc = getWmoDesc(current.weathercode, t) ?? (error ? t("weather.unavailable") : loading ? t("weather.updating") : t("weather.unknown"));
         const windUnit = unit === "F" ? "mph" : "km/h";
         const configuredLabel = typeof widget.config.label === "string" ? widget.config.label.trim() : "";
         const configuredTitle = widget.title.trim();
@@ -118,7 +125,7 @@ export function WeatherWidget({ widget, onConfig, onDetail, onDelete, onMinimize
             label={label}
             value={String(Math.round(current.temperature))}
             unit={`°${unit}`}
-            caption={`${desc} · 风 ${Math.round(current.windspeed)} ${windUnit} · 湿度 ${Math.round(current.humidity ?? fallbackWeather.humidity ?? 0)}%`}
+            caption={`${desc} · ${t("weather.wind")} ${Math.round(current.windspeed)} ${windUnit} · ${t("weather.humidity")} ${Math.round(current.humidity ?? fallbackWeather.humidity ?? 0)}%`}
           />
         );
       })()}

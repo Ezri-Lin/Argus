@@ -43,6 +43,7 @@ const zh = {
   "config.feed.rssSources": "RSS 订阅源",
   "config.feed.filterPrompt": "AI 过滤提示词",
   "config.feed.filterPromptHelp": "AI 将根据此提示词对 RSS 内容进行筛选",
+  "config.feed.filterPromptPlaceholder": "只保留 AI、半导体、大模型相关的新闻\n忽略广告和推广内容",
 
   // ── Config panel — countdown ──
   "config.countdown.targets": "目标日期",
@@ -183,10 +184,30 @@ const zh = {
   "detail.status.observing": "观察中",
   "detail.treemap.confidence.watch": "观察中",
   "detail.treemap.confidence.confirmed": "已确认",
+  "detail.highImpact": "高影响",
+  "detail.impact": "影响",
+  "detail.value": "价值",
+  "detail.sentiment": "情绪",
+  "detail.heat": "热度",
+  "detail.currentPrice": "当前价格",
+  "detail.prevClose": "昨收",
+  "detail.volume": "成交量",
+  "detail.dayRange": "日内区间",
+  "detail.weekRange52": "52周区间",
 
   // ── Feed widget ──
   "feed.collapse": "收起",
   "feed.older": "更早",
+  "feed.category.tech": "科技",
+  "feed.category.markets": "市场",
+  "feed.category.geo": "地缘",
+  "feed.category.ai": "AI",
+
+  // ── News kind tags ──
+  "news.kind.official": "官方一手",
+  "news.kind.secondary": "媒体报道",
+  "news.kind.speculative": "传闻 / 预告",
+  "news.kind.unknown": "未知",
 
   // ── Countdown widget ──
   "countdown.unit.days": "天",
@@ -197,6 +218,155 @@ const zh = {
 
   // ── Minimized bar ──
   "minimized.label": "暂存",
+
+  // ── Widget type labels ──
+  "widget.type.treemap": "树图",
+  "widget.type.feed": "信息流",
+  "widget.type.timeseries": "时间序列",
+  "widget.type.embed": "嵌入",
+  "widget.type.stat": "数据卡",
+  "widget.type.clock": "时钟",
+  "widget.type.weather": "天气",
+  "widget.type.countdown": "倒计时",
+  "widget.type.search": "AI 搜索",
+
+  // ── Widget frame ──
+  "widget.configure": "配置",
+  "widget.duplicate": "复制",
+  "widget.expand": "展开",
+  "widget.minimize": "最小化",
+  "widget.delete": "删除",
+  "widget.details": "详情",
+  "widget.loading.firstLoad": "首次数据加载中...",
+  "widget.loading.membersProcessed": "{done}/{total} 成员已处理",
+
+  // ── Widget menu ──
+  "widget.menu.readyToUse": "开箱即用",
+
+  // ── Config panel ──
+  "config.common.configureWidget": "配置组件",
+  "config.common.title": "标题",
+  "config.common.enabled": "已启用",
+  "config.common.disabled": "已禁用",
+  "config.common.failed": "失败",
+  "config.common.requestFailed": "请求失败 — 请检查模型配置",
+
+  // ── Treemap ──
+  "treemap.hydrating": "补充数据中...",
+  "treemap.hydratingShort": "补充数据中",
+  "treemap.value": "数值",
+  "treemap.heat": "热度",
+
+  // ── Detail panel ──
+  "detail.panelTitle": "详情",
+  "detail.triggered": "✓ 已触发",
+  "detail.module.pipeline": "管线",
+  "detail.module.rss": "RSS",
+  "detail.module.baseModel": "基础模型",
+  "detail.module.proModel": "高级模型",
+  "detail.module.tavily": "Tavily",
+
+  // ── Search widget ──
+  "search.noQuery": "无查询",
+  "search.button": "搜索",
+  "search.configureHint": "请在组件设置中配置搜索关键词",
+  "search.searching": "搜索中...",
+  "search.failed": "搜索失败",
+  "search.keyEvents": "关键事件",
+  "search.sources": "来源",
+
+  // ── Weather widget ──
+  "weather.clear": "晴",
+  "weather.mainlyClear": "大部晴朗",
+  "weather.partlyCloudy": "多云",
+  "weather.overcast": "阴",
+  "weather.fog": "雾",
+  "weather.rimeFog": "冻雾",
+  "weather.lightDrizzle": "小毛毛雨",
+  "weather.drizzle": "毛毛雨",
+  "weather.denseDrizzle": "大毛毛雨",
+  "weather.lightRain": "小雨",
+  "weather.rain": "雨",
+  "weather.heavyRain": "大雨",
+  "weather.lightSnow": "小雪",
+  "weather.snow": "雪",
+  "weather.heavySnow": "大雪",
+  "weather.lightShowers": "小阵雨",
+  "weather.showers": "阵雨",
+  "weather.violentShowers": "暴雨",
+  "weather.thunderstorm": "雷暴",
+  "weather.tstormHail": "雷暴伴冰雹",
+  "weather.tstormHeavyHail": "雷暴伴大冰雹",
+  "weather.fetchFailed": "获取失败",
+  "weather.loadError": "无法加载天气",
+  "weather.configureLocation": "请配置位置以查看天气",
+  "weather.unavailable": "天气不可用",
+  "weather.updating": "更新中",
+  "weather.unknown": "未知",
+  "weather.wind": "风",
+  "weather.humidity": "湿度",
+
+  // ── Clock widget ──
+  "clock.title": "时钟",
+  "clock.now": "现在",
+
+  // ── Countdown widget (extra) ──
+  "countdown.defaultLabel": "倒计时",
+  "countdown.setTargetDate": "设置目标日期",
+  "countdown.more": "+{count} 更多",
+
+  // ── Stat widget ──
+  "stat.defaultLabel": "数据",
+  "stat.defaultUnit": "美元",
+
+  // ── Embed widget ──
+  "embed.source": "来源",
+  "embed.unsupportedStream": "浏览器不支持此流",
+  "embed.bilibili": "B站",
+  "embed.iframeLabel": "嵌入",
+  "embed.srcLabel": "源 {n}",
+  "embed.sourceLabel": "来源 {n}",
+
+  // ── Settings — config tab (extra) ──
+  "settings.config.ok": "正常",
+  "settings.config.failed": "失败",
+  "settings.config.networkError": "网络错误",
+  "settings.config.tavilyApiKey": "Tavily API Key",
+
+  // ── Settings — search mode ──
+  "settings.search.mode": "搜索模式",
+  "settings.search.auto": "自动",
+  "settings.search.fallback": "降级",
+  "settings.search.fixed": "固定",
+  "settings.search.modeAutoDesc": "RSS 本地缓存优先，SearXNG 补漏，Tavily 仅在 Budget Guard 内付费补证。",
+  "settings.search.modeFallbackDesc": "按优先级依次尝试，失败时降级到下一个 provider。",
+  "settings.search.modeFixedDesc": "只使用指定的 provider，不降级。",
+  "settings.search.discoveryDesc": "SearXNG / Serper / Bocha — 低成本扫描，每成员每轮",
+  "settings.search.deepSearchDesc": "Tavily — 高质量佐证，按需由升级策略触发",
+  "settings.search.profile": "配置",
+  "settings.search.off": "关闭",
+
+  // ── Settings — status tab (extra) ──
+  "settings.status.providerHealth": "供应商状态",
+  "settings.status.unknown": "未知",
+  "settings.status.budgetToday": "今日预算",
+  "settings.status.lastPipelineRun": "上次管线运行",
+  "settings.status.time": "时间：",
+  "settings.status.module": "模块：",
+  "settings.status.error": "错误：",
+
+  // ── Settings — budget ──
+  "settings.budget.aiCalls": "AI 调用",
+  "settings.budget.llmTokens": "LLM tokens",
+  "settings.budget.tavilySpend": "Tavily 花费",
+  "settings.budget.deepSearch": "深度搜索",
+
+  // ── Settings — import (extra) ──
+  "settings.import.streamClassifyHint": "含 <code>.m3u8</code> / <code>.mpd</code> / <code>.mp4</code> — 视频流",
+  "settings.import.rssClassifyHint": "含 <code>.xml</code> / <code>.rss</code> / <code>/feed</code> — RSS 源",
+
+  // ── Settings — module labels (extra) ──
+  "settings.module.search": "搜索",
 
   // ── Freshness ──
   "freshness.noData": "无数据",
@@ -257,6 +427,7 @@ const en: Record<keyof typeof zh, string> = {
   "config.feed.rssSources": "RSS Sources",
   "config.feed.filterPrompt": "AI Filter Prompt",
   "config.feed.filterPromptHelp": "AI will filter RSS content based on this prompt",
+  "config.feed.filterPromptPlaceholder": "Keep only AI, semiconductor, LLM related news\nIgnore ads and promotional content",
 
   // ── Config panel — countdown ──
   "config.countdown.targets": "Target Dates",
@@ -397,10 +568,30 @@ const en: Record<keyof typeof zh, string> = {
   "detail.status.observing": "Watching",
   "detail.treemap.confidence.watch": "Watching",
   "detail.treemap.confidence.confirmed": "Confirmed",
+  "detail.highImpact": "HIGH IMPACT",
+  "detail.impact": "IMPACT",
+  "detail.value": "Value",
+  "detail.sentiment": "Sentiment",
+  "detail.heat": "Heat",
+  "detail.currentPrice": "Current Price",
+  "detail.prevClose": "Prev Close",
+  "detail.volume": "Volume",
+  "detail.dayRange": "Day Range",
+  "detail.weekRange52": "52 Week Range",
 
   // ── Feed widget ──
   "feed.collapse": "Collapse",
   "feed.older": "Older",
+  "feed.category.tech": "Tech",
+  "feed.category.markets": "Markets",
+  "feed.category.geo": "Geo",
+  "feed.category.ai": "AI",
+
+  // ── News kind tags ──
+  "news.kind.official": "Official",
+  "news.kind.secondary": "Coverage",
+  "news.kind.speculative": "Speculative",
+  "news.kind.unknown": "Unknown",
 
   // ── Countdown widget ──
   "countdown.unit.days": "d",
@@ -411,6 +602,155 @@ const en: Record<keyof typeof zh, string> = {
 
   // ── Minimized bar ──
   "minimized.label": "Stashed",
+
+  // ── Widget type labels ──
+  "widget.type.treemap": "Treemap",
+  "widget.type.feed": "Feed",
+  "widget.type.timeseries": "Time Series",
+  "widget.type.embed": "Embed",
+  "widget.type.stat": "Stat Card",
+  "widget.type.clock": "Clock",
+  "widget.type.weather": "Weather",
+  "widget.type.countdown": "Countdown",
+  "widget.type.search": "AI Search",
+
+  // ── Widget frame ──
+  "widget.configure": "Configure",
+  "widget.duplicate": "Duplicate",
+  "widget.expand": "Expand",
+  "widget.minimize": "Minimize",
+  "widget.delete": "Delete",
+  "widget.details": "Details",
+  "widget.loading.firstLoad": "Loading initial data...",
+  "widget.loading.membersProcessed": "{done}/{total} members processed",
+
+  // ── Widget menu ──
+  "widget.menu.readyToUse": "Ready to Use",
+
+  // ── Config panel ──
+  "config.common.configureWidget": "Configure Widget",
+  "config.common.title": "Title",
+  "config.common.enabled": "Enabled",
+  "config.common.disabled": "Disabled",
+  "config.common.failed": "Failed",
+  "config.common.requestFailed": "Request failed — check model config",
+
+  // ── Treemap ──
+  "treemap.hydrating": "Loading data...",
+  "treemap.hydratingShort": "Loading",
+  "treemap.value": "value",
+  "treemap.heat": "heat",
+
+  // ── Detail panel ──
+  "detail.panelTitle": "Detail",
+  "detail.triggered": "✓ Triggered",
+  "detail.module.pipeline": "Pipeline",
+  "detail.module.rss": "RSS",
+  "detail.module.baseModel": "Base Model",
+  "detail.module.proModel": "Pro Model",
+  "detail.module.tavily": "Tavily",
+
+  // ── Search widget ──
+  "search.noQuery": "No query",
+  "search.button": "Search",
+  "search.configureHint": "Configure a search query in widget settings",
+  "search.searching": "Searching...",
+  "search.failed": "Search failed",
+  "search.keyEvents": "Key Events",
+  "search.sources": "Sources",
+
+  // ── Weather widget ──
+  "weather.clear": "Clear",
+  "weather.mainlyClear": "Mainly clear",
+  "weather.partlyCloudy": "Partly cloudy",
+  "weather.overcast": "Overcast",
+  "weather.fog": "Fog",
+  "weather.rimeFog": "Rime fog",
+  "weather.lightDrizzle": "Light drizzle",
+  "weather.drizzle": "Drizzle",
+  "weather.denseDrizzle": "Dense drizzle",
+  "weather.lightRain": "Light rain",
+  "weather.rain": "Rain",
+  "weather.heavyRain": "Heavy rain",
+  "weather.lightSnow": "Light snow",
+  "weather.snow": "Snow",
+  "weather.heavySnow": "Heavy snow",
+  "weather.lightShowers": "Light showers",
+  "weather.showers": "Showers",
+  "weather.violentShowers": "Violent showers",
+  "weather.thunderstorm": "Thunderstorm",
+  "weather.tstormHail": "T-storm w/ hail",
+  "weather.tstormHeavyHail": "T-storm w/ heavy hail",
+  "weather.fetchFailed": "Failed to fetch",
+  "weather.loadError": "Could not load weather",
+  "weather.configureLocation": "Configure location to see weather",
+  "weather.unavailable": "Weather unavailable",
+  "weather.updating": "Updating",
+  "weather.unknown": "Unknown",
+  "weather.wind": "Wind",
+  "weather.humidity": "Humidity",
+
+  // ── Clock widget ──
+  "clock.title": "Clock",
+  "clock.now": "now",
+
+  // ── Countdown widget (extra) ──
+  "countdown.defaultLabel": "Countdown",
+  "countdown.setTargetDate": "Set a target date",
+  "countdown.more": "+{count} more",
+
+  // ── Stat widget ──
+  "stat.defaultLabel": "Stat",
+  "stat.defaultUnit": "USD",
+
+  // ── Embed widget ──
+  "embed.source": "Source",
+  "embed.unsupportedStream": "Unsupported in-browser stream",
+  "embed.bilibili": "Bilibili",
+  "embed.iframeLabel": "Embed",
+  "embed.srcLabel": "Src {n}",
+  "embed.sourceLabel": "Source {n}",
+
+  // ── Settings — config tab (extra) ──
+  "settings.config.ok": "OK",
+  "settings.config.failed": "Failed",
+  "settings.config.networkError": "Network error",
+  "settings.config.tavilyApiKey": "Tavily API Key",
+
+  // ── Settings — search mode ──
+  "settings.search.mode": "Search Mode",
+  "settings.search.auto": "Auto",
+  "settings.search.fallback": "Fallback",
+  "settings.search.fixed": "Fixed",
+  "settings.search.modeAutoDesc": "RSS local cache first, SearXNG fills gaps, Tavily only within Budget Guard.",
+  "settings.search.modeFallbackDesc": "Try providers in priority order, fall back to next on failure.",
+  "settings.search.modeFixedDesc": "Use only the specified provider, no fallback.",
+  "settings.search.discoveryDesc": "SearXNG / Serper / Bocha — low-cost scanning, per member per round",
+  "settings.search.deepSearchDesc": "Tavily — high-quality corroboration, triggered on-demand by EscalationPolicy",
+  "settings.search.profile": "Profile",
+  "settings.search.off": "OFF",
+
+  // ── Settings — status tab (extra) ──
+  "settings.status.providerHealth": "Provider Health",
+  "settings.status.unknown": "unknown",
+  "settings.status.budgetToday": "Budget Today",
+  "settings.status.lastPipelineRun": "Last Pipeline Run",
+  "settings.status.time": "Time: ",
+  "settings.status.module": "Module: ",
+  "settings.status.error": "Error: ",
+
+  // ── Settings — budget ──
+  "settings.budget.aiCalls": "AI calls",
+  "settings.budget.llmTokens": "LLM tokens",
+  "settings.budget.tavilySpend": "Tavily spend",
+  "settings.budget.deepSearch": "Deep search",
+
+  // ── Settings — import (extra) ──
+  "settings.import.streamClassifyHint": "Contains <code>.m3u8</code> / <code>.mpd</code> / <code>.mp4</code> — video stream",
+  "settings.import.rssClassifyHint": "Contains <code>.xml</code> / <code>.rss</code> / <code>/feed</code> — RSS source",
+
+  // ── Settings — module labels (extra) ──
+  "settings.module.search": "Search",
 
   // ── Freshness ──
   "freshness.noData": "No data",

@@ -3,6 +3,7 @@ import { color, fontFamily, fontSize, radius, shadow, shadowElev } from "@/desig
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
 import { CrackOverlay } from "./crack-overlay";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
+import { useI18n } from "@/lib/use-i18n";
 
 export type Freshness = "ok" | "degraded" | "failed";
 
@@ -35,6 +36,7 @@ export function WidgetFrame({
 }: WidgetFrameProps) {
   const [hovered, setHovered] = useState(false);
   const editMode = useDashboardStore((s) => s.editMode);
+  const { t } = useI18n();
 
   const stateClass =
     freshness === "degraded" ? "widget-degraded" :
@@ -144,25 +146,25 @@ export function WidgetFrame({
             {editMode ? (
               <>
                 {onConfig && (
-                  <ControlButton onClick={onConfig} title="Configure" icon="⚙" />
+                  <ControlButton onClick={onConfig} title={t("widget.configure")} icon="⚙" />
                 )}
                 {onDuplicate && (
-                  <ControlButton onClick={onDuplicate} title="Duplicate" icon="⧉" />
+                  <ControlButton onClick={onDuplicate} title={t("widget.duplicate")} icon="⧉" />
                 )}
                 {onExpand && (
-                  <ControlButton onClick={onExpand} title="Expand" icon="⤢" />
+                  <ControlButton onClick={onExpand} title={t("widget.expand")} icon="⤢" />
                 )}
                 {onMinimize && (
-                  <ControlButton onClick={onMinimize} title="Minimize" icon="−" />
+                  <ControlButton onClick={onMinimize} title={t("widget.minimize")} icon="−" />
                 )}
                 {onDelete && (
-                  <ControlButton onClick={onDelete} title="Delete" icon="✕" danger />
+                  <ControlButton onClick={onDelete} title={t("widget.delete")} icon="✕" danger />
                 )}
               </>
             ) : (
               <>
                 {onDetail && (
-                  <ControlButton onClick={onDetail} title="Details" icon="ℹ" />
+                  <ControlButton onClick={onDetail} title={t("widget.details")} icon="ℹ" />
                 )}
               </>
             )}
