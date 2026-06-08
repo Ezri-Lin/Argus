@@ -36,6 +36,22 @@ describe("shortVideoSourceLabel", () => {
       label: "An extremely long source label that should never fit in a tab",
     }, 1)).toBe("Src 2");
   });
+
+  it("uses user custom label truncated to one word", () => {
+    expect(shortVideoSourceLabel({
+      url: "https://example.com/live.m3u8",
+      label: "Apple",
+      type: "hls",
+    })).toBe("Apple");
+  });
+
+  it("truncates CJK label to 3 chars", () => {
+    expect(shortVideoSourceLabel({
+      url: "https://example.com/live.m3u8",
+      label: "苹果发布会",
+      type: "hls",
+    })).toBe("苹果发");
+  });
 });
 
 describe("parsed video source helpers", () => {

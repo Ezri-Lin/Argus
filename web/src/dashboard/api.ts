@@ -246,11 +246,19 @@ export async function aiSearch(query: string, domain?: string): Promise<AiSearch
 }
 
 export async function aiSuggestDates(keyword: string): Promise<AiDatesResult | null> {
-  return apiFetch("/ai/suggest-dates", jsonBody("POST", { keyword }));
+  const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return "UTC"; } })();
+  return apiFetch("/ai/suggest-dates", jsonBody("POST", { keyword, tz }));
 }
 
 export async function aiParseVideo(url: string): Promise<AiVideoResult | null> {
   return apiFetch("/ai/parse-video", jsonBody("POST", { url }));
+}
+
+export async function translateSubtitles(
+  cues: Array<{ startTime: number; endTime: number; text: string }>,
+  targetLang: string
+): Promise<{ ok: boolean; cues?: Array<{ startTime: number; endTime: number; text: string; translated?: string }>; error?: string } | null> {
+  return apiFetch("/ai/translate-subtitles", jsonBody("POST", { cues, target_lang: targetLang }));
 }
 
 export async function aiStatApi(url: string, jsonPath: string): Promise<AiStatResult | null> {
