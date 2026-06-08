@@ -2,6 +2,8 @@
 
 /// <reference types="vite/client" />
 
+import type { BudgetStatus, LastRunSummary, LibraryDoc } from "./api-types";
+
 export type {
   ApiLogoFields,
   ApiTreemapData,
