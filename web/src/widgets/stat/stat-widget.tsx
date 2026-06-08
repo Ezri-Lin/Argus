@@ -59,6 +59,7 @@ export function StatWidget({
       contentOwnsHeader
     >
       <MetricDisplay
+        kind="amount"
         title={title}
         label={label}
         value={value}

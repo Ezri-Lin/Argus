@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { WidgetFrame } from "@/components/widget-frame";
 import { color, fontSize } from "@/design/tokens";
-import { MetricDisplay } from "@/widgets/primitives/metric-display";
+import { WeatherMetric } from "@/widgets/primitives/weather-metric";
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
 import {
   Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain,
@@ -120,12 +120,15 @@ export function WeatherWidget({ widget, onConfig, onDetail, onDelete, onMinimize
         const title = configuredLabel ? configuredTitle || undefined : undefined;
         const label = configuredLabel || city;
         return (
-          <MetricDisplay
+          <WeatherMetric
             title={title}
-            label={label}
-            value={String(Math.round(current.temperature))}
-            unit={`°${unit}`}
-            caption={`${desc} · ${t("weather.wind")} ${Math.round(current.windspeed)} ${windUnit} · ${t("weather.humidity")} ${Math.round(current.humidity ?? fallbackWeather.humidity ?? 0)}%`}
+            location={label}
+            temperature={current.temperature}
+            unit={unit as "C" | "F"}
+            icon={WMO_ICONS[current.weathercode]}
+            condition={desc}
+            windText={`${t("weather.wind")} ${Math.round(current.windspeed)} ${windUnit}`}
+            humidityText={`${t("weather.humidity")} ${Math.round(current.humidity ?? fallbackWeather.humidity ?? 0)}%`}
           />
         );
       })()}

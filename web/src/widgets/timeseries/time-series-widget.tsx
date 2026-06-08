@@ -143,6 +143,7 @@ function SentimentView({ widget }: { widget: DashboardWidget }) {
 
   return (
     <MetricDisplay
+      kind="score"
       title={title}
       label={label}
       value={last.idx.toFixed(2)}
