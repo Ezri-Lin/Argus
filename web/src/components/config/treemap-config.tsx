@@ -101,18 +101,20 @@ function MemberRow({
   member,
   tierDef,
   onRemove,
+  onMoveTier,
   onDragStart,
 }: {
   member: DraftMember;
   tierDef: TierDef;
   onRemove: () => void;
+  onMoveTier: (tier: TierKey) => void;
   onDragStart: (e: React.DragEvent) => void;
 }) {
   return (
     <div
       draggable
       onDragStart={onDragStart}
-      className="flex items-center gap-1.5"
+      className="flex items-center gap-1"
       style={{
         padding: "4px 8px",
         background: color.surface2,
@@ -128,6 +130,17 @@ function MemberRow({
       <span style={{ fontSize: 12, color: color.textPrimary, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {member.name}
       </span>
+      {/* Tier switch buttons */}
+      {TIERS.filter((t) => t.key !== tierDef.key).map((t) => (
+        <button
+          key={t.key}
+          onClick={() => onMoveTier(t.key)}
+          title={t.label}
+          style={{ padding: "0 3px", border: "none", background: "transparent", color: t.color, fontSize: 9, cursor: "pointer", flexShrink: 0, opacity: 0.6 }}
+        >
+          {t.label.charAt(0)}
+        </button>
+      ))}
       <button
         onClick={onRemove}
         style={{ padding: "0 4px", border: "none", background: "transparent", color: color.neg, fontSize: 10, cursor: "pointer", flexShrink: 0 }}
@@ -148,6 +161,7 @@ function TierSection({
   candidateHint,
   onDrop,
   onRemove,
+  onMoveTier,
   onDragStartMember,
   addName,
   addAlias,
@@ -165,6 +179,7 @@ function TierSection({
   candidateHint?: string;
   onDrop: (tier: TierKey) => void;
   onRemove: (memberId: number) => void;
+  onMoveTier: (memberId: number, tier: TierKey) => void;
   onDragStartMember: (memberId: number, e: React.DragEvent) => void;
   addName: string;
   addAlias: string;
@@ -243,6 +258,7 @@ function TierSection({
             member={m}
             tierDef={tierDef}
             onRemove={() => onRemove(m.memberId)}
+            onMoveTier={(tier) => onMoveTier(m.memberId, tier)}
             onDragStart={(e) => onDragStartMember(m.memberId, e)}
           />
         ))}
@@ -275,8 +291,8 @@ function TierSection({
         </div>
       )}
 
-      {/* Quick-add tiles — only for ai_candidate */}
-      {tierDef.key === "ai_candidate" && available.length > 0 && (
+      {/* Quick-add tiles — only for primary */}
+      {tierDef.key === "primary" && available.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
           {available.map((m) => (
             <button
@@ -361,8 +377,14 @@ export function TreemapConfig({
 
   const draftIds = useMemo(() => new Set(draft.map((d) => d.memberId)), [draft]);
   const available = useMemo(
-    () => members.filter((m) => !draftIds.has(m.id)),
-    [members, draftIds],
+    () => {
+      const unassigned = members.filter((m) => !draftIds.has(m.id));
+      // Prioritize members belonging to the current domain
+      const inDomain = unassigned.filter((m) => m.domains.includes(selectedDomain));
+      const others = unassigned.filter((m) => !m.domains.includes(selectedDomain));
+      return [...inDomain, ...others];
+    },
+    [members, draftIds, selectedDomain],
   );
 
   const byTier = useMemo(() => {
@@ -502,6 +524,7 @@ export function TreemapConfig({
             candidateHint={tierDef.key === "ai_candidate" ? t("config.treemap.candidateHint") : undefined}
             onDrop={handleDrop}
             onRemove={removeFromDraft}
+            onMoveTier={moveMember}
             onDragStartMember={handleDragStart}
             addName={addName[tierDef.key]}
             addAlias={addAlias[tierDef.key]}
