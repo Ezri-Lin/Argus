@@ -95,26 +95,58 @@ interface DraftMember {
   enabled: boolean;
 }
 
-// ── Member row (draggable) ──
+// ── Member row (draggable, editable) ──
 
 function MemberRow({
   member,
   tierDef,
   onRemove,
-  onMoveTier,
+  onUpdate,
   onDragStart,
 }: {
   member: DraftMember;
   tierDef: TierDef;
   onRemove: () => void;
-  onMoveTier: (tier: TierKey) => void;
+  onUpdate: (patch: { label?: string; aliases?: string }) => void;
   onDragStart: (e: React.DragEvent) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editLabel, setEditLabel] = useState(member.name);
+  const [editAliases, setEditAliases] = useState("");
+
+  function handleSave() {
+    onUpdate({ label: editLabel, aliases: editAliases });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1" style={{ padding: "4px 6px", background: color.surface2, borderRadius: radius.inner, border: `1px solid ${tierDef.color}` }}>
+        <input
+          value={editLabel}
+          onChange={(e) => setEditLabel(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+          style={{ ...smallInput, flex: 1, padding: "2px 6px", fontSize: 11 }}
+          autoFocus
+        />
+        <input
+          value={editAliases}
+          onChange={(e) => setEditAliases(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+          placeholder="别名"
+          style={{ ...smallInput, flex: 1, padding: "2px 6px", fontSize: 11 }}
+        />
+        <button onClick={handleSave} style={{ padding: "0 4px", border: "none", background: "transparent", color: color.pos, fontSize: 11, cursor: "pointer" }}>✓</button>
+        <button onClick={() => setEditing(false)} style={{ padding: "0 4px", border: "none", background: "transparent", color: color.textMuted, fontSize: 11, cursor: "pointer" }}>✕</button>
+      </div>
+    );
+  }
+
   return (
     <div
       draggable
       onDragStart={onDragStart}
-      className="flex items-center gap-1"
+      className="flex items-center gap-1.5"
       style={{
         padding: "4px 8px",
         background: color.surface2,
@@ -130,23 +162,14 @@ function MemberRow({
       <span style={{ fontSize: 12, color: color.textPrimary, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {member.name}
       </span>
-      {/* Tier switch buttons */}
-      {TIERS.filter((t) => t.key !== tierDef.key).map((t) => (
-        <button
-          key={t.key}
-          onClick={() => onMoveTier(t.key)}
-          title={t.label}
-          style={{ padding: "0 3px", border: "none", background: "transparent", color: t.color, fontSize: 9, cursor: "pointer", flexShrink: 0, opacity: 0.6 }}
-        >
-          {t.label.charAt(0)}
-        </button>
-      ))}
+      <button
+        onClick={() => setEditing(true)}
+        style={{ padding: "0 3px", border: "none", background: "transparent", color: color.textMuted, fontSize: 10, cursor: "pointer", flexShrink: 0 }}
+      >✎</button>
       <button
         onClick={onRemove}
         style={{ padding: "0 4px", border: "none", background: "transparent", color: color.neg, fontSize: 10, cursor: "pointer", flexShrink: 0 }}
-      >
-        ✕
-      </button>
+      >✕</button>
     </div>
   );
 }
@@ -169,8 +192,6 @@ function TierSection({
   onAddNameChange,
   onAddAliasChange,
   onAdd,
-  onQuickAdd,
-  available,
 }: {
   tierDef: TierDef;
   members: DraftMember[];
@@ -179,7 +200,7 @@ function TierSection({
   candidateHint?: string;
   onDrop: (tier: TierKey) => void;
   onRemove: (memberId: number) => void;
-  onMoveTier: (memberId: number, tier: TierKey) => void;
+  onUpdateMember: (memberId: number, patch: { label?: string; aliases?: string }) => void;
   onDragStartMember: (memberId: number, e: React.DragEvent) => void;
   addName: string;
   addAlias: string;
@@ -187,8 +208,6 @@ function TierSection({
   onAddNameChange: (v: string) => void;
   onAddAliasChange: (v: string) => void;
   onAdd: () => void;
-  onQuickAdd: (memberId: number, name: string) => void;
-  available: MemberItem[];
 }) {
   const [dragOver, setDragOver] = useState(false);
 
@@ -258,7 +277,7 @@ function TierSection({
             member={m}
             tierDef={tierDef}
             onRemove={() => onRemove(m.memberId)}
-            onMoveTier={(tier) => onMoveTier(m.memberId, tier)}
+            onUpdate={(patch) => onUpdateMember(m.memberId, patch)}
             onDragStart={(e) => onDragStartMember(m.memberId, e)}
           />
         ))}
@@ -291,24 +310,6 @@ function TierSection({
         </div>
       )}
 
-      {/* Quick-add tiles — only for primary */}
-      {tierDef.key === "primary" && available.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
-          {available.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => onQuickAdd(m.id, m.name)}
-              style={{
-                ...btnGhost,
-                padding: "1px 6px",
-                fontSize: 10,
-              }}
-            >
-              {m.name}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -403,6 +404,13 @@ export function TreemapConfig({
 
   function moveMember(memberId: number, newTier: TierKey) {
     setDraft((prev) => prev.map((d) => (d.memberId === memberId ? { ...d, tier: newTier } : d)));
+  }
+
+  function updateMember(memberId: number, patch: { label?: string; aliases?: string }) {
+    if (patch.label) {
+      setDraft((prev) => prev.map((d) => (d.memberId === memberId ? { ...d, name: patch.label! } : d)));
+    }
+    // TODO: persist alias changes to backend when API supports it
   }
 
   const handleDragStart = useCallback((memberId: number, e: React.DragEvent) => {
@@ -524,7 +532,7 @@ export function TreemapConfig({
             candidateHint={tierDef.key === "ai_candidate" ? t("config.treemap.candidateHint") : undefined}
             onDrop={handleDrop}
             onRemove={removeFromDraft}
-            onMoveTier={moveMember}
+            onUpdateMember={updateMember}
             onDragStartMember={handleDragStart}
             addName={addName[tierDef.key]}
             addAlias={addAlias[tierDef.key]}
@@ -532,11 +540,32 @@ export function TreemapConfig({
             onAddNameChange={(v) => setAddName((prev) => ({ ...prev, [tierDef.key]: v }))}
             onAddAliasChange={(v) => setAddAlias((prev) => ({ ...prev, [tierDef.key]: v }))}
             onAdd={() => handleAddMember(tierDef.key)}
-            onQuickAdd={(id, name) => addToDraft(id, name, tierDef.key)}
-            available={available}
           />
         </div>
       ))}
+
+      {/* Quick-add (domain-first, click → primary) */}
+      {available.length > 0 && (
+        <>
+          <hr style={dividerStyle} />
+          <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 4 }}>快速添加</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+            {available.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => addToDraft(m.id, m.name, "primary")}
+                style={{
+                  ...btnGhost,
+                  padding: "1px 6px",
+                  fontSize: 10,
+                }}
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <DraftSaveHandler onSave={handleSave} />
     </div>
