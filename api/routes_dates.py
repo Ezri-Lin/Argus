@@ -16,9 +16,14 @@ from .ai_helpers import _call_model, _conn, _safe_text, _search_query
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
-def _query_dates_for_keyword(model_cfg: dict, keyword: str, language: str = "zh") -> list[dict]:
+def _query_dates_for_keyword(model_cfg: dict, keyword: str, language: str = "zh", tz: str = "UTC") -> list[dict]:
     """Query AI for future date nodes for a single keyword. Uses web search for grounding."""
-    today = date.today().isoformat()
+    from datetime import datetime, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        today = datetime.now(ZoneInfo(tz)).date().isoformat()
+    except Exception:
+        today = date.today().isoformat()
 
     evidence_block = ""
     try:
@@ -34,7 +39,7 @@ def _query_dates_for_keyword(model_cfg: dict, keyword: str, language: str = "zh"
         pass
 
     if language == "en":
-        system = f"""You are a date estimation assistant. Today is {today}.
+        system = f"""You are a date estimation assistant. Today is {today} (timezone: {tz}).
 
 【Rules】
 - Only list dates after {today}, never give past dates
@@ -50,7 +55,7 @@ Output strict JSON:
             user_msg += f"\nWeb search results (use these for accurate dates):\n{evidence_block}\n"
         user_msg += f"\nList all key date milestones from {today} onward."
     else:
-        system = f"""你是日期推算助手。今天是 {today}。
+        system = f"""你是日期推算助手。今天是 {today}（时区: {tz}）。
 
 【规则】
 - 只列出 {today} 之后的日期，绝对不能给出过去的日期
@@ -83,6 +88,7 @@ Output strict JSON:
 
 class SuggestDatesRequest(BaseModel):
     keyword: str
+    tz: str = "UTC"
 
 
 @router.post("/suggest-dates")
@@ -96,7 +102,7 @@ def suggest_dates(body: SuggestDatesRequest):
         return {"ok": False, "error": "No base model configured"}
 
     try:
-        dates = _query_dates_for_keyword(model, body.keyword, language)
+        dates = _query_dates_for_keyword(model, body.keyword, language, body.tz)
         return {"ok": True, "dates": dates}
     except Exception as e:
         return {"ok": False, "error": f"Model error: {_safe_text(e)}"}
@@ -106,6 +112,7 @@ def suggest_dates(body: SuggestDatesRequest):
 
 class RefreshDatesRequest(BaseModel):
     keywords: list[str]
+    tz: str = "UTC"
 
 
 @router.post("/refresh-dates")
@@ -125,7 +132,7 @@ def refresh_dates(body: RefreshDatesRequest):
         if not kw:
             continue
         try:
-            dates = _query_dates_for_keyword(model, kw, language)
+            dates = _query_dates_for_keyword(model, kw, language, body.tz)
             results[kw] = dates
         except Exception as e:
             results[kw] = []
