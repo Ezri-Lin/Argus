@@ -186,7 +186,7 @@ export const VideoPlayer = memo(function VideoPlayer({ src, widgetId, onReady, o
           claimActiveVideo(widgetId);
           v.play().catch(() => {});
           // Detect subtitle tracks from manifest
-          const subs = data.subtitles ?? [];
+          const subs = hls.subtitleTracks ?? [];
           if (subs.length > 0) {
             const tracks: SubtitleTrack[] = subs.map((s: { id: number; name?: string; lang?: string }, i: number) => ({
               id: s.id,
