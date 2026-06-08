@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir -r pipeline/requirements.txt
 # Application code
 COPY api/ ./api/
 COPY pipeline/ ./pipeline/
-COPY web/dist/ ./web/dist/
+COPY --from=frontend-build /app/web/dist ./web/dist
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
