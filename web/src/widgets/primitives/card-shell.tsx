@@ -15,7 +15,7 @@ export function CardShell({
         borderRadius: radius.card,
         border: "none",
         background: "var(--color-card)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+        boxShadow: "none",
       }}
     >
       {children}
