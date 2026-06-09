@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import { color, fontFamily, fontSize } from "@/design/tokens";
+import { color, fontFamily } from "@/design/tokens";
 import { clamp, estEm, pickMetricMode, fitPrimaryLine, type MetricMode } from "@/design/scale";
 import { useMeasuredSize } from "@/design/use-measured-size";
 
@@ -16,13 +16,13 @@ type WeatherMetricProps = {
 };
 
 const VALUE_HEIGHT_RATIO: Record<MetricMode, number> = {
-  micro: 0.82, compact: 0.72, wide: 0.65, tall: 0.42, hero: 0.38, regular: 0.58,
+  micro: 0.84, compact: 0.74, wide: 0.68, tall: 0.46, hero: 0.42, regular: 0.62,
 };
 const VALUE_MIN: Record<MetricMode, number> = {
-  micro: 20, compact: 26, wide: 28, tall: 28, hero: 34, regular: 28,
+  micro: 22, compact: 28, wide: 30, tall: 30, hero: 38, regular: 30,
 };
 const VALUE_MAX: Record<MetricMode, number> = {
-  micro: 32, compact: 40, wide: 48, tall: 52, hero: 64, regular: 56,
+  micro: 34, compact: 42, wide: 50, tall: 56, hero: 68, regular: 58,
 };
 
 export function WeatherMetric({
@@ -41,17 +41,21 @@ export function WeatherMetric({
     const contentW = Math.max(1, w - padX * 2);
     const contentH = Math.max(1, h - padY * 2);
 
+    // Aggressive hiding — weather meta takes significant space
     const showIcon = mode !== "micro";
     const showLabel = mode !== "micro";
-    const showMeta = mode !== "micro" && mode !== "compact";
+    const showCondition = mode !== "micro" && mode !== "compact";
+    const showWindHumidity = w >= 132 && h >= 126
+      && mode !== "micro" && mode !== "compact";
 
-    const iconH = showIcon ? clamp(h * 0.2, 24, 40) : 0;
-    const labelH = showLabel ? clamp(h * 0.12, 14, 20) : 0;
-    const metaH = showMeta ? 18 : 0;
-    const valueAvailH = Math.max(20, contentH - iconH - labelH - metaH);
+    const iconH = showIcon ? clamp(h * 0.16, 20, 36) : 0;
+    const labelH = showLabel ? clamp(h * 0.1, 12, 18) : 0;
+    const conditionH = showCondition ? 16 : 0;
+    const metaH = showWindHumidity ? 16 : 0;
+    const valueAvailH = Math.max(24, contentH - iconH - labelH - conditionH - metaH);
 
     const tempStr = `${Math.round(temperature)}`;
-    const unitStr = `°${unit}`;
+    const unitStr = `\u00B0${unit}`;
     const valueEm = estEm(tempStr);
     const unitEm = estEm(unitStr);
 
@@ -65,28 +69,37 @@ export function WeatherMetric({
     return {
       mode, padX, padY, valueSize,
       unitSize: clamp(valueSize * 0.42, 11, 18),
+      iconSize: clamp(valueSize * 0.52, 18, 28),
       labelSize: clamp(Math.min(w / 15, h / 8), 10, 13),
-      showIcon, showLabel, showMeta,
+      showIcon, showLabel, showCondition, showWindHumidity,
     };
   }, [size.h, size.w, temperature, unit]);
 
-  const meta = [condition, windText, humidityText].filter(Boolean).join(" · ");
+  const metaParts = [windText, humidityText].filter(Boolean);
+  const meta = metaParts.length > 0 ? metaParts.join(" \u00B7 ") : null;
 
   return (
     <div
       ref={ref}
-      className="flex h-full min-h-0 flex-col items-center justify-center"
+      className="flex h-full min-h-0 flex-col items-center"
       onClick={onClick}
-      style={{ cursor: onClick ? "pointer" : undefined, padding: `${fit.padY}px ${fit.padX}px` }}
+      style={{
+        cursor: onClick ? "pointer" : undefined,
+        padding: `${fit.padY}px ${fit.padX}px`,
+        justifyContent: "flex-start",
+      }}
     >
       {fit.showIcon && icon && (
-        <div style={{ flexShrink: 0, marginBottom: 2, color: color.textSecondary }}>{icon}</div>
+        <div style={{
+          flexShrink: 0, marginBottom: 2, color: color.textSecondary,
+          fontSize: fit.iconSize, lineHeight: 1,
+        }}>{icon}</div>
       )}
       {fit.showLabel && (title || location) && (
         <div style={{ flexShrink: 0, textAlign: "center", marginBottom: 2 }}>
           {title && (
             <div style={{
-              color: color.textMuted, fontFamily, fontSize: fontSize.metricTitle,
+              color: color.textMuted, fontFamily, fontSize: 10,
               fontWeight: 560, lineHeight: 1.15, overflow: "hidden",
               textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{title}</div>
@@ -106,14 +119,22 @@ export function WeatherMetric({
         <span style={{
           color: color.textSecondary, fontFamily, fontSize: fit.unitSize,
           fontWeight: 600, lineHeight: 1,
-        }}>°{unit}</span>
+        }}>{`\u00B0${unit}`}</span>
       </div>
-      {fit.showMeta && meta && (
+      {fit.showCondition && condition && (
         <div style={{
           color: color.textMuted, fontFamily, flexShrink: 0,
-          fontSize: 11, lineHeight: "18px", overflow: "hidden",
+          fontSize: 11, lineHeight: "16px", overflow: "hidden",
           textAlign: "center", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          marginTop: 4,
+          marginTop: 2,
+        }}>{condition}</div>
+      )}
+      {fit.showWindHumidity && meta && (
+        <div style={{
+          color: color.textMuted, fontFamily, flexShrink: 0,
+          fontSize: 10, lineHeight: "16px", overflow: "hidden",
+          textAlign: "center", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          marginTop: 1,
         }}>{meta}</div>
       )}
     </div>

@@ -20,16 +20,67 @@ type MetricDisplayProps = AtLeastOneLabel & {
   kind?: MetricKind;
 };
 
-// Per-mode value sizing
-const VALUE_HEIGHT_RATIO: Record<MetricMode, number> = {
-  micro: 0.82, compact: 0.72, wide: 0.68, tall: 0.42, hero: 0.38, regular: 0.58,
+// ── Per-kind sizing overrides ──
+
+type KindOverrides = {
+  heightRatio: Record<MetricMode, number>;
+  min: Record<MetricMode, number>;
+  max: Record<MetricMode, number>;
+  forceCompact: boolean;
+  hideAccent: boolean;
 };
-const VALUE_MIN: Record<MetricMode, number> = {
-  micro: 18, compact: 22, wide: 24, tall: 24, hero: 28, regular: 24,
+
+const AMOUNT_OVERRIDES: KindOverrides = {
+  heightRatio: {
+    micro: 0.82, compact: 0.72, wide: 0.68, tall: 0.42, hero: 0.38, regular: 0.58,
+  },
+  min: {
+    micro: 18, compact: 22, wide: 24, tall: 24, hero: 28, regular: 24,
+  },
+  max: {
+    micro: 30, compact: 38, wide: 44, tall: 48, hero: 64, regular: 52,
+  },
+  forceCompact: true,
+  hideAccent: true,
 };
-const VALUE_MAX: Record<MetricMode, number> = {
-  micro: 30, compact: 38, wide: 44, tall: 48, hero: 64, regular: 52,
+
+const SCORE_OVERRIDES: KindOverrides = {
+  heightRatio: {
+    micro: 0.82, compact: 0.72, wide: 0.68, tall: 0.45, hero: 0.42, regular: 0.62,
+  },
+  min: {
+    micro: 18, compact: 22, wide: 24, tall: 28, hero: 34, regular: 28,
+  },
+  max: {
+    micro: 30, compact: 38, wide: 44, tall: 52, hero: 72, regular: 64,
+  },
+  forceCompact: false,
+  hideAccent: false,
 };
+
+const DEFAULT_OVERRIDES: KindOverrides = {
+  heightRatio: {
+    micro: 0.82, compact: 0.72, wide: 0.68, tall: 0.42, hero: 0.38, regular: 0.58,
+  },
+  min: {
+    micro: 18, compact: 22, wide: 24, tall: 24, hero: 28, regular: 24,
+  },
+  max: {
+    micro: 30, compact: 38, wide: 44, tall: 48, hero: 64, regular: 52,
+  },
+  forceCompact: false,
+  hideAccent: false,
+};
+
+function getKindOverrides(kind: MetricKind): KindOverrides {
+  switch (kind) {
+    case "amount": return AMOUNT_OVERRIDES;
+    case "score": return SCORE_OVERRIDES;
+    default: return DEFAULT_OVERRIDES;
+  }
+}
+
+// ── Component ──
 
 export function MetricDisplay({
   title, label, value, unit, delta, trend = "none",
@@ -42,29 +93,38 @@ export function MetricDisplay({
     const w = Math.max(1, size.w);
     const h = Math.max(1, size.h);
     const mode = pickMetricMode(w, h);
+    const ko = getKindOverrides(kind);
 
     const padX = clamp(Math.min(w, h) * 0.07, 6, 14);
     const padY = clamp(Math.min(w, h) * 0.07, 6, 14);
     const contentW = Math.max(1, w - padX * 2);
     const contentH = Math.max(1, h - padY * 2);
 
-    // Content degradation
+    // Content degradation — kind-aware
     const showLabel = mode !== "micro";
     const showCaption = Boolean(caption) && mode !== "micro" && mode !== "compact";
     const showDelta = Boolean(delta) && mode !== "micro";
-    const showAccent = Boolean(accent) && mode !== "micro" && mode !== "wide";
-    const compactVal = mode === "micro" || mode === "compact";
+    const showAccent = Boolean(accent) && mode !== "micro" && mode !== "wide"
+      && !ko.hideAccent && w >= 100;
+    const compactVal = mode === "micro" || mode === "compact"
+      || (ko.forceCompact && (w < 128 || mode === "tall"));
 
-    // Reserve space for secondary content
-    const labelH = showLabel ? clamp(h * 0.13, 14, 22) : 0;
-    const deltaH = showDelta ? clamp(h * 0.13, 16, 24) : 0;
-    const captionH = showCaption ? 18 : 0;
-    const accentH = showAccent ? clamp(h * 0.22, 28, 48) : 0;
-    const valueAvailH = Math.max(20, contentH - labelH - deltaH - captionH - accentH);
+    // Tall mode: value gets space first, secondary fills remainder
+    const isTall = mode === "tall";
+
+    const labelH = showLabel ? (isTall ? 20 : clamp(h * 0.13, 14, 22)) : 0;
+    const deltaH = showDelta ? (isTall ? 18 : clamp(h * 0.13, 16, 24)) : 0;
+    const captionH = showCaption ? (isTall ? 16 : 18) : 0;
+    const accentH = showAccent ? (isTall ? 32 : clamp(h * 0.22, 28, 48)) : 0;
+
+    const valueAvailH = isTall
+      ? Math.max(24, contentH * 0.55)  // value claims 55% first
+      : Math.max(20, contentH - labelH - deltaH - captionH - accentH);
 
     // Primary line: value + unit only (NOT delta)
     const numericVal = parseFloat(value.replace(/[^0-9.-]/g, ""));
-    const displayValue = compactVal && Number.isFinite(numericVal) && kind !== "score" && kind !== "percent"
+    const displayValue = compactVal && Number.isFinite(numericVal)
+      && kind !== "score" && kind !== "percent"
       ? compactNumber(numericVal)
       : value;
     const valueEm = estEm(displayValue);
@@ -73,18 +133,18 @@ export function MetricDisplay({
     const valueSize = fitPrimaryLine({
       width: contentW, height: valueAvailH,
       valueEm, unitEm, unitRatio: 0.42,
-      min: VALUE_MIN[mode], max: VALUE_MAX[mode],
-      heightRatio: VALUE_HEIGHT_RATIO[mode],
+      min: ko.min[mode], max: ko.max[mode],
+      heightRatio: ko.heightRatio[mode],
     });
 
     // Delta as independent chip
     const deltaFont = clamp(valueSize * 0.26, 10, 13);
 
-    const stacked = mode === "tall" || (mode === "compact" && Boolean(delta));
+    const stacked = isTall || (mode === "compact" && Boolean(delta));
     lastMode.current = mode;
 
     return {
-      mode, stacked, padX, padY, valueSize,
+      mode, stacked, padX, padY, valueSize, isTall,
       unitSize: clamp(valueSize * 0.42, 11, 18),
       deltaFont,
       labelSize: clamp(Math.min(w / 15, h / 8), 10, 13),
@@ -99,9 +159,13 @@ export function MetricDisplay({
   return (
     <div
       ref={ref}
-      className="flex h-full min-h-0 flex-col"
+      className={`flex h-full min-h-0 flex-col${fit.isTall ? "" : ""}`}
       onClick={onClick}
-      style={{ cursor: onClick ? "pointer" : undefined, padding: `${fit.padY}px ${fit.padX}px` }}
+      style={{
+        cursor: onClick ? "pointer" : undefined,
+        padding: `${fit.padY}px ${fit.padX}px`,
+        justifyContent: fit.isTall ? "flex-start" : undefined,
+      }}
     >
       {fit.showLabel && (title || label) && (
         <div style={{ flexShrink: 0, marginBottom: 4 }}>
@@ -122,7 +186,10 @@ export function MetricDisplay({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div
+        className="flex min-h-0 flex-1 items-center justify-center"
+        style={fit.isTall ? { alignItems: "flex-start" } : undefined}
+      >
         <div
           className={fit.stacked ? "flex flex-col items-center" : "flex items-baseline justify-center"}
           style={{ gap: fit.stacked ? 4 : 6, maxWidth: "100%", minWidth: 0 }}
