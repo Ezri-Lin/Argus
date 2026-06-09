@@ -24,26 +24,25 @@ export function WeatherCard({
   return (
     <CardShell>
       <div
-        className="flex h-full flex-col items-center justify-center text-center"
+        className="flex h-full flex-col"
         style={{ padding: 16, cursor: onClick ? "pointer" : undefined }}
         onClick={onClick}
       >
-        {icon ?? <Sun size={32} style={{ color: color.textMuted }} />}
-
         {title && (
           <div style={{
             fontFamily, fontSize: 10, fontWeight: 560,
-            color: color.textMuted, marginTop: 8,
+            color: color.textMuted, marginBottom: 2,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{title}</div>
         )}
         <div style={{
-          fontFamily, fontSize: 12, fontWeight: 700,
-          color: color.textSecondary, marginTop: 2,
+          fontFamily, fontSize: 12, fontWeight: 600,
+          color: color.textSecondary,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>{location}</div>
 
-        <div className="flex items-baseline" style={{ gap: 3, marginTop: 8 }}>
+        <div className="flex items-baseline" style={{ gap: 3, marginTop: 12 }}>
+          {icon ?? <Sun size={24} style={{ color: color.textMuted }} />}
           <span style={{
             fontFamily, fontSize: 46, fontWeight: 760,
             color: color.textPrimary,
@@ -61,6 +60,8 @@ export function WeatherCard({
           color: color.textMuted, marginTop: 8,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>{condition}</div>
+
+        <div className="flex-1" />
       </div>
     </CardShell>
   );
