@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { WidgetFrame } from "@/components/widget-frame";
 import { color, fontSize } from "@/design/tokens";
-import { WeatherMetric } from "@/widgets/primitives/weather-metric";
+import { WeatherCard } from "@/widgets/primitives/weather-card";
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
 import {
   Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain,
@@ -114,21 +114,18 @@ export function WeatherWidget({ widget, onConfig, onDetail, onDelete, onMinimize
         const current = weather ?? fallbackWeather;
         const city = location.split(",")[0] || location;
         const desc = getWmoDesc(current.weathercode, t) ?? (error ? t("weather.unavailable") : loading ? t("weather.updating") : t("weather.unknown"));
-        const windUnit = unit === "F" ? "mph" : "km/h";
         const configuredLabel = typeof widget.config.label === "string" ? widget.config.label.trim() : "";
         const configuredTitle = widget.title.trim();
         const title = configuredLabel ? configuredTitle || undefined : undefined;
         const label = configuredLabel || city;
         return (
-          <WeatherMetric
+          <WeatherCard
             title={title}
             location={label}
             temperature={current.temperature}
             unit={unit as "C" | "F"}
             icon={WMO_ICONS[current.weathercode]}
             condition={desc}
-            windText={`${t("weather.wind")} ${Math.round(current.windspeed)} ${windUnit}`}
-            humidityText={`${t("weather.humidity")} ${Math.round(current.humidity ?? fallbackWeather.humidity ?? 0)}%`}
           />
         );
       })()}

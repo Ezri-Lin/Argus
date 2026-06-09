@@ -1,7 +1,5 @@
 import { WidgetFrame } from "@/components/widget-frame";
-import { MetricDisplay } from "@/widgets/primitives/metric-display";
-import { Sparkline } from "@/widgets/primitives/sparkline";
-import { color } from "@/design/tokens";
+import { AmountCard } from "@/widgets/primitives/amount-card";
 import type { DashboardWidget } from "@/dashboard/dashboard-types";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import { useFreshness } from "@/lib/use-freshness";
@@ -26,26 +24,20 @@ export function StatWidget({
 
   const rawValue = String(widget.config.value ?? "0");
   const symbol = String(widget.config.symbol ?? "");
-  const symbolPosition = String(widget.config.symbolPosition ?? "prefix");
   const configuredLabel = typeof widget.config.label === "string" ? widget.config.label.trim() : "";
   const configuredTitle = widget.title.trim();
   const title = configuredLabel ? configuredTitle || undefined : undefined;
   const label = configuredLabel || configuredTitle || t("stat.defaultLabel");
-  const trend = String(widget.config.trend ?? "none") as "up" | "down" | "flat" | "none";
   const showChange = widget.config.showChange !== false;
-  const change = showChange ? String(widget.config.change ?? "") : "";
-  const series = Array.isArray(widget.config.series)
-    ? (widget.config.series as unknown[]).map(Number).filter(Number.isFinite)
-    : [];
+  const changeStr = showChange ? String(widget.config.change ?? "") : "";
 
   const numericValue = Number(String(rawValue).replace(/,/g, ""));
-  const formattedValue = Number.isFinite(numericValue)
-    ? numericValue.toLocaleString("en-US", { maximumFractionDigits: 2 })
-    : rawValue;
-  const value = symbol && symbolPosition === "prefix" ? `${symbol}${formattedValue}` : formattedValue;
-  const unit = String(widget.config.unit ?? (symbol && symbolPosition === "suffix" ? symbol : t("stat.defaultUnit")));
-  const deltaPrefix = trend === "up" ? "▲" : trend === "down" ? "▼" : "";
-  const delta = change ? `${deltaPrefix}${change.replace(/^[▲▼+-]/, "")}` : undefined;
+  const deltaNum = changeStr
+    ? parseFloat(changeStr.replace(/[^0-9.-]/g, ""))
+    : undefined;
+  const delta = Number.isFinite(deltaNum) ? deltaNum : undefined;
+
+  const currency = symbol === "\u00A5" || symbol === "CNY" ? "CNY" : "USD";
 
   return (
     <WidgetFrame
@@ -58,15 +50,12 @@ export function StatWidget({
       onMinimize={onMinimize}
       contentOwnsHeader
     >
-      <MetricDisplay
-        kind="amount"
+      <AmountCard
         title={title}
         label={label}
-        value={value}
-        unit={unit || undefined}
+        value={Number.isFinite(numericValue) ? numericValue : 0}
+        currency={currency}
         delta={delta}
-        trend={trend}
-        accent={series.length > 1 ? <Sparkline values={series} stroke={trend === "down" ? color.neg : color.pos} fill="transparent" /> : undefined}
         onClick={() => selectItem({ type: "stat", data: widget.config })}
       />
     </WidgetFrame>

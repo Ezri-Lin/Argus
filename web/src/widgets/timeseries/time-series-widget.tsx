@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { WidgetFrame } from "@/components/widget-frame";
 import { color, radius } from "@/design/tokens";
-import { MetricDisplay } from "@/widgets/primitives/metric-display";
+import { ScoreCard } from "@/widgets/primitives/score-card";
 import { Sparkline } from "@/widgets/primitives/sparkline";
 import { EntityLogo } from "@/widgets/primitives/entity-logo";
 import { watchlist, sentimentTrend } from "@/dashboard/mock-data";
@@ -135,21 +135,17 @@ function SentimentView({ widget }: { widget: DashboardWidget }) {
   const last = sentimentTrend[sentimentTrend.length - 1];
   const prev = sentimentTrend[sentimentTrend.length - 2] ?? sentimentTrend[0];
   const delta = last.idx - prev.idx;
-  const sign = delta >= 0 ? "▲" : "▼";
   const configuredLabel = typeof widget.config.label === "string" ? widget.config.label.trim() : "";
   const configuredTitle = widget.title.trim();
   const title = configuredLabel ? configuredTitle || undefined : undefined;
   const label = configuredLabel || configuredTitle || "Sentiment";
 
   return (
-    <MetricDisplay
-      kind="score"
+    <ScoreCard
       title={title}
       label={label}
       value={last.idx.toFixed(2)}
-      delta={`${sign}${Math.abs(delta).toFixed(2)}`}
-      trend={delta >= 0 ? "up" : "down"}
-      accent={<Sparkline values={sentimentTrend.map((d) => d.idx)} />}
+      delta={delta}
     />
   );
 }
