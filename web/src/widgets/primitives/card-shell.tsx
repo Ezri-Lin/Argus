@@ -10,7 +10,7 @@ export function CardShell({
 }) {
   return (
     <div
-      className={["h-full w-full overflow-hidden", className].filter(Boolean).join(" ")}
+      className={["h-full w-full", className].filter(Boolean).join(" ")}
       style={{
         borderRadius: radius.card,
         border: "none",

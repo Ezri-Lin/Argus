@@ -140,12 +140,15 @@ function SentimentView({ widget }: { widget: DashboardWidget }) {
   const title = configuredLabel ? configuredTitle || undefined : undefined;
   const label = configuredLabel || configuredTitle || "Sentiment";
 
+  const sparklineValues = sentimentTrend.map((p) => p.idx);
+
   return (
     <ScoreCard
       title={title}
       label={label}
       value={last.idx.toFixed(2)}
       delta={delta}
+      sparkline={sparklineValues}
     />
   );
 }
