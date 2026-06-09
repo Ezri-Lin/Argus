@@ -253,7 +253,7 @@ export function DetailOverlay({ widgetTitle, widgetType, onClose, onRefresh }: D
                   </span>
                 </div>
                 <span style={{ fontSize: 11, color: color.textMuted }}>
-                  {mod.age_min < 60 ? `${mod.age_min}m` : `${Math.round(mod.age_min / 60)}h`}
+                  {mod.age_hours < 1 ? `${Math.round(mod.age_hours * 60)}m` : `${Math.round(mod.age_hours)}h`}
                 </span>
               </div>
             ))}

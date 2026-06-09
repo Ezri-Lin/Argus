@@ -139,7 +139,7 @@ export function StatusTab({ health }: { health: HealthResponse | null }) {
                     <span style={{ fontSize: 13, color: color.textPrimary }}>{MODULE_LABEL[key] ?? key}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span style={{ fontSize: 11, color: color.textMuted }}>{mod.age_min < 60 ? `${mod.age_min}m` : `${Math.round(mod.age_min / 60)}h`}</span>
+                    <span style={{ fontSize: 11, color: color.textMuted }}>{mod.age_hours < 1 ? `${Math.round(mod.age_hours * 60)}m` : `${Math.round(mod.age_hours)}h`}</span>
                     <span style={{ fontSize: 10, fontWeight: 600, color: color.white, background: mod.status === "ok" ? color.posBg : mod.status === "degraded" ? "rgba(139,141,152,0.3)" : color.negBg, borderRadius: radius.pill, padding: "1px 6px" }}>{STATUS_LABEL[mod.status] ?? mod.status}</span>
                   </div>
                 </div>

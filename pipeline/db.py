@@ -132,7 +132,18 @@ CREATE TABLE IF NOT EXISTS health (
   status     TEXT NOT NULL,
   last_ok    TEXT,
   last_error TEXT,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  consecutive_failures INTEGER NOT NULL DEFAULT 0
+);
+
+-- Notifications (pipeline run results)
+CREATE TABLE IF NOT EXISTS notifications (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  type       TEXT NOT NULL,     -- 'pipeline_ok' | 'pipeline_failed' | 'info'
+  title      TEXT NOT NULL,
+  detail     TEXT,
+  created_at TEXT NOT NULL,
+  read       INTEGER NOT NULL DEFAULT 0
 );
 
 -- Prices (time-series, for v2+)
@@ -346,6 +357,9 @@ MIGRATIONS = {
         ("auth_type", "TEXT"),
         ("health_status", "TEXT"),
         ("last_error", "TEXT"),
+    ],
+    "health": [
+        ("consecutive_failures", "INTEGER NOT NULL DEFAULT 0"),
     ],
     "search_logs": [
         ("decision_json", "TEXT"),

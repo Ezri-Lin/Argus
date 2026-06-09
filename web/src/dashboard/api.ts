@@ -21,6 +21,7 @@ import type {
   BudgetStatus,
   LastRunSummary,
   LibraryDoc,
+  NotificationsResponse,
 } from "./api-types";
 
 export type {
@@ -52,6 +53,8 @@ export type {
   BudgetStatus,
   LastRunSummary,
   ProviderHealthItem,
+  NotificationItem,
+  NotificationsResponse,
 } from "./api-types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -392,4 +395,18 @@ export async function applyDomainPreset(preset: DomainPreset): Promise<{
 
 export async function triggerDomainPipeline(domain: string): Promise<{ ok: boolean } | null> {
   return apiFetch("/pipeline/trigger-domain", jsonBody("POST", { domain }));
+}
+
+// ── Notifications ──
+
+export const fetchNotifications = (unreadOnly = false) =>
+  apiFetch<NotificationsResponse>(`/notifications?unread_only=${unreadOnly}`);
+
+export async function markNotificationsRead(ids?: number[]): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/notifications/read`, jsonBody("POST", { ids: ids ?? null }));
+    return res.ok;
+  } catch {
+    return false;
+  }
 }

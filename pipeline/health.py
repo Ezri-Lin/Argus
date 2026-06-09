@@ -50,12 +50,30 @@ def _update_member_status(idx: int, status: str, events: int = 0, log: str = "")
 def write_health(conn, module: str, status: str, error: str | None = None):
     now = now_iso()
     safe_error = safe_text(error) if error else None
+    if status == "ok":
+        conn.execute(
+            "INSERT INTO health (module, status, last_ok, last_error, updated_at, consecutive_failures) "
+            "VALUES (?, ?, ?, ?, ?, 0) "
+            "ON CONFLICT(module) DO UPDATE SET "
+            "status=excluded.status, last_ok=excluded.last_ok, "
+            "last_error=excluded.last_error, updated_at=excluded.updated_at, consecutive_failures=0",
+            (module, status, now, safe_error, now),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO health (module, status, last_ok, last_error, updated_at, consecutive_failures) "
+            "VALUES (?, ?, NULL, ?, ?, 1) "
+            "ON CONFLICT(module) DO UPDATE SET "
+            "status=excluded.status, last_error=excluded.last_error, "
+            "updated_at=excluded.updated_at, consecutive_failures=health.consecutive_failures + 1",
+            (module, status, safe_error, now),
+        )
+    conn.commit()
+
+
+def write_notification(conn, ntype: str, title: str, detail: str | None = None):
     conn.execute(
-        "INSERT INTO health (module, status, last_ok, last_error, updated_at) "
-        "VALUES (?, ?, ?, ?, ?) "
-        "ON CONFLICT(module) DO UPDATE SET "
-        "status=excluded.status, last_ok=CASE WHEN excluded.status='ok' THEN excluded.last_ok ELSE health.last_ok END, "
-        "last_error=excluded.last_error, updated_at=excluded.updated_at",
-        (module, status, now if status == "ok" else None, safe_error, now),
+        "INSERT INTO notifications (type, title, detail, created_at) VALUES (?, ?, ?, ?)",
+        (ntype, title, detail, now_iso()),
     )
     conn.commit()

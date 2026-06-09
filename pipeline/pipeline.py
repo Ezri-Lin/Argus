@@ -55,7 +55,7 @@ from relevance import ArticleRelevanceEngine
 from rss import fetch_rss_items
 from scheduling import load_due_members, update_scan_schedule
 from snapshot import build_snapshot
-from health import _update_member_status, _update_progress, _pipeline_progress, write_health
+from health import _update_member_status, _update_progress, _pipeline_progress, write_health, write_notification
 from search import SearchRouter
 from search.policy import PolicyConfig, ProValidationConfig
 
@@ -91,6 +91,7 @@ def run_pipeline(db_path: str | None = None):
     if not base_model:
         print("ERROR: No base model configured. Run seed.py first.")
         write_health(conn, "pipeline", "failed", "No base model")
+        write_notification(conn, "pipeline_failed", "Pipeline 失败", "未配置 base model")
         conn.commit()
         _update_progress(running=False, step="idle")
         conn.close()
@@ -105,6 +106,7 @@ def run_pipeline(db_path: str | None = None):
     if not members:
         print("ERROR: No members configured. Run seed.py first.")
         write_health(conn, "pipeline", "failed", "No members")
+        write_notification(conn, "pipeline_failed", "Pipeline 失败", "未配置成员")
         conn.commit()
         _update_progress(running=False, step="idle")
         conn.close()
@@ -309,6 +311,14 @@ def run_pipeline(db_path: str | None = None):
         write_health(conn, f"search_{row['name']}", "ok")
     write_health(conn, "pipeline", "ok")
 
+    # Notification: pipeline success
+    member_count = len(members)
+    write_notification(
+        conn, "pipeline_ok",
+        f"Pipeline 完成 · {member_count} 个成员",
+        f"发现 {total_kept} 条新事件" + (f"，{len(rss_errors)} 个 RSS 错误" if rss_errors else ""),
+    )
+
     # Build snapshot (read previous for sentiment history)
     _update_progress(step="snapshot")
     try:
@@ -331,8 +341,10 @@ def run_pipeline(db_path: str | None = None):
         )
         write_health(conn, "pipeline", "ok")
     except Exception as e:
-        print(f"Snapshot error: {safe_text(e)}")
-        write_health(conn, "pipeline", "failed", safe_text(e))
+        err_msg = safe_text(e)
+        print(f"Snapshot error: {err_msg}")
+        write_health(conn, "pipeline", "failed", err_msg)
+        write_notification(conn, "pipeline_failed", "Pipeline 失败 · 快照构建错误", err_msg)
         traceback.print_exc()
 
     conn.commit()

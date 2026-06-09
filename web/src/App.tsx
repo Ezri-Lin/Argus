@@ -67,8 +67,8 @@ export default function App() {
       const health = useDashboardStore.getState().healthData;
       if (health && health.status !== "ok") {
         const pipelineMod = health.modules?.pipeline;
-        const lastOkAge = pipelineMod?.age_min ?? Infinity;
-        if (lastOkAge > refreshMin) {
+        const lastOkAgeHours = pipelineMod?.age_hours ?? Infinity;
+        if (lastOkAgeHours * 60 > refreshMin) {
           const { triggerPipeline } = await import("./dashboard/api");
           triggerPipeline().then(() => startProgressPolling()).catch(() => {});
         }

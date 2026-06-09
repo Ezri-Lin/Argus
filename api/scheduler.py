@@ -33,9 +33,18 @@ def _run_pipeline_job():
         run_pipeline(_db_path)
         elapsed = time.monotonic() - t0
         logger.info("Pipeline job completed in %.1fs", elapsed)
-    except Exception:
+    except Exception as e:
         elapsed = time.monotonic() - t0
         logger.exception("Pipeline job failed after %.1fs", elapsed)
+        try:
+            from db import get_db
+            from health import write_health, write_notification
+            conn = get_db(_db_path)
+            write_health(conn, "pipeline", "failed", str(e)[:500])
+            write_notification(conn, "pipeline_failed", "Pipeline 异常终止", str(e)[:500])
+            conn.close()
+        except Exception:
+            logger.exception("Failed to record pipeline failure")
 
 
 def _refresh_countdown_dates():

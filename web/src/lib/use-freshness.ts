@@ -5,18 +5,9 @@ import { useDashboardStore } from "@/dashboard/dashboard-store";
 import { t, type Lang } from "./i18n";
 import type { Freshness } from "@/components/widget-frame";
 
-function minutesSince(isoDate: string | null): number {
-  if (!isoDate) return Infinity;
-  try {
-    return (Date.now() - new Date(isoDate).getTime()) / (1000 * 60);
-  } catch {
-    return Infinity;
-  }
-}
-
 function formatAge(isoDate: string | null, lang: Lang): string {
   if (!isoDate) return t("freshness.noData", lang);
-  const mins = minutesSince(isoDate);
+  const mins = (Date.now() - new Date(isoDate).getTime()) / (1000 * 60);
   if (lang === "zh") {
     if (mins < 1) return "刚刚";
     if (mins < 60) return `${Math.round(mins)}分钟前`;
@@ -34,6 +25,7 @@ export function useFreshness(): {
   staleAge: string;
 } {
   const healthData = useDashboardStore((s) => s.healthData);
+  const pipelineProgress = useDashboardStore((s) => s.pipelineProgress);
   const settings = useDashboardStore((s) => s.settings);
   const lang = (settings.language || "zh") as Lang;
 
@@ -42,32 +34,30 @@ export function useFreshness(): {
       return { freshness: "ok" as Freshness, staleAge: "" };
     }
 
-    // Global health status (computed by backend from per-module states)
+    // Pipeline is running — always show ok, don't degrade mid-update
+    if (pipelineProgress?.running) {
+      return {
+        freshness: "ok" as Freshness,
+        staleAge: t("freshness.updating", lang) || "更新中...",
+      };
+    }
+
+    // Trust the backend's global status (computed from consecutive_failures + time fallback)
     const globalStatus = healthData.status;
     const pipeline = healthData.modules.pipeline;
     const lastOk = pipeline?.last_ok;
 
-    // 1. Backend says failed → crack effect immediately
     if (globalStatus === "failed") {
       return { freshness: "failed" as Freshness, staleAge: formatAge(lastOk, lang) };
     }
-
-    // 2. Backend says degraded → grayscale
     if (globalStatus === "degraded") {
-      return { freshness: "degraded" as Freshness, staleAge: formatAge(lastOk, lang) };
-    }
-
-    // 3. Pipeline status is ok — check staleness against configured threshold
-    const staleThresholdMin = parseInt(settings.stale_threshold_min || "90", 10);
-    const ageMin = minutesSince(lastOk);
-
-    if (ageMin > staleThresholdMin * 2) {
-      return { freshness: "failed" as Freshness, staleAge: formatAge(lastOk, lang) };
-    }
-    if (ageMin > staleThresholdMin) {
-      return { freshness: "degraded" as Freshness, staleAge: formatAge(lastOk, lang) };
+      const failures = pipeline?.consecutive_failures ?? 0;
+      const label = failures > 0
+        ? `${t("freshness.failures", lang) || "连续失败"} ${failures}`
+        : formatAge(lastOk, lang);
+      return { freshness: "degraded" as Freshness, staleAge: label };
     }
 
     return { freshness: "ok" as Freshness, staleAge: "" };
-  }, [healthData, settings, lang]);
+  }, [healthData, pipelineProgress, settings, lang]);
 }

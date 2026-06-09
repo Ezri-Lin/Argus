@@ -2,6 +2,7 @@ import { useState } from "react";
 import { color } from "@/design/tokens";
 import { AddWidgetMenu } from "./add-widget-menu";
 import { SettingsPanel } from "./settings-panel";
+import { NotificationBell } from "./notification-bell";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import { useTheme } from "@/lib/theme";
 import { useI18n } from "@/lib/use-i18n";
@@ -83,7 +84,8 @@ export function TopBar({ onStartCreate }: { onStartCreate?: (type: WidgetType, d
             </>
           )}
 
-          {/* Always-visible: edit toggle + settings */}
+          {/* Always-visible: notifications + edit toggle + settings */}
+          <NotificationBell />
           <button
             onClick={toggleEditMode}
             title={editMode ? t("topbar.exitEdit") : t("topbar.edit")}

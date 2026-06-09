@@ -77,7 +77,8 @@ export type HealthModule = {
   status: "ok" | "degraded" | "failed";
   last_ok: string | null;
   last_error: string | null;
-  age_min: number;
+  age_hours: number;
+  consecutive_failures: number;
 };
 
 export type HealthResponse = {
@@ -264,3 +265,17 @@ export interface ProviderHealthItem {
   latency_ms?: number;
   error?: string;
 }
+
+export type NotificationItem = {
+  id: number;
+  type: "pipeline_ok" | "pipeline_failed" | "info";
+  title: string;
+  detail: string | null;
+  created_at: string;
+  read: number;
+};
+
+export type NotificationsResponse = {
+  items: NotificationItem[];
+  unread: number;
+};

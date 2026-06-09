@@ -268,25 +268,12 @@ a#tv-attr-logo {
 
 /* ── Widget health states ── */
 
-/* Degraded: fog / frosted glass */
+/* Degraded: subtle hint — gentle desaturation, no blur */
 .widget-degraded {
-  filter: saturate(0.55);
+  filter: saturate(0.8);
 }
 .widget-degraded .widget-content {
-  filter: blur(0.5px);
-  opacity: 0.85;
-}
-.widget-degraded::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(7, 8, 9, 0.15);
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 5;
-}
-[data-theme="light"] .widget-degraded::after {
-  background: rgba(255, 255, 255, 0.25);
+  opacity: 0.95;
 }
 .widget-degraded .widget-border-glow {
   border-style: dashed;

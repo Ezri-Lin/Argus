@@ -13,6 +13,11 @@ const zh = {
   "topbar.switchToDark": "切换暗色",
   "topbar.settings": "设置",
 
+  // ── Notifications ──
+  "notifications.title": "通知",
+  "notifications.markAllRead": "全部已读",
+  "notifications.empty": "暂无通知",
+
   // ── Config panel — common ──
   "config.common.edit": "编辑",
   "config.common.delete": "删除",
@@ -399,6 +404,8 @@ const zh = {
 
   // ── Freshness ──
   "freshness.noData": "无数据",
+  "freshness.updating": "更新中...",
+  "freshness.failures": "连续失败",
 
   // ── Detail overlay ──
   "detail.pipelineRunning": "数据更新中…",
@@ -425,6 +432,11 @@ const en: Record<keyof typeof zh, string> = {
   "topbar.switchToLight": "Switch to Light",
   "topbar.switchToDark": "Switch to Dark",
   "topbar.settings": "Settings",
+
+  // ── Notifications ──
+  "notifications.title": "Notifications",
+  "notifications.markAllRead": "Mark all read",
+  "notifications.empty": "No notifications",
 
   // ── Config panel — common ──
   "config.common.edit": "Edit",
@@ -812,6 +824,8 @@ const en: Record<keyof typeof zh, string> = {
 
   // ── Freshness ──
   "freshness.noData": "No data",
+  "freshness.updating": "Updating...",
+  "freshness.failures": "consecutive failures",
 
   // ── Detail overlay ──
   "detail.pipelineRunning": "Updating data…",

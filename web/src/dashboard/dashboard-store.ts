@@ -3,7 +3,7 @@ import type { DashboardDoc, DashboardWidget, LayoutItem, WidgetType } from "./da
 import type { TreemapItem, SignalItem, FeedItem, WatchlistItem } from "./mock-data";
 import { defaultDashboard } from "./default-dashboard";
 import { WIDGET_PRESETS, COLS } from "@/design/grid";
-import type { ApiResponse, HealthResponse, PipelineProgress } from "./api";
+import type { ApiResponse, HealthResponse, PipelineProgress, NotificationItem } from "./api";
 import { STORAGE_KEY, markRead, readKeyFor, loadFromLocalStorage, persistDashboard, saveToLocalStorage } from "./store-persistence";
 
 export { isItemRead, readKeyFor } from "./store-persistence";
@@ -33,6 +33,9 @@ type DashboardState = {
   refreshData: () => Promise<void>;
   pipelineProgress: PipelineProgress | null;
   setPipelineProgress: (p: PipelineProgress | null) => void;
+  notifications: NotificationItem[];
+  unreadCount: number;
+  markAllNotificationsRead: () => Promise<void>;
   editMode: boolean;
   toggleEditMode: () => void;
 };
@@ -256,10 +259,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   healthData: null,
   settings: {},
   pipelineProgress: null,
+  notifications: [],
+  unreadCount: 0,
   refreshData: async () => {
     try {
-      const { fetchData, fetchHealth, fetchSettings, fetchPipelineProgress } = await import("./api");
-      const [data, health, settings, progress] = await Promise.all([fetchData(), fetchHealth(), fetchSettings(), fetchPipelineProgress()]);
+      const { fetchData, fetchHealth, fetchSettings, fetchPipelineProgress, fetchNotifications } = await import("./api");
+      const [data, health, settings, progress, notifs] = await Promise.all([fetchData(), fetchHealth(), fetchSettings(), fetchPipelineProgress(), fetchNotifications()]);
       console.log("[refreshData] data:", data ? "OK" : "NULL", "feed:", data?.feed?.length, "treemap groups:", data?.treemap?.children?.length);
       if (data) {
         set({ apiData: data });
@@ -267,11 +272,20 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       if (health) set({ healthData: health });
       if (settings) set({ settings });
       if (progress) set({ pipelineProgress: progress });
+      if (notifs) set({ notifications: notifs.items, unreadCount: notifs.unread });
     } catch (err) {
       console.error("[refreshData] FAILED:", err);
     }
   },
   setPipelineProgress: (p) => set({ pipelineProgress: p }),
+  markAllNotificationsRead: async () => {
+    const { markNotificationsRead } = await import("./api");
+    await markNotificationsRead();
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({ ...n, read: 1 })),
+      unreadCount: 0,
+    }));
+  },
   editMode: false,
   toggleEditMode: () => set((s) => ({ editMode: !s.editMode })),
 }));

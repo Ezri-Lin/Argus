@@ -171,6 +171,13 @@ def put_layout(body: LayoutDoc):
 
 # ── GET /health ──
 
+# Freshness thresholds
+_FAIL_DEGRADED = 2    # consecutive failures → degraded
+_FAIL_FAILED = 5      # consecutive failures → failed (crack)
+_TIME_DEGRADED_H = 24 # hours since last_ok → degraded (fallback)
+_TIME_FAILED_H = 48   # hours since last_ok → failed (fallback)
+
+
 @app.get("/health")
 def get_health():
     conn = _conn()
@@ -181,42 +188,48 @@ def get_health():
     member_count = conn.execute("SELECT COUNT(*) FROM members").fetchone()[0]
     source_count = conn.execute("SELECT COUNT(*) FROM sources").fetchone()[0]
 
-    stale_threshold = int(get_setting(conn, "stale_threshold_min", "90"))
-    fail_threshold = int(get_setting(conn, "global_fail_count", "2"))
-
     now = datetime.now(timezone.utc)
     module_statuses = {}
-    failed_count = 0
+    pipeline_consecutive = 0
+    pipeline_status = "ok"
 
     for m in modules:
-        age_min = 0
-        if m["updated_at"]:
+        age_hours = 0.0
+        if m["last_ok"]:
             try:
-                dt = datetime.fromisoformat(m["updated_at"])
-                age_min = (now - dt).total_seconds() / 60
+                dt = datetime.fromisoformat(m["last_ok"])
+                age_hours = (now - dt).total_seconds() / 3600
             except Exception:
                 pass
 
-        is_stale = age_min > stale_threshold
+        consecutive = m["consecutive_failures"] if m["consecutive_failures"] is not None else 0
         status = m["status"]
-        if status == "ok" and is_stale:
+
+        # Failure-count based: primary signal
+        if consecutive >= _FAIL_FAILED:
+            status = "failed"
+        elif consecutive >= _FAIL_DEGRADED:
             status = "degraded"
-        if status == "failed":
-            failed_count += 1
+        # Time-based fallback: if service was idle too long
+        elif status == "ok" and age_hours >= _TIME_FAILED_H:
+            status = "failed"
+        elif status == "ok" and age_hours >= _TIME_DEGRADED_H:
+            status = "degraded"
+
+        if m["module"] == "pipeline":
+            pipeline_consecutive = consecutive
+            pipeline_status = status
 
         module_statuses[m["module"]] = {
             "status": status,
             "last_ok": m["last_ok"],
             "last_error": m["last_error"],
-            "age_min": round(age_min),
+            "age_hours": round(age_hours, 1),
+            "consecutive_failures": consecutive,
         }
 
-    if failed_count >= fail_threshold:
-        global_status = "failed"
-    elif any(s["status"] == "degraded" for s in module_statuses.values()):
-        global_status = "degraded"
-    else:
-        global_status = "ok"
+    # Global status: pipeline module drives it
+    global_status = pipeline_status
 
     conn.close()
     return {
@@ -255,6 +268,41 @@ def put_settings(body: SettingsUpdate):
             reschedule(int(body.settings["refresh_min"]))
         except Exception:
             pass
+    return {"ok": True}
+
+
+# ── Notifications ──
+
+@app.get("/notifications")
+def get_notifications(unread_only: bool = False, limit: int = 50):
+    conn = _conn()
+    where = "WHERE read = 0" if unread_only else ""
+    rows = conn.execute(
+        f"SELECT * FROM notifications {where} ORDER BY created_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    unread = conn.execute("SELECT COUNT(*) FROM notifications WHERE read = 0").fetchone()[0]
+    conn.close()
+    return {
+        "items": [dict(r) for r in rows],
+        "unread": unread,
+    }
+
+
+class NotificationRead(BaseModel):
+    ids: list[int] | None = None  # None = mark all read
+
+
+@app.post("/notifications/read")
+def mark_notifications_read(body: NotificationRead):
+    conn = _conn()
+    if body.ids:
+        placeholders = ",".join("?" * len(body.ids))
+        conn.execute(f"UPDATE notifications SET read = 1 WHERE id IN ({placeholders})", body.ids)
+    else:
+        conn.execute("UPDATE notifications SET read = 1 WHERE read = 0")
+    conn.commit()
+    conn.close()
     return {"ok": True}
 
 
