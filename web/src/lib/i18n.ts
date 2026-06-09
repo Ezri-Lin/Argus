@@ -38,6 +38,7 @@ const zh = {
   "config.treemap.tierCandidate": "推荐",
   "config.treemap.candidateHint": "推荐成员不会主动获取数据，如有需要可加入主力或观察",
   "config.treemap.interval": "刷新",
+  "config.treemap.recommendations": "推荐",
 
   // ── Config panel — feed ──
   "config.feed.mode": "模式",
@@ -450,6 +451,7 @@ const en: Record<keyof typeof zh, string> = {
   "config.treemap.tierCandidate": "Recommended",
   "config.treemap.candidateHint": "Recommended members won't be fetched. Move to Primary or Secondary to enable.",
   "config.treemap.interval": "Interval",
+  "config.treemap.recommendations": "Recommendations",
 
   // ── Config panel — feed ──
   "config.feed.mode": "Mode",

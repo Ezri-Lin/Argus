@@ -9,10 +9,11 @@ import {
   createDomain, updateDomain, deleteDomain,
   createSource, deleteSource, updateSource,
   aiSuggestDates, aiParseVideo, aiStatApi,
-  fetchSourcesLibrary, triggerDomainPipeline,
+  fetchSourcesLibrary, triggerDomainPipeline, applyDomainPreset, saveWidgetConfig,
   type DomainItem, type MemberItem, type SourceItem,
   type LibraryDoc,
 } from "@/dashboard/api";
+import { DOMAIN_PRESETS } from "@/dashboard/domain-presets";
 import { TreemapConfig } from "@/components/config/treemap-config";
 import { FeedConfig } from "@/components/config/feed-config";
 import { inputStyle, btnPrimary, btnSecondary, btnDanger } from "@/components/config/config-styles";
@@ -77,6 +78,31 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
   const [editingTargetIdx, setEditingTargetIdx] = useState<number | null>(null);
   const [editTargetTitle, setEditTargetTitle] = useState("");
   const [editTargetDate, setEditTargetDate] = useState("");
+
+  // Preset apply loading
+  const [presetApplying, setPresetApplying] = useState<string | null>(null);
+
+  const handleApplyPreset = useCallback(async (preset: typeof DOMAIN_PRESETS[number]) => {
+    setPresetApplying(preset.id);
+    try {
+      const result = await applyDomainPreset(preset);
+      if (!result) return;
+      setConfig((c) => ({ ...c, group: result.domainKey }));
+      setDomains((prev) => {
+        const exists = prev.some((d) => d.key === result.domainKey);
+        if (exists) return prev.map((d) => d.key === result.domainKey ? { ...d, label: result.domainKey } : d);
+        return [...prev, { key: result.domainKey, label: result.domainKey, weight: 1.0 }];
+      });
+      // If editing existing widget, save immediately
+      if (!isCreate && widget) {
+        await saveWidgetConfig(widget.id, { group: result.domainKey, members: result.widgetMembers });
+        triggerDomainPipeline(result.domainKey).then(() => onPipelineTriggered?.()).catch(() => {});
+      }
+      // If creating, the preset config will be saved on handleSave
+    } finally {
+      setPresetApplying(null);
+    }
+  }, [isCreate, widget, onPipelineTriggered]);
 
   useEffect(() => {
     if (widget) setTitle(widget.title);
@@ -359,6 +385,48 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
                 if (d) setDomains(d);
               }}
             />
+          )}
+
+          {/* Treemap presets */}
+          {widgetType === "treemap" && (
+            <div>
+              <label style={{ fontSize: 11, color: color.textMuted, marginBottom: 6, display: "block" }}>
+                {t("config.treemap.recommendations")}
+              </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {DOMAIN_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    disabled={presetApplying !== null}
+                    onClick={() => handleApplyPreset(preset)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      color: color.textPrimary,
+                      background: presetApplying === preset.id ? color.surface2 : "transparent",
+                      border: `1px solid ${color.hairline}`,
+                      borderRadius: 6,
+                      cursor: presetApplying ? "default" : "pointer",
+                      opacity: presetApplying && presetApplying !== preset.id ? 0.5 : 1,
+                      gap: 1,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!presetApplying) e.currentTarget.style.background = color.surface2;
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!presetApplying) e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{t(preset.labelKey)}</span>
+                    <span style={{ fontSize: 10, color: color.textMuted }}>{t(preset.descKey)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Feed: sources + mode */}

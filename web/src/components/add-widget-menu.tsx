@@ -1,6 +1,5 @@
 import { color, radius, shadow } from "@/design/tokens";
 import type { WidgetType } from "@/dashboard/dashboard-types";
-import { DOMAIN_PRESETS, type DomainPreset } from "@/dashboard/domain-presets";
 import { useI18n } from "@/lib/use-i18n";
 import type { I18nKey } from "@/lib/i18n";
 
@@ -16,7 +15,7 @@ const WIDGET_OPTIONS: { type: WidgetType; labelKey: I18nKey; defaultConfig: Reco
   { type: "search", labelKey: "widget.type.search", defaultConfig: { query: "", domain: "" } },
 ];
 
-export function AddWidgetMenu({ onSelect, onPresetSelect, onClose }: { onSelect: (type: WidgetType, defaults: Record<string, unknown>) => void; onPresetSelect?: (preset: DomainPreset) => void; onClose: () => void }) {
+export function AddWidgetMenu({ onSelect, onClose }: { onSelect: (type: WidgetType, defaults: Record<string, unknown>) => void; onClose: () => void }) {
   const { t } = useI18n();
   return (
     <>
@@ -35,41 +34,6 @@ export function AddWidgetMenu({ onSelect, onPresetSelect, onClose }: { onSelect:
           padding: 4,
         }}
       >
-        <div style={{ padding: "6px 12px", fontSize: 11, color: color.textMuted, fontWeight: 600 }}>
-          {t("widget.menu.readyToUse")}
-        </div>
-        {DOMAIN_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            onClick={() => {
-              onPresetSelect?.(preset);
-            }}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-              textAlign: "left",
-              padding: "6px 12px",
-              fontSize: 13,
-              color: color.textPrimary,
-              background: "transparent",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-              gap: 2,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = color.surface2;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <span>{t(preset.labelKey)}</span>
-            <span style={{ fontSize: 11, color: color.textMuted }}>{t(preset.descKey)}</span>
-          </button>
-        ))}
-        <div style={{ height: 1, background: color.hairline, margin: "4px 0" }} />
         {WIDGET_OPTIONS.map((opt) => (
           <button
             key={opt.type}
