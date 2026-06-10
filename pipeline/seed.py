@@ -75,56 +75,83 @@ def _generate_initial_events(conn):
     now_iso = now.isoformat()
 
     # Map: domain_key → [(member_name, title, sentiment, importance, kind)]
+    # All members match watchlist.json exactly.
     SEED_EVENTS = {
         "tech": [
-            ("NVIDIA", "NVIDIA announces next-gen Blackwell Ultra GPU with 2x inference throughput", 0.6, 0.8, "official"),
-            ("Apple", "Apple unveils M5 chip with dedicated AI acceleration cores at WWDC", 0.5, 0.7, "official"),
-            ("TSMC", "TSMC confirms 2nm mass production timeline ahead of schedule", 0.4, 0.6, "转载"),
+            ("NVIDIA", "NVIDIA Blackwell Ultra GPU enters mass production, 2x inference throughput", 0.6, 0.85, "official"),
+            ("Apple", "Apple unveils M5 chip with dedicated AI acceleration cores at WWDC", 0.5, 0.75, "official"),
+            ("TSMC", "TSMC confirms 2nm mass production timeline ahead of schedule", 0.4, 0.7, "转载"),
+            ("Samsung", "Samsung announces 2nm GAA process node for 2026 volume production", 0.3, 0.6, "official"),
+            ("Tesla", "Tesla FSD v13 achieves Level 4 autonomy certification in California", 0.5, 0.7, "official"),
+            ("BYD", "BYD surpasses Tesla in global EV sales for Q1 2026", 0.4, 0.65, "转载"),
+            ("Korea Chips", "Samsung and SK Hynix secure $15B US CHIPS Act subsidies for advanced packaging", 0.3, 0.6, "转载"),
         ],
         "ai": [
-            ("OpenAI", "OpenAI releases GPT-5 with breakthrough reasoning capabilities", 0.7, 0.9, "official"),
-            ("Anthropic", "Anthropic launches Claude Opus 4 with 1M context window", 0.6, 0.8, "official"),
-            ("Google", "Google DeepMind unveils Gemini 2.5 with native tool use", 0.5, 0.7, "转载"),
+            ("OpenAI", "OpenAI releases GPT-5 with breakthrough reasoning and native tool use", 0.7, 0.9, "official"),
+            ("Anthropic", "Anthropic launches Claude Opus 4.6 with 1M context window", 0.6, 0.85, "official"),
+            ("Google", "Google DeepMind unveils Gemini 2.5 Ultra with agentic capabilities", 0.5, 0.8, "official"),
+            ("Microsoft", "Microsoft Copilot Studio enables enterprise multi-agent workflows", 0.4, 0.7, "official"),
+            ("Meta", "Meta releases Llama 4 open-source model with 400B parameters", 0.5, 0.75, "official"),
+            ("DeepSeek", "DeepSeek-V3 tops open-source benchmarks, narrows gap with frontier models", 0.6, 0.7, "转载"),
+            ("Baidu", "Baidu ERNIE 5.0 achieves GPT-4 level performance on Chinese NLP tasks", 0.3, 0.55, "official"),
+            ("NVIDIA", "NVIDIA announces Rubin next-gen AI platform with 8x training throughput", 0.6, 0.8, "official"),
         ],
         "finance": [
-            ("JPMorgan", "JPMorgan reports record Q2 trading revenue driven by AI infrastructure demand", 0.5, 0.7, "official"),
-            ("Goldman Sachs", "Goldman Sachs raises S&P 500 year-end target to 6,500", 0.4, 0.6, "转载"),
+            ("JPMorgan", "JPMorgan reports record Q1 trading revenue driven by AI infrastructure demand", 0.5, 0.7, "official"),
+            ("Goldman Sachs", "Goldman Sachs raises S&P 500 year-end target to 6,500", 0.4, 0.65, "转载"),
+            ("BlackRock", "BlackRock launches tokenized Treasury fund on Ethereum, $10B AUM milestone", 0.4, 0.6, "official"),
+            ("Federal Reserve", "Federal Reserve holds rates steady, signals potential cut in September", 0.2, 0.8, "official"),
         ],
         "markets": [
-            ("S&P 500", "S&P 500 hits new all-time high as tech earnings exceed expectations", 0.6, 0.8, "转载"),
-            ("Bitcoin", "Bitcoin breaks above $120K as institutional adoption accelerates", 0.7, 0.7, "转载"),
-            ("Gold", "Gold surges past $3,200 amid geopolitical tensions and rate cut expectations", 0.3, 0.6, "转载"),
+            ("S&P 500", "S&P 500 hits new all-time high at 5,800 as tech earnings beat expectations", 0.6, 0.85, "转载"),
+            ("Nasdaq", "Nasdaq Composite crosses 20,000 for first time on AI rally", 0.5, 0.8, "转载"),
+            ("Bitcoin", "Bitcoin breaks above $120K as spot ETF inflows accelerate", 0.7, 0.75, "转载"),
+            ("Gold", "Gold surges past $3,200 amid geopolitical tensions and rate cut bets", 0.3, 0.6, "转载"),
+            ("Oil WTI", "Oil WTI drops to $68 as OPEC+ increases production quotas", -0.2, 0.55, "转载"),
         ],
         "business": [
-            ("Amazon", "Amazon Web Services revenue surpasses $100B annual run rate", 0.5, 0.7, "official"),
-            ("Microsoft", "Microsoft market cap crosses $4 trillion on Azure AI growth", 0.6, 0.7, "转载"),
+            ("Amazon", "Amazon Web Services revenue surpasses $110B annual run rate", 0.5, 0.7, "official"),
+            ("Microsoft", "Microsoft market cap crosses $4 trillion on Azure AI growth", 0.6, 0.75, "转载"),
+            ("Tesla", "Tesla robotaxi service launches in Austin, 10,000 rides in first week", 0.5, 0.7, "official"),
+            ("BYD", "BYD enters Japanese market with Dolphin Mini, targets 50K annual sales", 0.3, 0.55, "official"),
+            ("Tencent", "Tencent WeChat integrates AI assistant across all mini-programs", 0.4, 0.6, "官方"),
+            ("Alibaba", "Alibaba Cloud revenue grows 18% YoY driven by AI model hosting demand", 0.4, 0.6, "官方"),
         ],
         "investment": [
-            ("Sequoia Capital", "Sequoia Capital raises $8B new fund targeting AI infrastructure", 0.4, 0.6, "转载"),
-            ("SoftBank", "SoftBank Vision Fund returns to profitability with AI portfolio gains", 0.5, 0.5, "转载"),
+            ("BlackRock", "BlackRock raises $12B new infrastructure fund targeting AI data centers", 0.4, 0.6, "转载"),
+            ("JPMorgan", "JPMorgan launches $5B AI-focused venture capital fund", 0.4, 0.55, "official"),
         ],
         "startups": [
-            ("DeepSeek", "DeepSeek raises $2B Series B at $15B valuation for open-source AI models", 0.6, 0.7, "转载"),
-            ("Anthropic", "Anthropic reaches $60B valuation in latest funding round", 0.5, 0.6, "转载"),
+            ("DeepSeek", "DeepSeek valued at $15B after Series B, largest AI startup round in China", 0.6, 0.7, "转载"),
+            ("Anthropic", "Anthropic reaches $60B valuation, annualized revenue hits $4B", 0.5, 0.65, "转载"),
+            ("OpenAI", "OpenAI completes $40B funding round at $300B valuation", 0.5, 0.7, "转载"),
         ],
         "crypto": [
             ("Bitcoin", "Bitcoin ETF inflows hit record $2.5B in single week", 0.6, 0.7, "转载"),
-            ("Ethereum", "Ethereum completes Pectra upgrade enabling account abstraction", 0.4, 0.5, "official"),
+            ("Ethereum", "Ethereum Pectra upgrade live, enables account abstraction and blob scaling", 0.4, 0.6, "official"),
+            ("Solana", "Solana processes 100M daily transactions, surpasses all L2s combined", 0.5, 0.55, "转载"),
+            ("Coinbase", "Coinbase launches institutional crypto derivatives platform", 0.3, 0.5, "official"),
         ],
         "geo": [
-            ("Taiwan Strait", "TSMC expansion in Arizona on track despite geopolitical uncertainty", 0.2, 0.6, "转载"),
-            ("US-China Trade", "US and China reach preliminary agreement on semiconductor export controls", 0.3, 0.7, "转载"),
+            ("Taiwan Strait", "TSMC Arizona fab on track for 2026 production despite cross-strait tensions", 0.2, 0.7, "转载"),
+            ("US-China Trade", "US and China reach preliminary agreement on semiconductor export controls", 0.3, 0.75, "转载"),
+            ("Red Sea", "Red Sea shipping disruptions ease as Houthi attacks decline 60%", 0.2, 0.55, "转载"),
+            ("India Capex", "India announces $150B infrastructure stimulus targeting semiconductor fabs", 0.3, 0.6, "转载"),
+            ("Middle East Energy", "Saudi Arabia accelerates Vision 2030 with $100B AI and tech investment", 0.3, 0.6, "转载"),
+            ("Mexico Nearshoring", "Mexico nearshoring investment hits $35B as US firms diversify from China", 0.3, 0.55, "转载"),
         ],
         "policy": [
-            ("EU AI Act", "EU AI Act enforcement begins with mandatory compliance for high-risk systems", -0.1, 0.6, "official"),
-            ("Fed", "Federal Reserve signals potential rate cut in September meeting", 0.3, 0.7, "official"),
+            ("EU AI Act", "EU AI Act Phase 2 enforcement begins, mandatory compliance for high-risk AI", -0.1, 0.65, "official"),
+            ("Federal Reserve", "Federal Reserve signals potential rate cut in September, markets rally", 0.3, 0.75, "official"),
         ],
         "marketing": [
             ("Google", "Google Ads introduces AI-powered campaign optimization by default", 0.3, 0.5, "official"),
+            ("Meta", "Meta Advantage+ AI campaigns now drive 40% of total ad revenue", 0.3, 0.55, "official"),
+            ("Amazon", "Amazon Ads launches AI-generated product video ads at scale", 0.3, 0.5, "official"),
         ],
         "news": [
-            ("OpenAI", "Global AI spending projected to surpass $500B in 2026", 0.4, 0.6, "转载"),
-            ("NVIDIA", "AI chip shortage expected to persist through 2027 amid surging demand", -0.2, 0.5, "转载"),
+            ("NVIDIA", "Global AI chip spending projected to reach $200B in 2026", 0.4, 0.6, "转载"),
+            ("OpenAI", "OpenAI and Microsoft renegotiate partnership terms ahead of for-profit conversion", 0.1, 0.65, "转载"),
         ],
     }
 
@@ -238,8 +265,7 @@ def seed(db_path: str | None = None):
 
     # Refresh health timestamps so dashboard shows "ok" instead of degraded/gray
     now = datetime.now(timezone.utc).isoformat()
-    for module in ["pipeline", "fetch", "base_model", "pro_model",
-                   "search_tavily", "search_searxng", "search_duckduckgo"]:
+    for module in ["pipeline", "rss", "base_model", "pro_model", "tavily", "prices"]:
         conn.execute(
             "INSERT INTO health (module, status, last_ok, updated_at) "
             "VALUES (?, 'ok', ?, ?) "
