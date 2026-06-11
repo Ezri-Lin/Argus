@@ -161,13 +161,7 @@ export function WidgetFrame({
                   <ControlButton onClick={onDelete} title={t("widget.delete")} icon="✕" danger />
                 )}
               </>
-            ) : (
-              <>
-                {onDetail && (
-                  <ControlButton onClick={onDetail} title={t("widget.details")} icon="ℹ" />
-                )}
-              </>
-            )}
+            ) : null}
           </div>
         )}
 

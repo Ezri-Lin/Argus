@@ -421,6 +421,23 @@ const zh = {
   "detail.events": "事件",
   "detail.lastRun": "上次运行",
   "detail.waiting": "等待中",
+
+  // ── Updates tab ──
+  "settings.tab.updates": "更新",
+  "updates.refreshNow": "立即刷新",
+  "updates.refreshing": "刷新中…",
+  "updates.overallProgress": "整体进度",
+  "updates.eventsFound": "发现事件",
+  "updates.rssPhase": "抓取 RSS 源",
+  "updates.snapshotPhase": "生成快照",
+  "updates.domainProgress": "组件进度",
+  "updates.memberUpdated": "更新了",
+  "updates.noNewEvents": "无新事件",
+
+  // ── Toast ──
+  "toast.dataUpdated": "数据更新完成",
+  "toast.eventsFound": "发现 {n} 条事件",
+  "toast.updateFailed": "更新失败",
 } as const;
 
 const en: Record<keyof typeof zh, string> = {
@@ -841,6 +858,23 @@ const en: Record<keyof typeof zh, string> = {
   "detail.events": "events",
   "detail.lastRun": "Last Run",
   "detail.waiting": "waiting",
+
+  // ── Updates tab ──
+  "settings.tab.updates": "Updates",
+  "updates.refreshNow": "Refresh Now",
+  "updates.refreshing": "Refreshing…",
+  "updates.overallProgress": "Overall Progress",
+  "updates.eventsFound": "events found",
+  "updates.rssPhase": "Fetching RSS sources",
+  "updates.snapshotPhase": "Building snapshot",
+  "updates.domainProgress": "Domain Progress",
+  "updates.memberUpdated": "updated",
+  "updates.noNewEvents": "no new events",
+
+  // ── Toast ──
+  "toast.dataUpdated": "Data updated",
+  "toast.eventsFound": "{n} events found",
+  "toast.updateFailed": "Update failed",
 };
 
 export type Lang = "zh" | "en";

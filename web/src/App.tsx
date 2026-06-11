@@ -3,15 +3,18 @@ import { DashboardCanvas } from "@/components/dashboard-canvas";
 import { TopBar } from "@/components/top-bar";
 import { ConfigPanel } from "@/components/config-panel";
 import { DetailPanel } from "@/components/detail-panel";
-import { DetailOverlay } from "@/components/detail-overlay";
 import { MinimizedBar } from "@/components/minimized-bar";
+import { Toast } from "@/components/toast";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
+import { t as i18nT } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import type { DashboardWidget, WidgetType } from "@/dashboard/dashboard-types";
+import type { ToastType } from "@/components/toast";
 
 export default function App() {
   const [configTarget, setConfigTarget] = useState<DashboardWidget | null>(null);
-  const [detailTarget, setDetailTarget] = useState<DashboardWidget | null>(null);
   const [creatingType, setCreatingType] = useState<WidgetType | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [createDefaults, setCreateDefaults] = useState<Record<string, unknown>>({});
   const widgets = useDashboardStore((s) => s.doc.widgets);
   const selectedItem = useDashboardStore((s) => s.selectedItem);
@@ -24,6 +27,7 @@ export default function App() {
 
   // Pipeline progress polling
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const wasRunningRef = useRef(false);
   const setPipelineProgress = useDashboardStore((s) => s.setPipelineProgress);
 
   const stopProgressPolling = useCallback(() => {
@@ -35,6 +39,7 @@ export default function App() {
 
   const startProgressPolling = useCallback(() => {
     if (pollingRef.current) return;
+    wasRunningRef.current = true;
     pollingRef.current = setInterval(async () => {
       try {
         const { fetchPipelineProgress } = await import("./dashboard/api");
@@ -44,6 +49,17 @@ export default function App() {
           if (!progress.running) {
             stopProgressPolling();
             refreshData();
+            // Show toast on completion
+            if (wasRunningRef.current) {
+              wasRunningRef.current = false;
+              const lang = (useDashboardStore.getState().settings.language || "zh") as Lang;
+              if (progress.events_found > 0) {
+                const tpl = i18nT("toast.eventsFound", lang);
+                setToast({ message: tpl.replace("{n}", String(progress.events_found)), type: "success" });
+              } else {
+                setToast({ message: i18nT("toast.dataUpdated", lang), type: "success" });
+              }
+            }
           }
         }
       } catch {
@@ -93,16 +109,6 @@ export default function App() {
     if (widget) setConfigTarget(widget);
   };
 
-  const handleOpenDetail = (id: string) => {
-    const widget = widgets.find((w) => w.id === id);
-    if (widget) setDetailTarget(widget);
-  };
-
-  const handleDetailRefresh = useCallback(async () => {
-    const { triggerPipeline } = await import("./dashboard/api");
-    triggerPipeline().then(() => startProgressPolling()).catch(() => {});
-  }, [startProgressPolling]);
-
   const handleDeleteWidget = (id: string) => {
     useDashboardStore.getState().removeWidget(id);
   };
@@ -139,9 +145,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)]">
-      <TopBar onStartCreate={handleStartCreate} />
+      <TopBar onStartCreate={handleStartCreate} onPipelineTriggered={startProgressPolling} />
       <MinimizedBar widgets={minimizedWidgets} onRestore={handleRestoreWidget} />
-      <DashboardCanvas onConfigWidget={handleOpenConfig} onDetailWidget={handleOpenDetail} onDeleteWidget={handleDeleteWidget} onMinimizeWidget={handleMinimizeWidget} />
+      <DashboardCanvas onConfigWidget={handleOpenConfig} onDeleteWidget={handleDeleteWidget} onMinimizeWidget={handleMinimizeWidget} />
       {configTarget && (
         <ConfigPanel
           widget={configTarget}
@@ -161,12 +167,11 @@ export default function App() {
         item={selectedItem}
         onClose={() => selectItem(null)}
       />
-      {detailTarget && (
-        <DetailOverlay
-          widgetTitle={detailTarget.title}
-          widgetType={detailTarget.type}
-          onClose={() => { setDetailTarget(null); stopProgressPolling(); }}
-          onRefresh={handleDetailRefresh}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
         />
       )}
     </div>

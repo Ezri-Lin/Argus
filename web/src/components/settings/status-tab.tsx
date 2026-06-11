@@ -107,7 +107,6 @@ function LastRunPanel() {
 
 export function StatusTab({ health }: { health: HealthResponse | null }) {
   const { t } = useI18n();
-  const pipelineProgress = useDashboardStore((s) => s.pipelineProgress);
   const settings = useDashboardStore((s) => s.settings);
 
   const STATUS_LABEL: Record<string, string> = { ok: t("settings.status.ok"), degraded: t("settings.status.degraded"), failed: t("settings.status.failed") };
@@ -153,64 +152,6 @@ export function StatusTab({ health }: { health: HealthResponse | null }) {
           })}
         </div>
       </section>
-
-      {/* Member Progress */}
-      {pipelineProgress && pipelineProgress.members.length > 0 && (
-        <section>
-          <SectionLabel>
-            {t("settings.status.memberProgress")}
-            <span style={{ fontSize: 11, fontWeight: 400, color: color.textMuted, marginLeft: 8 }}>
-              {Math.round(pipelineProgress.members.filter((m) => m.status === "done").length / pipelineProgress.members.length * 100)}%
-              ({pipelineProgress.members.filter((m) => m.status === "done").length}/{pipelineProgress.members.length})
-            </span>
-          </SectionLabel>
-          {/* Progress bar */}
-          <div style={{
-            height: 4, borderRadius: 2, background: color.surface,
-            marginBottom: 8, overflow: "hidden",
-          }}>
-            <div style={{
-              height: "100%", borderRadius: 2,
-              width: `${Math.round(pipelineProgress.members.filter((m) => m.status === "done").length / pipelineProgress.members.length * 100)}%`,
-              background: pipelineProgress.running ? "var(--color-accent)" : color.pos,
-            }} />
-          </div>
-          <div className="flex flex-col gap-0.5" style={{ maxHeight: 240, overflow: "auto" }}>
-            {pipelineProgress.members.map((m, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2"
-                style={{
-                  padding: "5px 8px",
-                  background: color.surface2,
-                  borderRadius: radius.inner,
-                  border: `1px solid ${color.hairline}`,
-                }}
-              >
-                <span style={{ fontSize: 12, width: 18, textAlign: "center" }}>
-                  {m.status === "done" ? "✅" : m.status === "running" ? "⏳" : m.status === "failed" ? "❌" : "⏸"}
-                </span>
-                <span style={{ fontSize: 12, color: color.textPrimary, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {m.domain && <span style={{ color: color.textMuted }}>{m.domain} · </span>}
-                  {m.name}
-                </span>
-                <span style={{ fontSize: 11, color: color.textMuted, flexShrink: 0 }}>
-                  {m.status === "done" && m.events > 0 && `${m.events} ${t("detail.events")}`}
-                  {m.status === "done" && m.events === 0 && m.log}
-                  {m.status === "failed" && <span style={{ color: color.neg }}>{m.log}</span>}
-                  {m.status === "running" && <span style={{ color: "var(--color-accent)" }}>...</span>}
-                  {m.status === "pending" && <span style={{ opacity: 0.5 }}>{t("detail.waiting")}</span>}
-                </span>
-              </div>
-            ))}
-          </div>
-          {pipelineProgress.events_found > 0 && (
-            <div style={{ fontSize: 11, color: color.textMuted, marginTop: 6 }}>
-              {t("detail.eventsFound")} {pipelineProgress.events_found}
-            </div>
-          )}
-        </section>
-      )}
 
       <section>
         <SectionLabel>{t("settings.status.dataOverview")}</SectionLabel>

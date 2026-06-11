@@ -13,14 +13,15 @@ import { ParamsTab } from "./settings/params-tab";
 import { SearchTab } from "./settings/search-tab";
 import { StatusTab } from "./settings/status-tab";
 import { ImportTab } from "./settings/import-tab";
+import { UpdatesTab } from "./settings/updates-tab";
 
-type Tab = "config" | "features" | "params" | "search" | "status" | "import";
+type Tab = "config" | "features" | "params" | "search" | "status" | "updates" | "import";
 
-const TAB_KEYS: Tab[] = ["config", "features", "params", "search", "status", "import"];
+const TAB_KEYS: Tab[] = ["config", "features", "params", "search", "status", "updates", "import"];
 
-type SettingsPanelProps = { onClose: () => void };
+type SettingsPanelProps = { onClose: () => void; onPipelineTriggered?: () => void };
 
-export function SettingsPanel({ onClose }: SettingsPanelProps) {
+export function SettingsPanel({ onClose, onPipelineTriggered }: SettingsPanelProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("config");
   const [settings, setSettings] = useState<SettingsResponse>({});
@@ -31,6 +32,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     params: t("settings.tab.params"),
     search: t("settings.tab.search"),
     status: t("settings.tab.status"),
+    updates: t("settings.tab.updates"),
     import: t("settings.tab.import"),
   };
   const [health, setHealth] = useState<HealthResponse | null>(null);
@@ -118,11 +120,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           {tab === "params" && <ParamsTab settings={settings} markChanged={markChanged} />}
           {tab === "search" && <SearchTab settings={settings} markChanged={markChanged} />}
           {tab === "status" && <StatusTab health={health} />}
+          {tab === "updates" && <UpdatesTab onPipelineTriggered={onPipelineTriggered} />}
           {tab === "import" && <ImportTab />}
         </div>
 
-        {/* Bottom save bar -- hidden on status tab */}
-        {tab !== "status" && (
+        {/* Bottom save bar -- hidden on status/updates tabs */}
+        {tab !== "status" && tab !== "updates" && (
           <div className="flex items-center gap-3 px-5 py-3" style={{ borderTop: `1px solid ${color.hairline}` }}>
             <button
               onClick={handleSave}

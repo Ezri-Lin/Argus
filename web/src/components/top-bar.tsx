@@ -8,7 +8,12 @@ import { useTheme } from "@/lib/theme";
 import { useI18n } from "@/lib/use-i18n";
 import type { WidgetType } from "@/dashboard/dashboard-types";
 
-export function TopBar({ onStartCreate }: { onStartCreate?: (type: WidgetType, defaults: Record<string, unknown>) => void }) {
+type TopBarProps = {
+  onStartCreate?: (type: WidgetType, defaults: Record<string, unknown>) => void;
+  onPipelineTriggered?: () => void;
+};
+
+export function TopBar({ onStartCreate, onPipelineTriggered }: TopBarProps) {
   const autoLayout = useDashboardStore((s) => s.autoLayout);
   const editMode = useDashboardStore((s) => s.editMode);
   const toggleEditMode = useDashboardStore((s) => s.toggleEditMode);
@@ -148,7 +153,7 @@ export function TopBar({ onStartCreate }: { onStartCreate?: (type: WidgetType, d
       </header>
 
       {settingsOpen && (
-        <SettingsPanel onClose={() => setSettingsOpen(false)} />
+        <SettingsPanel onClose={() => setSettingsOpen(false)} onPipelineTriggered={onPipelineTriggered} />
       )}
     </>
   );
