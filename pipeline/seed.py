@@ -226,9 +226,13 @@ def seed(db_path: str | None = None):
                 (member_id, domain_key),
             )
 
-    # Seed models
+    # Seed models (skip if label already exists)
     model_map = {}
     for m in wl.get("models", []):
+        existing = conn.execute("SELECT id FROM models WHERE label = ?", (m["label"],)).fetchone()
+        if existing:
+            model_map[m["role"]] = existing["id"]
+            continue
         # Resolve env var references
         base_url = os.environ.get(m["base_url"], m["base_url"]) if m["base_url"].startswith("ARGUS_") else m["base_url"]
         api_key = os.environ.get(m["api_key"], m["api_key"]) if m["api_key"].startswith("ARGUS_") else m["api_key"]

@@ -81,7 +81,7 @@ export function ModelCard({ model, onTest, onDelete, onUpdate, testing, testResu
       <input value={baseUrl} onChange={(e) => { setBaseUrl(e.target.value); setSaveState("idle"); }} placeholder="Base URL" style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, marginBottom: 4 }} />
       <div className="flex gap-2">
         <div className="flex-1">
-          <input type="password" value={apiKey} onChange={(e) => { setApiKey(e.target.value); setSaveState("idle"); }} placeholder={model.has_api_key ? "API Key saved · enter to replace" : "API Key"} style={{ ...inputStyle, padding: "4px 8px", fontSize: 11 }} />
+          <input type="password" value={apiKey} onChange={(e) => { setApiKey(e.target.value); setSaveState("idle"); }} placeholder={model.masked_api_key ?? "API Key"} style={{ ...inputStyle, padding: "4px 8px", fontSize: 11 }} />
           {model.has_api_key && !apiKey && (
             <div style={{ fontSize: 10, color: color.pos, marginTop: 2 }}>{t("settings.model.configured")}</div>
           )}

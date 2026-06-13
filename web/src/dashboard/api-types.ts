@@ -99,6 +99,7 @@ export type ModelItem = {
   model: string;
   web_search: number;
   has_api_key?: boolean;
+  masked_api_key?: string;
 };
 
 export type ModelsResponse = {

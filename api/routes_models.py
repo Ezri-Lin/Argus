@@ -43,18 +43,31 @@ def _write_role_health(conn, model_id: int, ok: bool, error: str | None = None) 
         )
 
 
+def _mask_key(key: str) -> str:
+    if len(key) <= 8:
+        return "****"
+    return key[:4] + "****" + key[-4:]
+
+
 @router.get("")
 def list_models():
     conn = _conn()
     models = conn.execute(
-        "SELECT id, label, base_url, model, web_search, "
-        "CASE WHEN api_key IS NOT NULL AND LENGTH(api_key) > 0 THEN 1 ELSE 0 END AS has_api_key "
+        "SELECT id, label, base_url, model, web_search, api_key "
         "FROM models"
     ).fetchall()
     roles = conn.execute("SELECT role, model_id FROM model_roles").fetchall()
     conn.close()
+    result = []
+    for m in models:
+        d = dict(m)
+        raw_key = d.pop("api_key", None)
+        d["has_api_key"] = bool(raw_key)
+        if raw_key:
+            d["masked_api_key"] = _mask_key(raw_key)
+        result.append(d)
     return {
-        "models": [{**dict(m), "has_api_key": bool(m["has_api_key"])} for m in models],
+        "models": result,
         "roles": {r["role"]: r["model_id"] for r in roles},
     }
 
