@@ -10,8 +10,8 @@ function ProviderHealthPanel({ health }: { health: HealthResponse | null }) {
   const { t } = useI18n();
   const providers = [
     { provider: "RSS Ingest", key: "rss" },
-    { provider: "SearXNG", key: "searxng" },
-    { provider: "Tavily", key: "tavily" },
+    { provider: "SearXNG", key: "search_searxng" },
+    { provider: "Tavily", key: "search_tavily" },
     { provider: t("settings.module.baseModel"), key: "base_model" },
     { provider: t("settings.module.proModel"), key: "pro_model" },
   ];
@@ -118,7 +118,7 @@ export function StatusTab({ health }: { health: HealthResponse | null }) {
   // Hints for modules that are degraded because they're not enabled
   const STALE_HINTS: Record<string, string> = {
     pro_model: settings.pro_enabled !== "true" ? t("settings.status.hintDisabled") : "",
-    tavily: settings.tavily_enabled !== "true" ? t("settings.status.hintDisabled") : "",
+    search_tavily: settings.tavily_enabled !== "true" ? t("settings.status.hintDisabled") : "",
   };
 
   if (!health) return <div style={{ fontSize: 13, color: color.textMuted }}>{t("settings.status.loading")}</div>;
