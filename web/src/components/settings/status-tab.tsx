@@ -113,6 +113,7 @@ export function StatusTab({ health }: { health: HealthResponse | null }) {
   const MODULE_LABEL: Record<string, string> = {
     pipeline: t("settings.module.pipeline"), rss: t("settings.module.rss"), base_model: t("settings.module.baseModel"),
     pro_model: t("settings.module.proModel"), tavily: t("settings.module.tavily"), prices: t("settings.module.prices"),
+    fetch: t("settings.module.fetch"),
   };
 
   // Hints for modules that are degraded because they're not enabled

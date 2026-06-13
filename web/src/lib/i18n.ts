@@ -166,6 +166,7 @@ const zh = {
   "settings.module.proModel": "高级模型",
   "settings.module.tavily": "Tavily 搜索",
   "settings.module.prices": "价格数据",
+  "settings.module.fetch": "内容抓取",
 
   // Settings — import tab
   "settings.import.libraryOverview": "源库概览",
@@ -603,6 +604,7 @@ const en: Record<keyof typeof zh, string> = {
   "settings.module.proModel": "Pro Model",
   "settings.module.tavily": "Tavily Search",
   "settings.module.prices": "Price Data",
+  "settings.module.fetch": "Content Fetch",
 
   // Settings — import tab
   "settings.import.libraryOverview": "Library Overview",
