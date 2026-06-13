@@ -13,6 +13,7 @@ import { formatLocalShort } from "@/lib/format-time";
 import { useI18n } from "@/lib/use-i18n";
 import { useFreshness } from "@/lib/use-freshness";
 import { getCategoryLabel } from "@/lib/category-label";
+import { getKindLabel } from "@/lib/kind-label";
 
 // ── Decay scoring ──
 
@@ -159,7 +160,12 @@ function SignalsView() {
               <span style={{ fontSize: 10, color: color.textMuted, border: `1px solid ${color.hairline}`, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
                 {getCategoryLabel(item.category, t)}
               </span>
-              <span style={{ fontSize: 11, color: color.textMuted, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+              {item.kind && (
+                <span style={{ fontSize: 10, color: color.textMuted, background: color.surface2, border: `1px solid ${color.hairline}`, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                  {getKindLabel(item.kind, t)}
+                </span>
+              )}
+              <span style={{ fontSize: 11, color: color.textMuted, fontVariantNumeric: "tabular-nums", flexShrink: 0, marginLeft: "auto" }}>
                 {formatLocalShort(item.time)}
               </span>
             </div>
@@ -169,6 +175,26 @@ function SignalsView() {
             <div style={{ fontSize: 11, color: color.textSecondary, lineHeight: 1.25, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1 }}>
               {item.summary}
             </div>
+            {item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  fontSize: 10, fontWeight: 600, color: color.accent,
+                  marginTop: 3, textDecoration: "none",
+                }}
+              >
+                {t("detail.readOriginal")}
+                <svg width={9} height={9} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 9v4a1 1 0 01-1 1H3a1 1 0 01-1-1V5a1 1 0 011-1h4" />
+                  <path d="M7 3h6v6" />
+                  <path d="M13 3L7 9" />
+                </svg>
+              </a>
+            )}
           </div>
         </div>
         {isHovered && (
