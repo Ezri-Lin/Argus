@@ -26,6 +26,11 @@ export function TopBar({ onStartCreate, onPipelineTriggered }: TopBarProps) {
     <>
       <header className="flex h-14 items-center justify-between px-5">
         <div className="flex items-baseline gap-3">
+          <img
+            src="/argus-icon.png"
+            alt="Argus"
+            style={{ width: 28, height: 28, borderRadius: 6, objectFit: "cover" }}
+          />
           <h1 className="text-[22px] font-semibold tracking-normal text-[var(--text-primary)]">
             Argus
           </h1>
