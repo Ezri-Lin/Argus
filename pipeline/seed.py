@@ -226,7 +226,7 @@ def seed(db_path: str | None = None):
                 (member_id, domain_key),
             )
 
-    # Seed models (skip if label already exists)
+    # Seed models (skip if already exists or env vars not configured)
     model_map = {}
     for m in wl.get("models", []):
         existing = conn.execute("SELECT id FROM models WHERE label = ?", (m["label"],)).fetchone()
@@ -234,9 +234,17 @@ def seed(db_path: str | None = None):
             model_map[m["role"]] = existing["id"]
             continue
         # Resolve env var references
-        base_url = os.environ.get(m["base_url"], m["base_url"]) if m["base_url"].startswith("ARGUS_") else m["base_url"]
-        api_key = os.environ.get(m["api_key"], m["api_key"]) if m["api_key"].startswith("ARGUS_") else m["api_key"]
-        model_name = os.environ.get(m["model"], m["model"]) if m["model"].startswith("ARGUS_") else m["model"]
+        def _resolve(val):
+            if val.startswith("ARGUS_"):
+                return os.environ.get(val, "")
+            return val
+        base_url = _resolve(m["base_url"])
+        api_key = _resolve(m["api_key"])
+        model_name = _resolve(m["model"])
+
+        # Skip if required env vars are not set
+        if not api_key:
+            continue
 
         cur = conn.execute(
             "INSERT INTO models (label, base_url, api_key, model, web_search, extra) "
