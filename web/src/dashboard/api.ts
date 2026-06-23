@@ -14,6 +14,10 @@ import type {
   AiSearchResult,
   AiDatesResult,
   AiVideoResult,
+  AiValidateResult,
+  AiTopicsResult,
+  AiSearchVideosResult,
+  AiCreatorsResult,
   AiStatResult,
   SearchProvider,
   SearchLog,
@@ -40,6 +44,10 @@ export type {
   AiSearchResult,
   AiDatesResult,
   AiVideoResult,
+  AiValidateResult,
+  AiTopicsResult,
+  AiSearchVideosResult,
+  AiCreatorsResult,
   AiStatResult,
   MemberProgress,
   PipelineProgress,
@@ -279,6 +287,28 @@ export async function aiSuggestDates(keyword: string): Promise<AiDatesResult | n
 
 export async function aiParseVideo(url: string): Promise<AiVideoResult | null> {
   return apiFetch("/ai/parse-video", jsonBody("POST", { url }));
+}
+
+export async function aiValidateSource(
+  url: string, originalUrl: string, origin = "manual", contentType = ""
+): Promise<AiValidateResult | null> {
+  return apiFetch("/ai/validate-source", jsonBody("POST", { url, originalUrl, origin, contentType }));
+}
+
+export async function aiDiscoverTopics(
+  keyword: string, contentType = "video"
+): Promise<AiTopicsResult | null> {
+  return apiFetch("/ai/discover-topics", jsonBody("POST", { keyword, contentType }));
+}
+
+export async function aiSearchVideos(
+  mode: "live" | "topic", keyword: string, tags: string[], platform = "auto"
+): Promise<AiSearchVideosResult | null> {
+  return apiFetch("/ai/search-videos", jsonBody("POST", { mode, keyword, tags, platform }));
+}
+
+export async function aiSearchCreators(keyword: string): Promise<AiCreatorsResult | null> {
+  return apiFetch("/ai/search-creators", jsonBody("POST", { keyword }));
 }
 
 export async function translateSubtitles(

@@ -11,6 +11,7 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
 from .ai_helpers import _safe_text
+from .services.video_sources import parse_video_sources, validate_video_source, search_videos_for_topic, search_creators, search_videos_for_creator
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -184,6 +185,122 @@ def parse_video(body: ParseVideoRequest, request: Request):
         _append_iframe_fallback(sources, url)
 
     return {"ok": True, "sources": sources}
+
+
+# ── Validate Source ──
+
+class ValidateSourceRequest(BaseModel):
+    url: str
+    originalUrl: str = ""
+    origin: str = "manual"
+    contentType: str = ""
+
+
+@router.post("/validate-source")
+def validate_source(body: ValidateSourceRequest):
+    """Check if a stream URL is alive. If dead, re-parse from originalUrl."""
+    source = {
+        "url": body.url.strip(),
+        "originalUrl": body.originalUrl.strip() if body.originalUrl else "",
+        "origin": body.origin,
+    }
+    if body.contentType:
+        source["contentType"] = body.contentType
+
+    result = validate_video_source(source)
+    return {"ok": True, **result}
+
+
+# ── Discover Topics ──
+
+class DiscoverTopicsRequest(BaseModel):
+    keyword: str
+    contentType: str = "video"
+
+
+@router.post("/discover-topics")
+def discover_topics(body: DiscoverTopicsRequest):
+    """Use AI to generate related sub-topics for a keyword."""
+    from pipeline.db import get_db, get_model_for_role
+    from pipeline.models import call_model
+    import os
+
+    db_path = os.environ.get("ARGUS_DB_PATH", "data/argus.db")
+    conn = get_db(db_path)
+    model = get_model_for_role(conn, "base")
+    conn.close()
+
+    if not model:
+        return {"ok": False, "error": "No base model configured"}
+
+    content_desc = "live streams" if body.contentType == "live" else "recorded videos"
+    prompt = (
+        f"Given the keyword '{body.keyword}', suggest 3-5 related sub-topics for finding {content_desc}.\n"
+        f"Return ONLY a JSON array of strings, e.g. [\"sub1\", \"sub2\", \"sub3\"]\n"
+        f"Keep each tag short (1-3 words). Focus on specific, searchable terms."
+    )
+
+    try:
+        response = call_model(
+            model["model"],
+            [
+                {"role": "system", "content": "You are a video content discovery assistant. Return only valid JSON arrays."},
+                {"role": "user", "content": prompt},
+            ],
+            api_key=model.get("api_key", ""),
+            base_url=model.get("base_url"),
+        )
+        text = response.strip()
+        # Extract JSON array from response
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        if match:
+            tags = json.loads(match.group())
+            return {"ok": True, "tags": [str(t) for t in tags[:5]]}
+        return {"ok": False, "error": "AI did not return valid JSON"}
+    except Exception as e:
+        return {"ok": False, "error": _safe_text(e)}
+
+
+# ── Search Videos ──
+
+class SearchVideosRequest(BaseModel):
+    mode: str  # "live" | "topic"
+    keyword: str
+    tags: list[str] = []
+    platform: str = "auto"
+
+
+@router.post("/search-videos")
+def search_videos(body: SearchVideosRequest):
+    """Search for videos matching a topic/live follow using yt-dlp."""
+    content_type = "live" if body.mode == "live" else "video"
+    topic = {
+        "keyword": body.keyword,
+        "selectedTags": body.tags,
+        "contentType": content_type,
+        "followMode": body.mode,
+    }
+    try:
+        sources = search_videos_for_topic(topic)
+        return {"ok": True, "sources": sources}
+    except Exception as e:
+        return {"ok": False, "error": _safe_text(e)}
+
+
+# ── Search Creators ──
+
+class SearchCreatorsRequest(BaseModel):
+    keyword: str
+
+
+@router.post("/search-creators")
+def search_creators_endpoint(body: SearchCreatorsRequest):
+    """Search for channels/creators matching a keyword."""
+    try:
+        channels = search_creators(body.keyword)
+        return {"ok": True, "channels": channels}
+    except Exception as e:
+        return {"ok": False, "error": _safe_text(e)}
 
 
 # ── Stat API Proxy ──

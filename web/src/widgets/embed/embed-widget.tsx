@@ -76,6 +76,7 @@ export function EmbedWidget({ widget, onConfig, onDetail, onDelete, onMinimize }
                 onClick={() => { setActiveIndex(i); setErrored(false); setLoaded(false); }}
                 title={s.fullLabel ?? s.label}
                 style={{
+                  display: "flex", alignItems: "center", gap: 4,
                   fontSize: 11,
                   padding: "3px 10px",
                   borderRadius: 6,
@@ -89,6 +90,15 @@ export function EmbedWidget({ widget, onConfig, onDetail, onDelete, onMinimize }
                   transition: "color 0.15s, background 0.15s",
                 }}
               >
+                {s.health && s.health !== "ok" && (
+                  <span
+                    style={{
+                      width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                      background: s.health === "stale" ? "#f59e0b" : "#ef4444",
+                    }}
+                    title={s.health === "stale" ? "Re-parsed" : "Source unavailable"}
+                  />
+                )}
                 {shortVideoSourceLabel(s, i)}
               </span>
             ))}

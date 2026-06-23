@@ -161,6 +161,193 @@ def _refresh_countdown_dates():
         logger.exception("Countdown refresh failed")
 
 
+def _check_embed_sources_health():
+    """Periodic job: validate embed widget sources, re-parse expired ones."""
+    import json
+    from datetime import datetime, timezone
+
+    try:
+        from db import get_db
+        from services.video_sources import validate_video_source
+
+        conn = get_db(_db_path)
+        row = conn.execute("SELECT doc, updated_at FROM dashboard WHERE id = 'default'").fetchone()
+        if not row:
+            conn.close()
+            return
+
+        doc = json.loads(row["doc"])
+        old_updated_at = row["updated_at"]
+        widgets = doc.get("widgets", [])
+        changed = False
+
+        for w in widgets:
+            if w.get("type") != "embed":
+                continue
+            sources = w.get("config", {}).get("sources", [])
+            if not sources:
+                continue
+
+            new_sources = []
+            widget_changed = False
+            for s in sources:
+                # Only check sources with originalUrl
+                if not s.get("originalUrl"):
+                    new_sources.append(s)
+                    continue
+
+                result = validate_video_source(s)
+                if result["status"] == "ok":
+                    new_sources.append(result["source"])
+                elif result["status"] == "replaced":
+                    # Insert replacements at old source position, inherit origin
+                    replacements = result["replacements"]
+                    new_sources.extend(replacements)
+                    widget_changed = True
+                    logger.info("  Replaced source: %s → %d new sources",
+                                s.get("url", "")[:60], len(replacements))
+                else:  # dead
+                    new_sources.append(result["source"])
+                    widget_changed = True
+                    logger.info("  Dead source: %s (%s)", s.get("url", "")[:60],
+                                result.get("reason", "unknown"))
+
+            if widget_changed:
+                w["config"]["sources"] = new_sources
+                changed = True
+
+        if changed:
+            # Optimistic concurrency: only write if dashboard hasn't been edited
+            now = datetime.now(timezone.utc).isoformat()
+            doc_json = json.dumps(doc, ensure_ascii=False)
+            cursor = conn.execute(
+                "UPDATE dashboard SET doc = ?, updated_at = ? "
+                "WHERE id = 'default' AND updated_at = ?",
+                (doc_json, now, old_updated_at),
+            )
+            if cursor.rowcount == 0:
+                logger.info("Health check: concurrency_skip — dashboard was edited during check")
+            else:
+                conn.commit()
+                logger.info("Health check: saved updated sources")
+        else:
+            logger.info("Health check: all sources healthy")
+
+        conn.close()
+    except Exception:
+        logger.exception("Embed source health check failed")
+
+
+def _refresh_follow_sources():
+    """Periodic job: refresh follow-mode sources for embed widgets."""
+    import json
+    from datetime import datetime, timezone
+
+    try:
+        from db import get_db
+        from services.video_sources import search_videos_for_topic, search_videos_for_creator
+
+        conn = get_db(_db_path)
+        row = conn.execute("SELECT doc, updated_at FROM dashboard WHERE id = 'default'").fetchone()
+        if not row:
+            conn.close()
+            return
+
+        doc = json.loads(row["doc"])
+        old_updated_at = row["updated_at"]
+        widgets = doc.get("widgets", [])
+        changed = False
+
+        for w in widgets:
+            if w.get("type") != "embed":
+                continue
+            follow_rule = w.get("config", {}).get("followRule")
+            if not follow_rule or follow_rule.get("mode") == "manual":
+                continue
+
+            mode = follow_rule["mode"]
+            sources = w.get("config", {}).get("sources", [])
+            manual = [s for s in sources if s.get("origin") != "follow"]
+            old_follow = [s for s in sources if s.get("origin") == "follow"]
+            current = old_follow[0] if old_follow else None
+
+            try:
+                results = []
+
+                if mode == "live":
+                    if current and current.get("health") == "ok":
+                        continue
+                    results = search_videos_for_topic({
+                        "keyword": follow_rule.get("keyword", ""),
+                        "selectedTags": follow_rule.get("tags", []),
+                        "contentType": "live",
+                        "followMode": "live",
+                    })
+                    results = results[:3]
+
+                elif mode == "creator":
+                    if not follow_rule.get("channelUrl") and not follow_rule.get("channelId"):
+                        continue
+                    results = search_videos_for_creator(follow_rule)
+                    # Only replace if newer
+                    if current and current.get("health") == "ok":
+                        current_pub = current.get("publishedAt")
+                        if current_pub:
+                            newer = [r for r in results if r.get("publishedAt") and r["publishedAt"] > current_pub]
+                            results = newer[:1]
+                        else:
+                            results = []
+                    else:
+                        results = results[:1]
+
+                elif mode == "topic":
+                    if current and current.get("health") == "ok":
+                        continue
+                    results = search_videos_for_topic({
+                        "keyword": follow_rule.get("keyword", ""),
+                        "selectedTags": follow_rule.get("tags", []),
+                        "contentType": "video",
+                        "followMode": "topic",
+                    })
+                    results = results[:3]
+
+                if results:
+                    for s in results:
+                        s["origin"] = "follow"
+                        s["followMode"] = mode
+                    w["config"]["sources"] = manual + results
+                    changed = True
+                    logger.info("  Follow [%s] '%s': %d sources", mode, follow_rule.get("keyword", ""), len(results))
+                else:
+                    for s in old_follow:
+                        s["health"] = "stale"
+
+            except Exception as e:
+                logger.warning("  Follow [%s] refresh failed: %s", mode, e)
+                for s in old_follow:
+                    s["health"] = "stale"
+
+        if changed:
+            now = datetime.now(timezone.utc).isoformat()
+            doc_json = json.dumps(doc, ensure_ascii=False)
+            cursor = conn.execute(
+                "UPDATE dashboard SET doc = ?, updated_at = ? "
+                "WHERE id = 'default' AND updated_at = ?",
+                (doc_json, now, old_updated_at),
+            )
+            if cursor.rowcount == 0:
+                logger.info("Follow refresh: concurrency_skip — dashboard was edited during refresh")
+            else:
+                conn.commit()
+                logger.info("Follow refresh: saved updated sources")
+        else:
+            logger.info("Follow refresh: no changes")
+
+        conn.close()
+    except Exception:
+        logger.exception("Follow source refresh failed")
+
+
 def start_scheduler():
     """Called from FastAPI lifespan. Runs pipeline once, then schedules."""
     global _scheduler, _db_path
@@ -197,8 +384,24 @@ def start_scheduler():
         replace_existing=True,
     )
 
+    # Schedule embed source health check every 4 hours
+    _scheduler.add_job(
+        _check_embed_sources_health,
+        trigger=IntervalTrigger(hours=4),
+        id="embed_health",
+        replace_existing=True,
+    )
+
+    # Schedule follow source refresh every 4 hours
+    _scheduler.add_job(
+        _refresh_follow_sources,
+        trigger=IntervalTrigger(hours=4),
+        id="follow_refresh",
+        replace_existing=True,
+    )
+
     _scheduler.start()
-    logger.info("Pipeline scheduler started (interval=%d min, countdown refresh daily at 06:30)", max(minutes, 5))
+    logger.info("Pipeline scheduler started (interval=%d min, countdown 06:30, health 4h, follow 4h)", max(minutes, 5))
 
 
 def reschedule(minutes: int):

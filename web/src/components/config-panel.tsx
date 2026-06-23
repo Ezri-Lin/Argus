@@ -4,6 +4,8 @@ import { color } from "@/design/tokens";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import type { WidgetType } from "@/dashboard/dashboard-types";
 import { appendVideoSource, normalizeParsedVideoSource, type VideoSource } from "@/widgets/embed/video-source-label";
+import type { FollowRule } from "@/widgets/embed/video-source-label";
+import { followRuleIdentity, normalizeEmbedConfig } from "@/components/config/source-mode-selector";
 import {
   fetchDomains, fetchMembers, fetchSources,
   createDomain, updateDomain, deleteDomain,
@@ -19,7 +21,7 @@ import { FeedConfig } from "@/components/config/feed-config";
 import { inputStyle, btnPrimary, btnSecondary, btnDanger } from "@/components/config/config-styles";
 import {
   CONFIG_FIELDS, WIDGET_TYPE_LABELS, getWidgetTypeLabel,
-  resolveSourcesFromConfig, resolveClocks,
+  resolveClocks,
   type ClockEntry, type ConfigPanelProps,
 } from "@/components/config/config-fields";
 import { ClockConfig } from "@/components/config/clock-config";
@@ -64,6 +66,9 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
   const [embedUrl, setEmbedUrl] = useState("");
   const [embedCandidates, setEmbedCandidates] = useState<VideoSource[]>([]);
   const [selectedEmbedCandidate, setSelectedEmbedCandidate] = useState(0);
+
+  // Embed follow rule
+  const [followRule, setFollowRule] = useState<FollowRule>({ mode: "manual" });
 
   // Sources library
   const [library, setLibrary] = useState<LibraryDoc | null>(null);
@@ -116,7 +121,9 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
     }
     setConfig(cfg);
     if (widgetType === "embed") {
-      setSources(resolveSourcesFromConfig(initialConfig));
+      const normalized = normalizeEmbedConfig(initialConfig);
+      setSources(normalized.sources);
+      setFollowRule(normalized.followRule);
       setEmbedCandidates([]);
       setSelectedEmbedCandidate(0);
       setEmbedUrl("");
@@ -163,7 +170,13 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
     }
 
     if (widgetType === "embed") {
-      configPatch.sources = sources.filter((s) => s.url.trim() !== "");
+      const initialFollowRule = normalizeEmbedConfig(initialConfig).followRule;
+      if (followRuleIdentity(initialFollowRule) !== followRuleIdentity(followRule)) {
+        configPatch.sources = sources.filter((s) => s.origin !== "follow");
+      } else {
+        configPatch.sources = sources.filter((s) => s.url.trim() !== "");
+      }
+      configPatch.followRule = followRule;
     }
     if (widgetType === "clock") {
       configPatch.clocks = clocks.filter((c) => c.tz.trim() !== "");
@@ -214,7 +227,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
   const updateStreamField = (i: number, field: "url" | "label", v: string) =>
     setSources((p) => p.map((s, j) => (j === i ? { ...s, [field]: v } : s)));
   const addFromLibrary = (s: { url: string; name: string; type?: string }) => {
-    setSources((p) => [...p, { url: s.url, label: s.name, type: s.type as VideoSource["type"] }]);
+    setSources((p) => [...p, { url: s.url, label: s.name, fullLabel: s.name, type: s.type as VideoSource["type"] }]);
   };
   const addSelectedEmbedCandidate = () => {
     const candidate = embedCandidates[selectedEmbedCandidate];
@@ -235,7 +248,12 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
       if (res?.ok && res.sources) {
         const candidates = res.sources
           .filter((s) => s.url.trim() !== "")
-          .map((s, i) => normalizeParsedVideoSource(s, i));
+          .map((s, i) => ({
+            ...normalizeParsedVideoSource(s, i),
+            originalUrl: url,
+            origin: "manual" as const,
+            health: "ok" as const,
+          }));
         setEmbedCandidates(candidates);
         setSelectedEmbedCandidate(0);
         if (candidates.length > 0) setEmbedUrl("");
@@ -336,6 +354,8 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
               addSelectedEmbedCandidate={addSelectedEmbedCandidate}
               pickFromLibraryLabel={t("config.common.pickFromLibrary")}
               placeholderLabel={t("config.embed.placeholder")}
+              followRule={followRule}
+              setFollowRule={setFollowRule}
             />
           )}
 

@@ -150,6 +150,33 @@ export type AiVideoResult = {
   error?: string;
 };
 
+export type AiValidateResult = {
+  ok: boolean;
+  status?: "ok" | "replaced" | "dead";
+  source?: Record<string, unknown>;
+  previousSource?: Record<string, unknown>;
+  replacements?: Array<Record<string, unknown>>;
+  reason?: string;
+};
+
+export type AiTopicsResult = {
+  ok: boolean;
+  tags?: string[];
+  error?: string;
+};
+
+export type AiSearchVideosResult = {
+  ok: boolean;
+  sources?: Array<{ url: string; label: string; type: string; originalUrl?: string; contentType?: string; followMode?: string }>;
+  error?: string;
+};
+
+export type AiCreatorsResult = {
+  ok: boolean;
+  channels?: Array<{ id: string; name: string; url: string; thumbnail: string; platform: string }>;
+  error?: string;
+};
+
 export type AiStatResult = {
   ok: boolean;
   value?: unknown;
