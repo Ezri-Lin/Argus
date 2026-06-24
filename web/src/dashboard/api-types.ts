@@ -177,6 +177,12 @@ export type AiCreatorsResult = {
   error?: string;
 };
 
+export type AiParseRssResult = {
+  ok: boolean;
+  entry?: { title: string; url: string; published: string; channelName: string };
+  error?: string;
+};
+
 export type AiStatResult = {
   ok: boolean;
   value?: unknown;

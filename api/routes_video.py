@@ -2,50 +2,24 @@
 
 import json
 import re
-import subprocess
 import urllib.request
-from urllib.parse import parse_qs, quote, urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
-from fastapi import APIRouter, Request
+from typing import Literal
+
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .ai_helpers import _safe_text
-from .services.video_sources import parse_video_sources, validate_video_source, search_videos_for_topic, search_creators, search_videos_for_creator
+from .services.video_sources import (
+    parse_video_sources, validate_video_source,
+    search_topic_videos, search_creators, fetch_latest_from_rss,
+    fetch_latest_from_feed,
+)
+from .services.live_discovery import discover_live_sources
 
 router = APIRouter(prefix="/ai", tags=["ai"])
-
-
-# ── Video Helpers ──
-
-def _iframe_fallback_url(url: str) -> str:
-    parsed = urlparse(url)
-    host = parsed.netloc.lower()
-    path = parsed.path.strip("/")
-
-    if "youtube.com" in host:
-        video_id = parse_qs(parsed.query).get("v", [""])[0]
-        if video_id:
-            return f"https://www.youtube.com/embed/{video_id}"
-    if "youtu.be" in host and path:
-        return f"https://www.youtube.com/embed/{path.split('/')[0]}"
-    if "bilibili.com" in host:
-        match = re.search(r"(BV[a-zA-Z0-9]+)", path)
-        if match:
-            return f"https://player.bilibili.com/player.html?bvid={match.group(1)}"
-
-    return url
-
-
-def _append_iframe_fallback(sources: list[dict], url: str) -> None:
-    fallback = _iframe_fallback_url(url)
-    if not any(s.get("url") == fallback for s in sources):
-        sources.append({"url": fallback, "label": "Embed fallback", "type": "iframe"})
-
-
-def _append_source(sources: list[dict], url: str, label: str, source_type: str) -> None:
-    if url and not any(s.get("url") == url for s in sources):
-        sources.append({"url": url, "label": label, "type": source_type})
 
 
 # ── Parse Video ──
@@ -56,134 +30,8 @@ class ParseVideoRequest(BaseModel):
 
 @router.post("/parse-video")
 def parse_video(body: ParseVideoRequest, request: Request):
-    url = body.url.strip()
-    sources = []
-
-    # Direct stream URLs — skip yt-dlp
-    if ".m3u8" in url:
-        sources.append({"url": url, "label": "HLS Stream", "type": "hls"})
-    elif ".mpd" in url:
-        sources.append({"url": url, "label": "DASH Stream", "type": "dash"})
-    elif ".mp4" in url:
-        sources.append({"url": url, "label": "MP4 Video", "type": "mp4"})
-
-    # yt-dlp: extract from platform pages (Bilibili, YouTube, Twitch, Douyu, etc.)
-    used_extractor = False
-    if not sources:
-        try:
-            ytdl_cmd = ["yt-dlp", "-j", "--no-download", url]
-            result = subprocess.run(
-                ytdl_cmd,
-                capture_output=True, text=True, timeout=30,
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                used_extractor = True
-                info = json.loads(result.stdout)
-                title = info.get("title", "Video")
-
-                if info.get("formats"):
-                    fmts = info["formats"]
-
-                    # Pick highest quality HLS
-                    hls_fmts = [f for f in fmts
-                                if "m3u8" in (f.get("protocol") or "").lower()
-                                or ".m3u8" in (f.get("url") or "")]
-                    if hls_fmts:
-                        best = max(hls_fmts, key=lambda f: f.get("height") or 0)
-                        res = best.get("height", "")
-                        label = f"{title} (HLS {res}p)" if res else f"{title} (HLS)"
-                        _append_source(sources, best["url"], label, "hls")
-
-                    # Pick highest quality progressive (MP4/WebM)
-                    prog_fmts = [f for f in fmts
-                                 if f.get("url")
-                                 and ((f.get("ext") or "").lower() in ("mp4", "webm", "flv")
-                                      or "https" in (f.get("protocol") or "").lower())]
-                    if prog_fmts:
-                        best = max(prog_fmts, key=lambda f: f.get("height") or 0)
-                        res = best.get("height", "")
-                        label = f"{title} ({res}p)" if res else title
-                        _append_source(sources, best["url"], label, "video")
-
-                if info.get("url"):
-                    src_type = "hls" if ".m3u8" in info["url"] else "video"
-                    label = f"{title} (HLS)" if src_type == "hls" else title
-                    _append_source(sources, info["url"], label, src_type)
-                _append_iframe_fallback(sources, url)
-        except Exception:
-            pass
-
-    # Fallback: parse HTML for stream URLs (meta tags, inline JSON, <source>/<video>)
-    if not sources:
-        try:
-            req = urllib.request.Request(url)
-            req.add_header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                content_type = resp.headers.get("Content-Type", "")
-                if "text/html" in content_type:
-                    html = resp.read().decode("utf-8", errors="replace")
-                    # 1. Look for url-json meta (Apple Events pattern)
-                    meta_match = re.search(r'property="url-json"\s+content="([^"]+)"', html)
-                    if not meta_match:
-                        meta_match = re.search(r'content="([^"]+)"\s+property="url-json"', html)
-                    if meta_match:
-                        try:
-                            json_url = meta_match.group(1)
-                            json_req = urllib.request.Request(json_url)
-                            json_req.add_header("User-Agent", "Mozilla/5.0")
-                            with urllib.request.urlopen(json_req, timeout=10) as json_resp:
-                                stream_data = json.loads(json_resp.read())
-                            # Navigate: {"videoSrc": {"hls": "url", ...}} or {"hls": "url"}
-                            src = stream_data.get("videoSrc") or stream_data
-                            for key in ("hls", "hlsASL", "dash", "mp4"):
-                                stream_url = src.get(key)
-                                if stream_url:
-                                    stype = "hls" if "hls" in key else ("dash" if "dash" in key else "video")
-                                    label = "HLS Stream" if stype == "hls" else key.upper()
-                                    _append_source(sources, stream_url, label, stype)
-                        except Exception:
-                            pass
-                    # 2. Regex: find .m3u8 URLs in HTML
-                    if not sources:
-                        for m in re.finditer(r'https?://[^\s"\'<>]+\.m3u8[^\s"\'<>]*', html):
-                            _append_source(sources, m.group(0), "HLS Stream", "hls")
-                    # 3. Regex: find .mpd URLs in HTML
-                    if not sources:
-                        for m in re.finditer(r'https?://[^\s"\'<>]+\.mpd[^\s"\'<>]*', html):
-                            _append_source(sources, m.group(0), "DASH Stream", "dash")
-                    # 4. og:video / twitter:player meta tags
-                    if not sources:
-                        for m in re.finditer(r'<meta[^>]+(?:og:video|twitter:player)[^>]+content="([^"]+)"', html):
-                            _append_source(sources, m.group(1), "Embedded Video", "video")
-                    # 5. <video src="..."> or <source src="...">
-                    if not sources:
-                        for m in re.finditer(r'<(?:video|source)[^>]+src="([^"]+\.(?:m3u8|mpd|mp4)[^"]*)"', html):
-                            _append_source(sources, m.group(1), "Video Source", "video")
-                elif "mpegurl" in content_type:
-                    sources.append({"url": url, "label": "HLS Stream", "type": "hls"})
-        except Exception:
-            pass
-
-    # Fallback: detect from response headers
-    if not sources:
-        try:
-            req = urllib.request.Request(url, method="HEAD")
-            req.add_header("User-Agent", "Mozilla/5.0")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                content_type = resp.headers.get("Content-Type", "")
-                if "mpegurl" in content_type:
-                    sources.append({"url": url, "label": "HLS Stream", "type": "hls"})
-                elif "dash" in content_type:
-                    sources.append({"url": url, "label": "DASH Stream", "type": "dash"})
-                elif "mp4" in content_type:
-                    sources.append({"url": url, "label": "MP4 Video", "type": "mp4"})
-                else:
-                    sources.append({"url": _iframe_fallback_url(url), "label": "Embed fallback", "type": "iframe"})
-        except Exception:
-            sources.append({"url": _iframe_fallback_url(url), "label": "Embed fallback", "type": "iframe"})
-    elif not used_extractor and sources[0].get("type") not in ("hls", "mp4", "video"):
-        _append_iframe_fallback(sources, url)
-
+    """Parse a URL into playable media sources."""
+    sources = parse_video_sources(body.url.strip())
     return {"ok": True, "sources": sources}
 
 
@@ -241,53 +89,59 @@ def discover_topics(body: DiscoverTopicsRequest):
     )
 
     try:
-        response = call_model(
-            model["model"],
-            [
-                {"role": "system", "content": "You are a video content discovery assistant. Return only valid JSON arrays."},
-                {"role": "user", "content": prompt},
-            ],
-            api_key=model.get("api_key", ""),
-            base_url=model.get("base_url"),
+        tags = call_model(
+            model,
+            "You are a video content discovery assistant. Return only valid JSON arrays.",
+            prompt,
         )
-        text = response.strip()
-        # Extract JSON array from response
-        match = re.search(r'\[.*\]', text, re.DOTALL)
-        if match:
-            tags = json.loads(match.group())
+        if isinstance(tags, list):
             return {"ok": True, "tags": [str(t) for t in tags[:5]]}
         return {"ok": False, "error": "AI did not return valid JSON"}
     except Exception as e:
         return {"ok": False, "error": _safe_text(e)}
 
 
-# ── Search Videos ──
+# ── Search Videos / Resolve Follow Sources ──
 
 class SearchVideosRequest(BaseModel):
-    mode: str  # "live" | "topic"
-    keyword: str
-    tags: list[str] = []
+    mode: Literal["live", "topic", "creator"]
+    keyword: str = ""
+    tags: list[str] = Field(default_factory=list)
     platform: str = "auto"
+    quality: str = "auto"
+    feedUrl: str = ""
+    discoveryProviders: list[str] = Field(default_factory=list)
+    liveKind: str = ""
 
 
 @router.post("/search-videos")
 def search_videos(body: SearchVideosRequest):
-    """Search for videos matching a topic/live follow using yt-dlp."""
-    content_type = "live" if body.mode == "live" else "video"
-    topic = {
-        "keyword": body.keyword,
-        "selectedTags": body.tags,
-        "contentType": content_type,
-        "followMode": body.mode,
-    }
+    """Discover or search sources for a follow rule. Returns VideoSource[] with origin stamped."""
     try:
-        sources = search_videos_for_topic(topic)
+        rule = body.model_dump()
+
+        if body.mode == "live":
+            sources = discover_live_sources(rule)
+        elif body.mode == "creator":
+            if not body.feedUrl.strip():
+                raise HTTPException(status_code=400, detail="feedUrl is required for creator mode")
+            sources = fetch_latest_from_feed(rule)
+        else:
+            sources = search_topic_videos(rule)
+
+        for s in sources:
+            s["origin"] = "follow"
+            s["followMode"] = body.mode
+            s.setdefault("health", "ok")
+
         return {"ok": True, "sources": sources}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"ok": False, "error": _safe_text(e)}
 
 
-# ── Search Creators ──
+# ── Search Creators (legacy helper) ──
 
 class SearchCreatorsRequest(BaseModel):
     keyword: str
@@ -295,12 +149,27 @@ class SearchCreatorsRequest(BaseModel):
 
 @router.post("/search-creators")
 def search_creators_endpoint(body: SearchCreatorsRequest):
-    """Search for channels/creators matching a keyword."""
+    """Search for channels/creators matching a keyword. Legacy helper — creator follow uses RSS/feed."""
     try:
         channels = search_creators(body.keyword)
         return {"ok": True, "channels": channels}
     except Exception as e:
         return {"ok": False, "error": _safe_text(e)}
+
+
+# ── Parse RSS ──
+
+class ParseRssRequest(BaseModel):
+    url: str
+
+
+@router.post("/parse-rss")
+def parse_rss(body: ParseRssRequest):
+    """Fetch the latest entry from an RSS/Atom feed."""
+    result = fetch_latest_from_rss(body.url.strip())
+    if not result:
+        return {"ok": False, "error": "No entries found or feed unreachable"}
+    return {"ok": True, "entry": result}
 
 
 # ── Stat API Proxy ──
@@ -318,7 +187,6 @@ def stat_api(body: StatApiRequest):
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
 
-        # Extract value using dot-notation path
         value = data
         if body.json_path:
             for key in body.json_path.split("."):
@@ -351,7 +219,6 @@ def stream_proxy(url: str, request: Request):
             content_type = resp.headers.get("Content-Type", "application/octet-stream")
             is_manifest = "mpegurl" in content_type or urlparse(url).path.lower().endswith(".m3u8")
 
-            # For m3u8 manifests: rewrite relative segment URLs to go through proxy
             if is_manifest:
                 body = resp.read()
                 content_type = "application/vnd.apple.mpegurl"
@@ -370,11 +237,8 @@ def stream_proxy(url: str, request: Request):
                     return proxied(abs_url)
 
                 text = re.sub(r'^(?!#)(.+\.ts.*)$', rewrite_segment, text, flags=re.MULTILINE)
-                # Also rewrite sub-manifests (variant playlists)
                 text = re.sub(r'^(?!#)(.+\.m3u8.*)$', rewrite_segment, text, flags=re.MULTILINE)
-                # Rewrite .mp4 segments (Shaka-packager style)
                 text = re.sub(r'^(?!#)(.+\.mp4)$', rewrite_segment, text, flags=re.MULTILINE)
-                # Rewrite URI="..." attributes in HLS tags (init segments, audio manifests, etc.)
                 def rewrite_uri_attr(m):
                     seg = m.group(1)
                     if seg.startswith("http"):

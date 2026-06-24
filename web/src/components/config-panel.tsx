@@ -5,12 +5,12 @@ import { useDashboardStore } from "@/dashboard/dashboard-store";
 import type { WidgetType } from "@/dashboard/dashboard-types";
 import { appendVideoSource, normalizeParsedVideoSource, type VideoSource } from "@/widgets/embed/video-source-label";
 import type { FollowRule } from "@/widgets/embed/video-source-label";
-import { followRuleIdentity, normalizeEmbedConfig } from "@/components/config/source-mode-selector";
+import { normalizeEmbedConfig } from "@/components/config/source-mode-selector";
 import {
   fetchDomains, fetchMembers, fetchSources,
   createDomain, updateDomain, deleteDomain,
   createSource, deleteSource, updateSource,
-  aiSuggestDates, aiParseVideo, aiStatApi,
+  aiSuggestDates, aiParseVideo, aiSearchVideos, aiStatApi,
   fetchSourcesLibrary, triggerDomainPipeline, applyDomainPreset, saveWidgetConfig,
   type DomainItem, type MemberItem, type SourceItem,
   type LibraryDoc,
@@ -69,6 +69,8 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
 
   // Embed follow rule
   const [followRule, setFollowRule] = useState<FollowRule>({ mode: "manual" });
+  const [followResolving, setFollowResolving] = useState(false);
+  const [followResolveMsg, setFollowResolveMsg] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   // Sources library
   const [library, setLibrary] = useState<LibraryDoc | null>(null);
@@ -170,12 +172,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
     }
 
     if (widgetType === "embed") {
-      const initialFollowRule = normalizeEmbedConfig(initialConfig).followRule;
-      if (followRuleIdentity(initialFollowRule) !== followRuleIdentity(followRule)) {
-        configPatch.sources = sources.filter((s) => s.origin !== "follow");
-      } else {
-        configPatch.sources = sources.filter((s) => s.url.trim() !== "");
-      }
+      configPatch.sources = sources.filter((s) => s.url.trim() !== "");
       configPatch.followRule = followRule;
     }
     if (widgetType === "clock") {
@@ -262,6 +259,64 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
       setEmbedParsing(false);
     }
   }, [embedUrl]);
+
+  // Resolve follow sources immediately
+  const handleResolveFollow = useCallback(async () => {
+    if (followRule.mode === "manual") return;
+    setFollowResolving(true);
+    setFollowResolveMsg(null);
+    try {
+      const input: Parameters<typeof aiSearchVideos>[0] = {
+        mode: followRule.mode,
+        keyword: followRule.keyword,
+        tags: followRule.tags,
+      };
+      if (followRule.mode === "topic") input.platform = followRule.platform;
+      if (followRule.mode === "live") {
+        input.quality = followRule.quality;
+        input.discoveryProviders = followRule.discoveryProviders;
+        input.liveKind = followRule.liveKind;
+      }
+      if (followRule.mode === "creator") {
+        if (!followRule.feedUrl?.trim()) {
+          setFollowResolveMsg({ type: "err", msg: "Enter a feed URL first" });
+          return;
+        }
+        input.feedUrl = followRule.feedUrl;
+      }
+
+      const res = await aiSearchVideos(input);
+      if (!res?.ok) {
+        setFollowResolveMsg({ type: "err", msg: res?.error || "Request failed" });
+        return;
+      }
+      const discovered = res.sources ?? [];
+      if (discovered.length === 0) {
+        setFollowResolveMsg({ type: "err", msg: "No playable sources found" });
+        return;
+      }
+
+      const manual = sources.filter((s) => s.origin !== "follow");
+      const seen = new Set(manual.map((s) => s.url));
+      const follow: VideoSource[] = [];
+      for (const s of discovered) {
+        if (seen.has(s.url)) continue;
+        seen.add(s.url);
+        follow.push({
+          ...s,
+          origin: "follow",
+          followMode: followRule.mode,
+          health: (s as Record<string, unknown>).health as string ?? "ok",
+        } as VideoSource);
+      }
+      setSources([...manual, ...follow]);
+      setFollowResolveMsg({ type: "ok", msg: `Added ${follow.length} source${follow.length > 1 ? "s" : ""}` });
+    } catch {
+      setFollowResolveMsg({ type: "err", msg: "Request failed" });
+    } finally {
+      setFollowResolving(false);
+    }
+  }, [followRule, sources]);
 
   // Clock entries
   const addClock = () => setClocks((p) => [...p, { label: "", tz: "UTC" }]);
@@ -356,6 +411,9 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
               placeholderLabel={t("config.embed.placeholder")}
               followRule={followRule}
               setFollowRule={setFollowRule}
+              onResolveFollow={handleResolveFollow}
+              followResolving={followResolving}
+              followResolveMsg={followResolveMsg}
             />
           )}
 

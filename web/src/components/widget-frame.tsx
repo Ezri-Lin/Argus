@@ -94,7 +94,7 @@ export function WidgetFrame({
             className="drag-handle"
             style={{ position: "absolute", inset: "1px 0 auto", height: 26, cursor: "grab", zIndex: 2 }}
           />
-        ) : (
+        ) : widget.title ? (
           <div
             className="drag-handle flex items-center"
             style={{
@@ -138,6 +138,11 @@ export function WidgetFrame({
               {staleAge ?? widget.updatedAt}
             </span>
           </div>
+        ) : (
+          <div
+            className="drag-handle"
+            style={{ position: "absolute", inset: "1px 0 auto", height: 26, cursor: "grab", zIndex: 2 }}
+          />
         )}
 
         {/* Hover controls — absolute, top-right corner */}
@@ -168,7 +173,7 @@ export function WidgetFrame({
         {/* Content area */}
         <div
           className="widget-content flex-1 min-h-0 overflow-hidden"
-          style={{ padding: contentOwnsHeader ? "10px 10px 10px" : "0 14px 14px" }}
+          style={{ padding: contentOwnsHeader ? "10px 10px 10px" : widget.title ? "0 14px 14px" : "10px 14px 14px" }}
         >
           {children}
         </div>

@@ -18,6 +18,7 @@ import type {
   AiTopicsResult,
   AiSearchVideosResult,
   AiCreatorsResult,
+  AiParseRssResult,
   AiStatResult,
   SearchProvider,
   SearchLog,
@@ -48,6 +49,7 @@ export type {
   AiTopicsResult,
   AiSearchVideosResult,
   AiCreatorsResult,
+  AiParseRssResult,
   AiStatResult,
   MemberProgress,
   PipelineProgress,
@@ -301,14 +303,25 @@ export async function aiDiscoverTopics(
   return apiFetch("/ai/discover-topics", jsonBody("POST", { keyword, contentType }));
 }
 
-export async function aiSearchVideos(
-  mode: "live" | "topic", keyword: string, tags: string[], platform = "auto"
-): Promise<AiSearchVideosResult | null> {
-  return apiFetch("/ai/search-videos", jsonBody("POST", { mode, keyword, tags, platform }));
+export async function aiSearchVideos(input: {
+  mode: "live" | "topic" | "creator";
+  keyword?: string;
+  tags?: string[];
+  platform?: string;
+  quality?: string;
+  feedUrl?: string;
+  discoveryProviders?: string[];
+  liveKind?: string;
+}): Promise<AiSearchVideosResult | null> {
+  return apiFetch("/ai/search-videos", jsonBody("POST", input));
 }
 
 export async function aiSearchCreators(keyword: string): Promise<AiCreatorsResult | null> {
   return apiFetch("/ai/search-creators", jsonBody("POST", { keyword }));
+}
+
+export async function aiParseRss(url: string): Promise<AiParseRssResult | null> {
+  return apiFetch("/ai/parse-rss", jsonBody("POST", { url }));
 }
 
 export async function translateSubtitles(

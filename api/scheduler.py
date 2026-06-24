@@ -245,7 +245,10 @@ def _refresh_follow_sources():
 
     try:
         from db import get_db
-        from services.video_sources import search_videos_for_topic, search_videos_for_creator
+        from services.video_sources import (
+            fetch_latest_from_feed, search_topic_videos, only_newer_than_current,
+        )
+        from services.live_discovery import discover_live_sources
 
         conn = get_db(_db_path)
         row = conn.execute("SELECT doc, updated_at FROM dashboard WHERE id = 'default'").fetchone()
@@ -277,39 +280,18 @@ def _refresh_follow_sources():
                 if mode == "live":
                     if current and current.get("health") == "ok":
                         continue
-                    results = search_videos_for_topic({
-                        "keyword": follow_rule.get("keyword", ""),
-                        "selectedTags": follow_rule.get("tags", []),
-                        "contentType": "live",
-                        "followMode": "live",
-                    })
-                    results = results[:3]
+                    results = discover_live_sources(follow_rule)
 
                 elif mode == "creator":
-                    if not follow_rule.get("channelUrl") and not follow_rule.get("channelId"):
+                    if not follow_rule.get("feedUrl"):
                         continue
-                    results = search_videos_for_creator(follow_rule)
-                    # Only replace if newer
-                    if current and current.get("health") == "ok":
-                        current_pub = current.get("publishedAt")
-                        if current_pub:
-                            newer = [r for r in results if r.get("publishedAt") and r["publishedAt"] > current_pub]
-                            results = newer[:1]
-                        else:
-                            results = []
-                    else:
-                        results = results[:1]
+                    results = fetch_latest_from_feed(follow_rule)
+                    results = only_newer_than_current(results, current)
 
                 elif mode == "topic":
                     if current and current.get("health") == "ok":
                         continue
-                    results = search_videos_for_topic({
-                        "keyword": follow_rule.get("keyword", ""),
-                        "selectedTags": follow_rule.get("tags", []),
-                        "contentType": "video",
-                        "followMode": "topic",
-                    })
-                    results = results[:3]
+                    results = search_topic_videos(follow_rule)
 
                 if results:
                     for s in results:

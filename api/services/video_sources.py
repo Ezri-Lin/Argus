@@ -521,3 +521,250 @@ def search_videos_for_creator(rule: dict) -> list[dict]:
     sources_with_date.sort(key=lambda s: s["publishedAt"], reverse=True)
 
     return (sources_with_date + sources_without_date)[:5]
+
+
+# ── RSS latest video ──
+
+def fetch_latest_from_rss(rss_url: str) -> dict | None:
+    """Fetch the latest entry from an RSS/Atom feed.
+
+    Returns {title, url, published, channelName} or None if no entries.
+    """
+    try:
+        import feedparser
+    except ImportError:
+        logger.warning("feedparser not installed")
+        return None
+
+    try:
+        req = urllib.request.Request(rss_url)
+        req.add_header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            content = resp.read()
+        feed = feedparser.parse(content)
+        if not feed.entries:
+            return None
+        entry = feed.entries[0]
+        title = entry.get("title", "Video")
+        link = entry.get("link", "")
+        published = entry.get("published", "")
+        channel_name = ""
+        if hasattr(feed, "feed"):
+            channel_name = getattr(feed.feed, "title", "") or ""
+        return {
+            "title": title,
+            "url": link,
+            "published": published,
+            "channelName": channel_name,
+        }
+    except Exception as e:
+        logger.warning("RSS fetch error for %s: %s", rss_url, e)
+        return None
+
+
+# ── Topic scoring ──
+
+def score_topic_candidate(item: dict, rule: dict) -> tuple[int, list[str]]:
+    """Score a yt-dlp topic search result. Returns (score, reasons)."""
+    keyword = rule.get("keyword", "").lower()
+    tags = [t.lower() for t in rule.get("selectedTags", rule.get("tags", []))]
+    score = 0
+    reasons = []
+
+    title = (item.get("title") or "").lower()
+    description = (item.get("description") or "").lower()[:500]
+
+    # Playable
+    score += 100
+    reasons.append("playable")
+
+    # Keyword in title
+    if keyword and keyword in title:
+        score += 40
+        reasons.append("keyword_in_title")
+    elif keyword and keyword in description:
+        score += 10
+        reasons.append("keyword_in_desc")
+
+    # Tag matches
+    for tag in tags:
+        if tag in title:
+            score += 20
+            reasons.append(f"tag_in_title:{tag}")
+        elif tag in description:
+            score += 5
+            reasons.append(f"tag_in_desc:{tag}")
+
+    # Recency
+    upload_date = item.get("upload_date", "")
+    if upload_date and len(upload_date) == 8:
+        from datetime import date
+        try:
+            vid_date = date(int(upload_date[:4]), int(upload_date[4:6]), int(upload_date[6:]))
+            days_old = (date.today() - vid_date).days
+            if days_old <= 1:
+                score += 40
+                reasons.append("within_24h")
+            elif days_old <= 7:
+                score += 25
+                reasons.append("within_7d")
+            elif days_old <= 30:
+                score += 10
+                reasons.append("within_30d")
+        except (ValueError, TypeError):
+            pass
+
+    # View count
+    view_count = item.get("view_count") or 0
+    if view_count > 1_000_000:
+        score += 20
+        reasons.append("high_views")
+    elif view_count > 100_000:
+        score += 10
+        reasons.append("medium_views")
+
+    # Live penalty
+    is_live = item.get("is_live")
+    live_status = item.get("live_status")
+    if is_live or live_status in ("is_live", "is_upcoming"):
+        score -= 100
+        reasons.append("live_penalty")
+
+    return score, reasons
+
+
+def search_topic_videos(rule: dict) -> list[dict]:
+    """Search topic videos with scoring. Returns top 1-3 scored sources.
+
+    Args:
+        rule: {keyword, tags?, platform?}
+    """
+    # Build search topic dict
+    topic = {
+        "keyword": rule.get("keyword", ""),
+        "selectedTags": rule.get("tags", []),
+        "contentType": "video",
+        "followMode": "topic",
+    }
+
+    keyword = topic["keyword"]
+    tags = topic["selectedTags"]
+    platform = rule.get("platform", "auto")
+
+    queries = [f"{keyword} {tag}" for tag in tags] or [keyword]
+    all_items = []
+
+    for q in queries:
+        try:
+            cmd = ["yt-dlp", "-j", "--no-download", f"ytsearch5:{q}"]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            if result.returncode != 0:
+                continue
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    all_items.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        except Exception:
+            continue
+
+    # Filter out live
+    filtered = []
+    for item in all_items:
+        is_live = item.get("is_live")
+        live_status = item.get("live_status")
+        if is_live or live_status in ("is_live", "is_upcoming"):
+            continue
+
+        # Platform filter
+        extractor = item.get("extractor", "")
+        if platform == "youtube" and "bilibili" in extractor:
+            continue
+        if platform == "bilibili" and "bilibili" not in extractor:
+            continue
+
+        source = _build_source_from_item(item, "video", "topic")
+        if source:
+            score, reasons = score_topic_candidate(item, rule)
+            source["score"] = score
+            source["scoreReason"] = reasons
+            filtered.append(source)
+
+    # Dedupe by URL
+    seen = set()
+    deduped = []
+    for s in filtered:
+        if s["url"] not in seen:
+            seen.add(s["url"])
+            deduped.append(s)
+
+    # Sort by score
+    deduped.sort(key=lambda s: s.get("score", 0), reverse=True)
+
+    return deduped[:3]
+
+
+# ── Feed-based creator ──
+
+def fetch_latest_from_feed(rule: dict) -> list[dict]:
+    """Fetch latest video from a creator's RSS/feed.
+
+    Args:
+        rule: {feedUrl?, keyword?}
+
+    Returns:
+        List of 0-1 VideoSource dicts with origin="follow", followMode="creator".
+    """
+    feed_url = rule.get("feedUrl", "")
+    if not feed_url:
+        return []
+
+    entry = fetch_latest_from_rss(feed_url)
+    if not entry or not entry.get("url"):
+        return []
+
+    # Parse the entry link for playable sources
+    try:
+        sources = parse_video_sources(entry["url"])
+    except Exception:
+        sources = []
+
+    if not sources:
+        return []
+
+    # Use the best source (first one)
+    best = sources[0]
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+
+    return [{
+        "url": best["url"],
+        "label": entry.get("title", best.get("label", "Video")),
+        "type": best.get("type", "video"),
+        "originalUrl": entry["url"],
+        "discoveryUrl": feed_url,
+        "sourceKind": "page",
+        "origin": "follow",
+        "followMode": "creator",
+        "health": "ok",
+        "channelName": entry.get("channelName", ""),
+        "publishedAt": entry.get("published", ""),
+        "lastResolvedAt": now,
+        "lastCheckedAt": now,
+    }]
+
+
+def only_newer_than_current(results: list[dict], current: dict | None) -> list[dict]:
+    """Filter results to only newer than current. Used by creator follow."""
+    if not current:
+        return results[:1]
+    if current.get("health") in ("stale", "dead"):
+        return results[:1]
+    current_published = current.get("publishedAt")
+    if not current_published:
+        return []
+    newer = [r for r in results if r.get("publishedAt") and r["publishedAt"] > current_published]
+    return newer[:1]

@@ -4,6 +4,7 @@ export type VideoSourceHealth = "ok" | "stale" | "dead";
 export type VideoSourceOrigin = "manual" | "follow";
 export type VideoFollowMode = "live" | "creator" | "topic";
 export type VideoContentType = "live" | "video";
+export type StreamSourceKind = "m3u8" | "dash" | "platform" | "page" | "direct";
 export type FailureReason =
   | "network_error" | "timeout" | "http_403" | "http_404"
   | "reparse_empty" | "no_original_url" | "unknown";
@@ -14,6 +15,8 @@ export type VideoSource = {
   type?: VideoSourceType;
   fullLabel?: string;
   originalUrl?: string;
+  discoveryUrl?: string;
+  sourceKind?: StreamSourceKind;
   health?: VideoSourceHealth;
   origin?: VideoSourceOrigin;
   followMode?: VideoFollowMode;
@@ -22,6 +25,14 @@ export type VideoSource = {
   channelId?: string;
   channelName?: string;
   publishedAt?: string;
+  width?: number;
+  height?: number;
+  bandwidth?: number;
+  fps?: number;
+  expiresAt?: string;
+  stability?: "stable" | "volatile" | "unknown";
+  score?: number;
+  scoreReason?: string[];
   lastCheckedAt?: string;
   lastResolvedAt?: string;
   failureReason?: FailureReason;
@@ -29,9 +40,25 @@ export type VideoSource = {
 
 export type FollowRule =
   | { mode: "manual" }
-  | { mode: "live"; keyword: string; tags: string[]; platform?: "auto" | "youtube" | "bilibili"; quality?: "auto" | "1080p" | "4k" }
-  | { mode: "creator"; keyword: string; channelId?: string; channelUrl?: string; channelName?: string; platform?: "auto" | "youtube" | "bilibili" }
-  | { mode: "topic"; keyword: string; tags: string[]; platform?: "auto" | "youtube" | "bilibili" };
+  | {
+      mode: "live";
+      keyword: string;
+      tags: string[];
+      quality?: "auto" | "1080p" | "4k";
+      discoveryProviders?: Array<"direct" | "web" | "github" | "iptv_list" | "tavily" | "ai" | "official" | "youtube" | "bilibili">;
+      liveKind?: "stable_channel" | "event_live";
+    }
+  | {
+      mode: "creator";
+      keyword: string;
+      feedUrl?: string;
+    }
+  | {
+      mode: "topic";
+      keyword: string;
+      tags: string[];
+      platform?: "auto" | "youtube" | "bilibili";
+    };
 
 function sourceTypeFromUrl(url: string): VideoSourceType | undefined {
   if (/\.m3u8(\?|$)/i.test(url)) return "hls";

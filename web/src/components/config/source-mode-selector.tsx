@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { color, radius } from "@/design/tokens";
 import type { FollowRule, VideoSource } from "@/widgets/embed/video-source-label";
-import { aiDiscoverTopics, aiSearchCreators } from "@/dashboard/api";
-import { inputStyle, smallInput, btnPrimary, btnSecondary, btnGhost } from "./config-styles";
+import { aiDiscoverTopics, aiParseRss } from "@/dashboard/api";
+import { smallInput, btnPrimary, btnSecondary } from "./config-styles";
 
 export function followRuleIdentity(rule: FollowRule): string {
   switch (rule.mode) {
@@ -12,16 +12,15 @@ export function followRuleIdentity(rule: FollowRule): string {
         mode: "live",
         keyword: rule.keyword.trim(),
         tags: [...rule.tags].map((t) => t.trim()).filter(Boolean).sort(),
-        platform: rule.platform ?? "auto",
         quality: rule.quality ?? "auto",
+        liveKind: rule.liveKind ?? "event_live",
+        discoveryProviders: [...(rule.discoveryProviders ?? [])].sort(),
       });
     case "creator":
       return JSON.stringify({
         mode: "creator",
         keyword: rule.keyword.trim(),
-        channelId: rule.channelId,
-        channelUrl: rule.channelUrl,
-        platform: rule.platform ?? "auto",
+        feedUrl: rule.feedUrl ?? "",
       });
     case "topic":
       return JSON.stringify({
@@ -78,7 +77,6 @@ export function SourceModeSelector({ followRule, setFollowRule }: Props) {
         Source Mode
       </label>
 
-      {/* Radio buttons */}
       <div className="flex gap-1.5" style={{ marginBottom: 10 }}>
         {MODES.map((m) => {
           const active = followRule.mode === m.value;
@@ -109,7 +107,6 @@ export function SourceModeSelector({ followRule, setFollowRule }: Props) {
         })}
       </div>
 
-      {/* Mode-specific fields */}
       {followRule.mode === "live" && (
         <LiveFields rule={followRule} onChange={setFollowRule} />
       )}
@@ -129,17 +126,24 @@ function LiveFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "liv
   const [suggested, setSuggested] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set(rule.tags));
   const [discovering, setDiscovering] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   const handleDiscover = useCallback(async () => {
     const kw = rule.keyword.trim();
     if (!kw) return;
     setDiscovering(true);
     setSuggested([]);
+    setFeedback(null);
     try {
       const res = await aiDiscoverTopics(kw, "live");
-      if (res?.ok && res.tags) {
+      if (res?.ok && res.tags && res.tags.length > 0) {
         setSuggested(res.tags);
+        setFeedback({ type: "ok", msg: `Found ${res.tags.length} topics` });
+      } else {
+        setFeedback({ type: "err", msg: res?.error || "No topics found" });
       }
+    } catch {
+      setFeedback({ type: "err", msg: "Request failed" });
     } finally {
       setDiscovering(false);
     }
@@ -164,13 +168,46 @@ function LiveFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "liv
           value={rule.keyword}
           onChange={(e) => onChange({ ...rule, keyword: e.target.value })}
           onKeyDown={(e) => { if (e.key === "Enter") handleDiscover(); }}
-          placeholder="e.g. World Cup"
+          placeholder="e.g. World Cup, IPTV news"
           style={{ ...smallInput, flex: 1 }}
         />
         <button onClick={handleDiscover} disabled={discovering || !rule.keyword.trim()} style={{ ...btnSecondary, opacity: discovering ? 0.6 : 1 }}>
           {discovering ? "..." : "Discover"}
         </button>
       </div>
+
+      {/* Quality + liveKind */}
+      <div className="flex gap-2" style={{ marginTop: 8 }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ fontSize: 10, color: color.textMuted, marginBottom: 3, display: "block" }}>Quality</label>
+          <select
+            value={rule.quality ?? "auto"}
+            onChange={(e) => onChange({ ...rule, quality: e.target.value as "auto" | "1080p" | "4k" })}
+            style={{ ...smallInput, width: "100%" }}
+          >
+            <option value="auto">Auto</option>
+            <option value="1080p">1080p</option>
+            <option value="4k">4K</option>
+          </select>
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={{ fontSize: 10, color: color.textMuted, marginBottom: 3, display: "block" }}>Type</label>
+          <select
+            value={rule.liveKind ?? "event_live"}
+            onChange={(e) => onChange({ ...rule, liveKind: e.target.value as "stable_channel" | "event_live" })}
+            style={{ ...smallInput, width: "100%" }}
+          >
+            <option value="event_live">Event / Match</option>
+            <option value="stable_channel">Stable Channel</option>
+          </select>
+        </div>
+      </div>
+
+      {feedback && (
+        <div style={{ marginTop: 6, fontSize: 10, color: feedback.type === "ok" ? color.pos : color.neg }}>
+          {feedback.msg}
+        </div>
+      )}
       {suggested.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>Select topics to follow:</div>
@@ -212,99 +249,73 @@ function LiveFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "liv
   );
 }
 
-// ── Creator mode ──
-
-type Channel = { id: string; name: string; url: string; thumbnail: string; platform: string };
+// ── Creator mode (feed/RSS) ──
 
 function CreatorFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "creator" }>; onChange: (r: FollowRule) => void }) {
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selectedIdx, setSelectedIdx] = useState(-1);
+  const [rssUrl, setRssUrl] = useState(rule.feedUrl ?? "");
+  const [fetching, setFetching] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [latestEntry, setLatestEntry] = useState<{ title: string; url: string; published: string; channelName: string } | null>(null);
 
-  const handleSearch = useCallback(async () => {
-    const kw = rule.keyword.trim();
-    if (!kw) return;
-    setSearching(true);
-    setChannels([]);
-    setSelectedIdx(-1);
+  const handleFetch = useCallback(async () => {
+    const url = rssUrl.trim();
+    if (!url) return;
+    setFetching(true);
+    setFeedback(null);
+    setLatestEntry(null);
     try {
-      const res = await aiSearchCreators(kw);
-      if (res?.ok && res.channels) {
-        setChannels(res.channels);
+      const res = await aiParseRss(url);
+      if (res?.ok && res.entry) {
+        setLatestEntry(res.entry);
+        setFeedback({ type: "ok", msg: res.entry.channelName ? `Channel: ${res.entry.channelName}` : "Feed loaded" });
+        onChange({
+          ...rule,
+          keyword: res.entry.channelName || url,
+          feedUrl: url,
+        });
+      } else {
+        setFeedback({ type: "err", msg: res?.error || "Feed unreachable" });
       }
+    } catch {
+      setFeedback({ type: "err", msg: "Request failed" });
     } finally {
-      setSearching(false);
+      setFetching(false);
     }
-  }, [rule.keyword]);
-
-  const selectChannel = (idx: number) => {
-    const ch = channels[idx];
-    if (!ch) return;
-    setSelectedIdx(idx);
-    onChange({
-      ...rule,
-      channelId: ch.id,
-      channelUrl: ch.url,
-      channelName: ch.name,
-      platform: ch.platform as "auto" | "youtube" | "bilibili" | undefined,
-    });
-  };
-
-  const hasChannel = !!(rule.channelId || rule.channelUrl);
+  }, [rssUrl, rule, onChange]);
 
   return (
     <div style={{ padding: 10, background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
       <div className="flex items-center gap-2">
         <input
-          value={rule.keyword}
-          onChange={(e) => onChange({ ...rule, keyword: e.target.value })}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-          placeholder="e.g. Linus Tech Tips"
+          value={rssUrl}
+          onChange={(e) => setRssUrl(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleFetch(); }}
+          placeholder="RSS/RSSHub feed URL"
           style={{ ...smallInput, flex: 1 }}
         />
-        <button onClick={handleSearch} disabled={searching || !rule.keyword.trim()} style={{ ...btnSecondary, opacity: searching ? 0.6 : 1 }}>
-          {searching ? "..." : "Search"}
+        <button onClick={handleFetch} disabled={fetching || !rssUrl.trim()} style={{ ...btnSecondary, opacity: fetching ? 0.6 : 1 }}>
+          {fetching ? "..." : "Fetch"}
         </button>
       </div>
-
-      {!hasChannel && (
-        <div style={{ marginTop: 6, fontSize: 10, color: "#f59e0b" }}>
-          Select a channel to enable follow
+      {feedback && (
+        <div style={{ marginTop: 6, fontSize: 10, color: feedback.type === "ok" ? color.pos : color.neg }}>
+          {feedback.msg}
         </div>
       )}
-
-      {hasChannel && (
+      {latestEntry && (
         <div style={{ marginTop: 8, padding: "6px 8px", background: color.surfaceElev, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: color.textPrimary }}>{rule.channelName}</div>
-          <div style={{ fontSize: 10, color: color.textMuted, marginTop: 2 }}>{rule.channelUrl}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: color.textPrimary }}>{latestEntry.title}</div>
+          {latestEntry.published && (
+            <div style={{ fontSize: 10, color: color.textMuted, marginTop: 2 }}>{latestEntry.published}</div>
+          )}
+          <div style={{ fontSize: 10, color: color.textMuted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {latestEntry.url}
+          </div>
         </div>
       )}
-
-      {channels.length > 0 && (
-        <div className="flex flex-col gap-1.5" style={{ marginTop: 10, maxHeight: 150, overflowY: "auto" }}>
-          {channels.map((ch, i) => {
-            const sel = i === selectedIdx;
-            return (
-              <button
-                key={`${ch.id}-${i}`}
-                onClick={() => selectChannel(i)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, width: "100%",
-                  padding: "6px 8px", fontSize: 12, textAlign: "left",
-                  color: sel ? color.textPrimary : color.textSecondary,
-                  background: sel ? color.surfaceElev : "transparent",
-                  border: `1px solid ${sel ? color.textMuted : color.hairline}`,
-                  borderRadius: radius.inner, cursor: "pointer",
-                }}
-              >
-                {ch.thumbnail && (
-                  <img src={ch.thumbnail} alt="" style={{ width: 24, height: 24, borderRadius: 999, objectFit: "cover" }} />
-                )}
-                <span className="flex-1 truncate" style={{ fontWeight: sel ? 600 : 400 }}>{ch.name}</span>
-                <span style={{ fontSize: 9, color: color.textMuted, textTransform: "uppercase" }}>{ch.platform}</span>
-              </button>
-            );
-          })}
+      {!rule.feedUrl && !feedback && (
+        <div style={{ marginTop: 6, fontSize: 10, color: "#f59e0b" }}>
+          Enter a feed/RSS/RSSHub URL to enable creator follow
         </div>
       )}
     </div>
@@ -317,17 +328,24 @@ function TopicFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "to
   const [suggested, setSuggested] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set(rule.tags));
   const [discovering, setDiscovering] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   const handleDiscover = useCallback(async () => {
     const kw = rule.keyword.trim();
     if (!kw) return;
     setDiscovering(true);
     setSuggested([]);
+    setFeedback(null);
     try {
       const res = await aiDiscoverTopics(kw, "video");
-      if (res?.ok && res.tags) {
+      if (res?.ok && res.tags && res.tags.length > 0) {
         setSuggested(res.tags);
+        setFeedback({ type: "ok", msg: `Found ${res.tags.length} topics` });
+      } else {
+        setFeedback({ type: "err", msg: res?.error || "No topics found" });
       }
+    } catch {
+      setFeedback({ type: "err", msg: "Request failed" });
     } finally {
       setDiscovering(false);
     }
@@ -352,13 +370,33 @@ function TopicFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "to
           value={rule.keyword}
           onChange={(e) => onChange({ ...rule, keyword: e.target.value })}
           onKeyDown={(e) => { if (e.key === "Enter") handleDiscover(); }}
-          placeholder="e.g. cooking recipes"
+          placeholder="e.g. AI news, cooking recipes"
           style={{ ...smallInput, flex: 1 }}
         />
         <button onClick={handleDiscover} disabled={discovering || !rule.keyword.trim()} style={{ ...btnSecondary, opacity: discovering ? 0.6 : 1 }}>
           {discovering ? "..." : "Discover"}
         </button>
       </div>
+
+      {/* Platform */}
+      <div style={{ marginTop: 8 }}>
+        <label style={{ fontSize: 10, color: color.textMuted, marginBottom: 3, display: "block" }}>Platform</label>
+        <select
+          value={rule.platform ?? "auto"}
+          onChange={(e) => onChange({ ...rule, platform: e.target.value as "auto" | "youtube" | "bilibili" })}
+          style={{ ...smallInput, width: "100%" }}
+        >
+          <option value="auto">Auto (YouTube + Bilibili)</option>
+          <option value="youtube">YouTube only</option>
+          <option value="bilibili">Bilibili only</option>
+        </select>
+      </div>
+
+      {feedback && (
+        <div style={{ marginTop: 6, fontSize: 10, color: feedback.type === "ok" ? color.pos : color.neg }}>
+          {feedback.msg}
+        </div>
+      )}
       {suggested.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>Select topics to follow:</div>
