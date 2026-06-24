@@ -5,6 +5,8 @@ import { ConfigPanel } from "@/components/config-panel";
 import { DetailPanel } from "@/components/detail-panel";
 import { MinimizedBar } from "@/components/minimized-bar";
 import { Toast } from "@/components/toast";
+import { Login } from "@/components/login";
+import { useAuth } from "@/lib/auth-context";
 import { useDashboardStore } from "@/dashboard/dashboard-store";
 import { t as i18nT } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -12,6 +14,8 @@ import type { DashboardWidget, WidgetType } from "@/dashboard/dashboard-types";
 import type { ToastType } from "@/components/toast";
 
 export default function App() {
+  const { apiKey } = useAuth();
+  if (!apiKey) return <Login />;
   const [configTarget, setConfigTarget] = useState<DashboardWidget | null>(null);
   const [creatingType, setCreatingType] = useState<WidgetType | null>(null);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);

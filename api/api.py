@@ -40,8 +40,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(ApiKeyMiddleware)
 
 # Register route modules
+from .auth import ApiKeyMiddleware
+from .routes_auth import router as auth_router
 from .routes_models import router as models_router
 from .routes_members import router as members_router
 from .routes_sources import router as sources_router
@@ -55,6 +58,7 @@ from .routes_budget import router as budget_router
 from .routes_widgets import router as widgets_router
 from .routes_subtitles import router as subtitles_router
 
+app.include_router(auth_router)
 app.include_router(models_router)
 app.include_router(members_router)
 app.include_router(sources_router)

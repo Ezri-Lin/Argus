@@ -82,6 +82,7 @@ const zh = {
   "settings.tab.search": "搜索",
   "settings.tab.status": "状态",
   "settings.tab.import": "导入",
+  "settings.tab.auth": "认证",
 
   // Settings — save
   "settings.save.button": "保存",
@@ -439,6 +440,29 @@ const zh = {
   "toast.dataUpdated": "数据更新完成",
   "toast.eventsFound": "发现 {n} 条事件",
   "toast.updateFailed": "更新失败",
+
+  // ── Auth tab ──
+  "auth.tab.status": "认证状态",
+  "auth.tab.enabled": "已启用",
+  "auth.tab.disabled": "未启用",
+  "auth.tab.enabledDesc": "API 请求需要 X-API-Key header",
+  "auth.tab.disabledDesc": "所有请求均可访问",
+  "auth.tab.changeKey": "修改密钥",
+  "auth.tab.setKey": "设置密钥",
+  "auth.tab.currentKey": "当前密钥",
+  "auth.tab.currentKeyPlaceholder": "输入当前密钥",
+  "auth.tab.newKey": "新密钥",
+  "auth.tab.newKeyPlaceholder": "输入新密钥",
+  "auth.tab.setKeyPlaceholder": "输入要设置的密钥",
+  "auth.tab.confirmKey": "确认密钥",
+  "auth.tab.confirmKeyPlaceholder": "再次输入新密钥",
+  "auth.tab.saveKey": "保存密钥",
+  "auth.tab.disable": "禁用认证",
+  "auth.tab.saving": "保存中...",
+  "auth.tab.saved": "已保存",
+  "auth.tab.failed": "保存失败",
+  "auth.tab.mismatch": "两次输入的密钥不一致",
+  "auth.tab.hint": "密钥为空 = 禁用认证。设置后需要重新登录。",
 } as const;
 
 const en: Record<keyof typeof zh, string> = {
@@ -877,6 +901,29 @@ const en: Record<keyof typeof zh, string> = {
   "toast.dataUpdated": "Data updated",
   "toast.eventsFound": "{n} events found",
   "toast.updateFailed": "Update failed",
+
+  // ── Auth tab ──
+  "auth.tab.status": "Auth Status",
+  "auth.tab.enabled": "Enabled",
+  "auth.tab.disabled": "Disabled",
+  "auth.tab.enabledDesc": "API requests require X-API-Key header",
+  "auth.tab.disabledDesc": "All requests are accessible",
+  "auth.tab.changeKey": "Change Key",
+  "auth.tab.setKey": "Set Key",
+  "auth.tab.currentKey": "Current Key",
+  "auth.tab.currentKeyPlaceholder": "Enter current key",
+  "auth.tab.newKey": "New Key",
+  "auth.tab.newKeyPlaceholder": "Enter new key",
+  "auth.tab.setKeyPlaceholder": "Enter key to set",
+  "auth.tab.confirmKey": "Confirm Key",
+  "auth.tab.confirmKeyPlaceholder": "Re-enter new key",
+  "auth.tab.saveKey": "Save Key",
+  "auth.tab.disable": "Disable Auth",
+  "auth.tab.saving": "Saving...",
+  "auth.tab.saved": "Saved",
+  "auth.tab.failed": "Save failed",
+  "auth.tab.mismatch": "Keys do not match",
+  "auth.tab.hint": "Empty key = disable auth. You'll need to re-login after changing.",
 };
 
 export type Lang = "zh" | "en";

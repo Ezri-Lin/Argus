@@ -69,12 +69,26 @@ export type {
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
+// ── Auth ──
+
+let _apiKey: string | null = null;
+
+export function setApiKey(key: string | null) { _apiKey = key; }
+
+function authHeaders(): Record<string, string> {
+  return _apiKey ? { "X-API-Key": _apiKey } : {};
+}
+
 // ── Fetch helpers ──
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
     const url = `${API_BASE}${path}`;
-    const res = await fetch(url, init);
+    const res = await fetch(url, { ...init, headers: { ...init?.headers, ...authHeaders() } });
+    if (res.status === 401) {
+      window.dispatchEvent(new Event("argus:unauthorized"));
+      return null;
+    }
     if (!res.ok) {
       console.warn("[apiFetch] not ok:", url, res.status);
       return null;
@@ -89,7 +103,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> 
 function jsonBody(method: string, body: unknown): RequestInit {
   return {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   };
 }
@@ -142,7 +156,7 @@ export async function updateModels(updates: Array<{ id: number; [k: string]: unk
 
 export async function deleteModel(id: number): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/models/${id}`, { method: "DELETE" });
+    const res = await fetch(`${API_BASE}/models/${id}`, { method: "DELETE", headers: authHeaders() });
     return res.ok;
   } catch {
     return false;
@@ -184,7 +198,7 @@ export async function updateDomain(key: string, patch: Record<string, unknown>):
 
 export async function deleteDomain(key: string): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/domains/${key}`, { method: "DELETE" });
+    const res = await fetch(`${API_BASE}/domains/${key}`, { method: "DELETE", headers: authHeaders() });
     return res.ok;
   } catch {
     return false;
@@ -245,7 +259,7 @@ export async function updateMember(id: number, patch: Record<string, unknown>): 
 
 export async function deleteMember(id: number): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/members/${id}`, { method: "DELETE" });
+    const res = await fetch(`${API_BASE}/members/${id}`, { method: "DELETE", headers: authHeaders() });
     return res.ok;
   } catch {
     return false;
@@ -269,7 +283,7 @@ export async function updateSource(id: number, patch: Record<string, unknown>): 
 
 export async function deleteSource(id: number): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/sources/${id}`, { method: "DELETE" });
+    const res = await fetch(`${API_BASE}/sources/${id}`, { method: "DELETE", headers: authHeaders() });
     return res.ok;
   } catch {
     return false;
@@ -452,4 +466,14 @@ export async function markNotificationsRead(ids?: number[]): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ── Auth config ──
+
+export async function fetchAuthConfig(): Promise<{ ok: boolean; auth_enabled: boolean } | null> {
+  return apiFetch("/auth/config");
+}
+
+export async function updateAuthConfig(currentKey: string, newKey: string): Promise<{ ok: boolean; auth_enabled?: boolean; error?: string } | null> {
+  return apiFetch("/auth/config", jsonBody("PUT", { current_key: currentKey, new_key: newKey }));
 }

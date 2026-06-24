@@ -14,10 +14,11 @@ import { SearchTab } from "./settings/search-tab";
 import { StatusTab } from "./settings/status-tab";
 import { ImportTab } from "./settings/import-tab";
 import { UpdatesTab } from "./settings/updates-tab";
+import { AuthTab } from "./settings/auth-tab";
 
-type Tab = "config" | "features" | "params" | "search" | "status" | "updates" | "import";
+type Tab = "config" | "features" | "params" | "search" | "status" | "updates" | "import" | "auth";
 
-const TAB_KEYS: Tab[] = ["config", "features", "params", "search", "status", "updates", "import"];
+const TAB_KEYS: Tab[] = ["config", "features", "params", "search", "status", "updates", "import", "auth"];
 
 type SettingsPanelProps = { onClose: () => void; onPipelineTriggered?: () => void };
 
@@ -34,6 +35,7 @@ export function SettingsPanel({ onClose, onPipelineTriggered }: SettingsPanelPro
     status: t("settings.tab.status"),
     updates: t("settings.tab.updates"),
     import: t("settings.tab.import"),
+    auth: t("settings.tab.auth"),
   };
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [modelsData, setModelsData] = useState<ModelsResponse | null>(null);
@@ -122,10 +124,11 @@ export function SettingsPanel({ onClose, onPipelineTriggered }: SettingsPanelPro
           {tab === "status" && <StatusTab health={health} />}
           {tab === "updates" && <UpdatesTab onPipelineTriggered={onPipelineTriggered} />}
           {tab === "import" && <ImportTab />}
+          {tab === "auth" && <AuthTab />}
         </div>
 
         {/* Bottom save bar -- hidden on status/updates tabs */}
-        {tab !== "status" && tab !== "updates" && (
+        {tab !== "status" && tab !== "updates" && tab !== "auth" && (
           <div className="flex items-center gap-3 px-5 py-3" style={{ borderTop: `1px solid ${color.hairline}` }}>
             <button
               onClick={handleSave}
