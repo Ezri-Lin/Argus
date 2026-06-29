@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { color, radius } from "@/design/tokens";
 import type { FollowRule, VideoSource } from "@/widgets/embed/video-source-label";
-import { aiDiscoverTopics, aiParseRss } from "@/dashboard/api";
-import { smallInput, btnPrimary, btnSecondary } from "./config-styles";
+import { aiParseRss } from "@/dashboard/api";
+import { smallInput, btnSecondary } from "./config-styles";
 
 export function followRuleIdentity(rule: FollowRule): string {
   switch (rule.mode) {
@@ -123,58 +123,33 @@ export function SourceModeSelector({ followRule, setFollowRule }: Props) {
 // ── Live mode ──
 
 function LiveFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "live" }>; onChange: (r: FollowRule) => void }) {
-  const [suggested, setSuggested] = useState<string[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set(rule.tags));
-  const [discovering, setDiscovering] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [tagDraft, setTagDraft] = useState("");
 
-  const handleDiscover = useCallback(async () => {
-    const kw = rule.keyword.trim();
-    if (!kw) return;
-    setDiscovering(true);
-    setSuggested([]);
-    setFeedback(null);
-    try {
-      const res = await aiDiscoverTopics(kw, "live");
-      if (res?.ok && res.tags && res.tags.length > 0) {
-        setSuggested(res.tags);
-        setFeedback({ type: "ok", msg: `Found ${res.tags.length} topics` });
-      } else {
-        setFeedback({ type: "err", msg: res?.error || "No topics found" });
-      }
-    } catch {
-      setFeedback({ type: "err", msg: "Request failed" });
-    } finally {
-      setDiscovering(false);
+  const commitTag = () => {
+    const t = tagDraft.trim();
+    if (!t) return;
+    if (rule.tags.includes(t)) {
+      setTagDraft("");
+      return;
     }
-  }, [rule.keyword]);
-
-  const toggleTag = (tag: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) next.delete(tag); else next.add(tag);
-      return next;
-    });
+    onChange({ ...rule, tags: [...rule.tags, t] });
+    setTagDraft("");
   };
 
-  const applyTags = () => {
-    onChange({ ...rule, tags: [...selected] });
+  const removeTag = (tag: string) => {
+    onChange({ ...rule, tags: rule.tags.filter((t) => t !== tag) });
   };
 
   return (
     <div style={{ padding: 10, background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
-      <div className="flex items-center gap-2">
-        <input
-          value={rule.keyword}
-          onChange={(e) => onChange({ ...rule, keyword: e.target.value })}
-          onKeyDown={(e) => { if (e.key === "Enter") handleDiscover(); }}
-          placeholder="e.g. World Cup, IPTV news"
-          style={{ ...smallInput, flex: 1 }}
-        />
-        <button onClick={handleDiscover} disabled={discovering || !rule.keyword.trim()} style={{ ...btnSecondary, opacity: discovering ? 0.6 : 1 }}>
-          {discovering ? "..." : "Discover"}
-        </button>
-      </div>
+      {/* Subject */}
+      <label style={{ fontSize: 10, color: color.textMuted, marginBottom: 3, display: "block" }}>Subject</label>
+      <input
+        value={rule.keyword}
+        onChange={(e) => onChange({ ...rule, keyword: e.target.value })}
+        placeholder="e.g. World Cup, IPTV news"
+        style={{ ...smallInput, width: "100%" }}
+      />
 
       {/* Quality + liveKind */}
       <div className="flex gap-2" style={{ marginTop: 8 }}>
@@ -203,48 +178,63 @@ function LiveFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "liv
         </div>
       </div>
 
-      {feedback && (
-        <div style={{ marginTop: 6, fontSize: 10, color: feedback.type === "ok" ? color.pos : color.neg }}>
-          {feedback.msg}
-        </div>
-      )}
-      {suggested.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>Select topics to follow:</div>
-          <div className="flex flex-wrap gap-1.5">
-            {suggested.map((tag) => {
-              const sel = selected.has(tag);
-              return (
-                <button key={tag} onClick={() => toggleTag(tag)} style={{
-                  padding: "4px 10px", fontSize: 11, borderRadius: 999, cursor: "pointer",
-                  color: sel ? color.bg : color.textSecondary,
-                  background: sel ? color.accent : "transparent",
-                  border: `1px solid ${sel ? color.accent : color.hairline}`,
-                  transition: "all 0.15s",
-                }}>
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-          <button onClick={applyTags} disabled={selected.size === 0} style={{ ...btnPrimary, marginTop: 8, width: "100%", padding: "7px 0", opacity: selected.size === 0 ? 0.5 : 1 }}>
-            Apply ({selected.size} selected)
+      {/* Keywords */}
+      <div style={{ marginTop: 10 }}>
+        <label style={{ fontSize: 10, color: color.textMuted, marginBottom: 3, display: "block" }}>
+          Keywords <span style={{ color: color.textMuted, fontWeight: 400 }}>(joined with subject at search time)</span>
+        </label>
+        <div className="flex items-center gap-1.5">
+          <input
+            value={tagDraft}
+            onChange={(e) => setTagDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitTag(); } }}
+            placeholder="e.g. Argentina, Fox Sports, free stream"
+            style={{ ...smallInput, flex: 1 }}
+          />
+          <button
+            type="button"
+            onClick={commitTag}
+            disabled={!tagDraft.trim()}
+            style={{ ...btnSecondary, padding: "4px 10px", opacity: tagDraft.trim() ? 1 : 0.5 }}
+            title="Add keyword"
+          >
+            +
           </button>
         </div>
-      )}
-      {rule.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1" style={{ marginTop: 8 }}>
-          {rule.tags.map((tag) => (
-            <span key={tag} style={{
-              padding: "2px 8px", fontSize: 10, borderRadius: 999,
-              background: color.surfaceElev, color: color.textMuted,
-              border: `1px solid ${color.hairline}`,
-            }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+        {rule.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" style={{ marginTop: 8 }}>
+            {rule.tags.map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 4px 3px 9px", fontSize: 11, borderRadius: 999,
+                  background: color.surfaceElev, color: color.textPrimary,
+                  border: `1px solid ${color.hairline}`,
+                }}
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  aria-label={`Remove ${tag}`}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: color.textMuted, padding: 0, margin: 0,
+                    width: 14, height: 14, borderRadius: "50%",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, lineHeight: 1,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = color.neg; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = color.textMuted; }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -325,58 +315,33 @@ function CreatorFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "
 // ── Topic mode ──
 
 function TopicFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "topic" }>; onChange: (r: FollowRule) => void }) {
-  const [suggested, setSuggested] = useState<string[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set(rule.tags));
-  const [discovering, setDiscovering] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [tagDraft, setTagDraft] = useState("");
 
-  const handleDiscover = useCallback(async () => {
-    const kw = rule.keyword.trim();
-    if (!kw) return;
-    setDiscovering(true);
-    setSuggested([]);
-    setFeedback(null);
-    try {
-      const res = await aiDiscoverTopics(kw, "video");
-      if (res?.ok && res.tags && res.tags.length > 0) {
-        setSuggested(res.tags);
-        setFeedback({ type: "ok", msg: `Found ${res.tags.length} topics` });
-      } else {
-        setFeedback({ type: "err", msg: res?.error || "No topics found" });
-      }
-    } catch {
-      setFeedback({ type: "err", msg: "Request failed" });
-    } finally {
-      setDiscovering(false);
+  const commitTag = () => {
+    const t = tagDraft.trim();
+    if (!t) return;
+    if (rule.tags.includes(t)) {
+      setTagDraft("");
+      return;
     }
-  }, [rule.keyword]);
-
-  const toggleTag = (tag: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) next.delete(tag); else next.add(tag);
-      return next;
-    });
+    onChange({ ...rule, tags: [...rule.tags, t] });
+    setTagDraft("");
   };
 
-  const applyTags = () => {
-    onChange({ ...rule, tags: [...selected] });
+  const removeTag = (tag: string) => {
+    onChange({ ...rule, tags: rule.tags.filter((t) => t !== tag) });
   };
 
   return (
     <div style={{ padding: 10, background: color.surface2, borderRadius: radius.inner, border: `1px solid ${color.hairline}` }}>
-      <div className="flex items-center gap-2">
-        <input
-          value={rule.keyword}
-          onChange={(e) => onChange({ ...rule, keyword: e.target.value })}
-          onKeyDown={(e) => { if (e.key === "Enter") handleDiscover(); }}
-          placeholder="e.g. AI news, cooking recipes"
-          style={{ ...smallInput, flex: 1 }}
-        />
-        <button onClick={handleDiscover} disabled={discovering || !rule.keyword.trim()} style={{ ...btnSecondary, opacity: discovering ? 0.6 : 1 }}>
-          {discovering ? "..." : "Discover"}
-        </button>
-      </div>
+      {/* Subject */}
+      <label style={{ fontSize: 10, color: color.textMuted, marginBottom: 3, display: "block" }}>Subject</label>
+      <input
+        value={rule.keyword}
+        onChange={(e) => onChange({ ...rule, keyword: e.target.value })}
+        placeholder="e.g. AI news, cooking recipes"
+        style={{ ...smallInput, width: "100%" }}
+      />
 
       {/* Platform */}
       <div style={{ marginTop: 8 }}>
@@ -392,48 +357,63 @@ function TopicFields({ rule, onChange }: { rule: Extract<FollowRule, { mode: "to
         </select>
       </div>
 
-      {feedback && (
-        <div style={{ marginTop: 6, fontSize: 10, color: feedback.type === "ok" ? color.pos : color.neg }}>
-          {feedback.msg}
-        </div>
-      )}
-      {suggested.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 10, color: color.textMuted, marginBottom: 6 }}>Select topics to follow:</div>
-          <div className="flex flex-wrap gap-1.5">
-            {suggested.map((tag) => {
-              const sel = selected.has(tag);
-              return (
-                <button key={tag} onClick={() => toggleTag(tag)} style={{
-                  padding: "4px 10px", fontSize: 11, borderRadius: 999, cursor: "pointer",
-                  color: sel ? color.bg : color.textSecondary,
-                  background: sel ? color.accent : "transparent",
-                  border: `1px solid ${sel ? color.accent : color.hairline}`,
-                  transition: "all 0.15s",
-                }}>
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-          <button onClick={applyTags} disabled={selected.size === 0} style={{ ...btnPrimary, marginTop: 8, width: "100%", padding: "7px 0", opacity: selected.size === 0 ? 0.5 : 1 }}>
-            Apply ({selected.size} selected)
+      {/* Keywords */}
+      <div style={{ marginTop: 10 }}>
+        <label style={{ fontSize: 10, color: color.textMuted, marginBottom: 3, display: "block" }}>
+          Keywords <span style={{ color: color.textMuted, fontWeight: 400 }}>(joined with subject at search time)</span>
+        </label>
+        <div className="flex items-center gap-1.5">
+          <input
+            value={tagDraft}
+            onChange={(e) => setTagDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitTag(); } }}
+            placeholder="e.g. tutorial, 2026, beginner"
+            style={{ ...smallInput, flex: 1 }}
+          />
+          <button
+            type="button"
+            onClick={commitTag}
+            disabled={!tagDraft.trim()}
+            style={{ ...btnSecondary, padding: "4px 10px", opacity: tagDraft.trim() ? 1 : 0.5 }}
+            title="Add keyword"
+          >
+            +
           </button>
         </div>
-      )}
-      {rule.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1" style={{ marginTop: 8 }}>
-          {rule.tags.map((tag) => (
-            <span key={tag} style={{
-              padding: "2px 8px", fontSize: 10, borderRadius: 999,
-              background: color.surfaceElev, color: color.textMuted,
-              border: `1px solid ${color.hairline}`,
-            }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+        {rule.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" style={{ marginTop: 8 }}>
+            {rule.tags.map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 4px 3px 9px", fontSize: 11, borderRadius: 999,
+                  background: color.surfaceElev, color: color.textPrimary,
+                  border: `1px solid ${color.hairline}`,
+                }}
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  aria-label={`Remove ${tag}`}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: color.textMuted, padding: 0, margin: 0,
+                    width: 14, height: 14, borderRadius: "50%",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, lineHeight: 1,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = color.neg; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = color.textMuted; }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
