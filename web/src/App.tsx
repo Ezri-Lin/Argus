@@ -14,8 +14,7 @@ import type { DashboardWidget, WidgetType } from "@/dashboard/dashboard-types";
 import type { ToastType } from "@/components/toast";
 
 export default function App() {
-  const { apiKey } = useAuth();
-  if (!apiKey) return <Login />;
+  const { apiKey, authEnabled, isGuest } = useAuth();
   const [configTarget, setConfigTarget] = useState<DashboardWidget | null>(null);
   const [creatingType, setCreatingType] = useState<WidgetType | null>(null);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -147,8 +146,36 @@ export default function App() {
     });
   }, []);
 
+  // Still checking server auth config
+  if (authEnabled === null) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "var(--bg)", color: "var(--text-muted)", fontSize: 13 }}
+      >
+        Loading…
+      </div>
+    );
+  }
+  // Auth required but no key stored → show Login
+  if (authEnabled && !apiKey) return <Login />;
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)]">
+      {isGuest && (
+        <div
+          style={{
+            background: "rgba(245, 158, 11, 0.12)",
+            borderBottom: "1px solid rgba(245, 158, 11, 0.35)",
+            color: "var(--color-text-primary, #f59e0b)",
+            padding: "8px 16px",
+            fontSize: 12,
+            textAlign: "center",
+          }}
+        >
+          访客模式（只读）— 未配置 API Key，所有修改操作将被拒绝
+        </div>
+      )}
       <TopBar onStartCreate={handleStartCreate} onPipelineTriggered={startProgressPolling} />
       <MinimizedBar widgets={minimizedWidgets} onRestore={handleRestoreWidget} />
       <DashboardCanvas onConfigWidget={handleOpenConfig} onDeleteWidget={handleDeleteWidget} onMinimizeWidget={handleMinimizeWidget} />

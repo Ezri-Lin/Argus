@@ -223,7 +223,12 @@ def stream_proxy(url: str, request: Request):
                 body = resp.read()
                 content_type = "application/vnd.apple.mpegurl"
                 text = body.decode("utf-8", errors="replace")
-                parsed = urlparse(url)
+                # Use the post-redirect URL as base so relative m3u8 segments
+                # resolve against the actual CDN (e.g. 198.204.228.26:82), not
+                # the entry URL's host:port. Without this, segments 404 when
+                # the gateway 302s to a different port/host.
+                final_url = resp.geturl()
+                parsed = urlparse(final_url)
                 base = f"{parsed.scheme}://{parsed.netloc}{'/'.join(parsed.path.rsplit('/', 1)[:-1])}/"
 
                 def proxied(target: str) -> str:

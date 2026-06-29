@@ -27,7 +27,7 @@ export const CONFIG_FIELDS: Record<WidgetType, ConfigField[]> = {
     { key: "variant", label: "Variant", type: "select", options: ["watchlist", "sentiment"] },
     { key: "label", label: "Label", type: "text" },
   ],
-  embed: [{ key: "mode", label: "Mode", type: "select", options: ["iframe", "video"] }],
+  embed: [],
   stat: [
     { key: "statMode", label: "Mode", type: "select", options: ["manual", "api"] },
     { key: "apiUrl", label: "API URL", type: "text" },

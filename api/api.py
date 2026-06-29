@@ -31,6 +31,9 @@ async def lifespan(app):
 
 app = FastAPI(title="Argus API", lifespan=lifespan)
 
+# Import ApiKeyMiddleware before referencing it below.
+from .auth import ApiKeyMiddleware
+
 _cors_origins = os.environ.get(
     "ARGUS_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
 ).split(",")
@@ -43,7 +46,6 @@ app.add_middleware(
 app.add_middleware(ApiKeyMiddleware)
 
 # Register route modules
-from .auth import ApiKeyMiddleware
 from .routes_auth import router as auth_router
 from .routes_models import router as models_router
 from .routes_members import router as members_router

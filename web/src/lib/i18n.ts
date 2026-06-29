@@ -544,6 +544,7 @@ const en: Record<keyof typeof zh, string> = {
   "settings.tab.search": "Search",
   "settings.tab.status": "Status",
   "settings.tab.import": "Import",
+  "settings.tab.auth": "Auth",
 
   // Settings — save
   "settings.save.button": "Save",

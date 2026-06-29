@@ -1,7 +1,7 @@
 export type VideoSourceType = "hls" | "video" | "mp4" | "iframe" | "dash";
 
 export type VideoSourceHealth = "ok" | "stale" | "dead";
-export type VideoSourceOrigin = "manual" | "follow";
+export type VideoSourceOrigin = "manual" | "follow" | "topic";
 export type VideoFollowMode = "live" | "creator" | "topic";
 export type VideoContentType = "live" | "video";
 export type StreamSourceKind = "m3u8" | "dash" | "platform" | "page" | "direct";

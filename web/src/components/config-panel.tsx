@@ -269,7 +269,7 @@ export function ConfigPanel({ widget, createType, createDefaults, onCreated, onP
       const input: Parameters<typeof aiSearchVideos>[0] = {
         mode: followRule.mode,
         keyword: followRule.keyword,
-        tags: followRule.tags,
+        tags: followRule.mode !== "creator" ? followRule.tags : undefined,
       };
       if (followRule.mode === "topic") input.platform = followRule.platform;
       if (followRule.mode === "live") {

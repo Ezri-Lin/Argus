@@ -74,6 +74,7 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 let _apiKey: string | null = null;
 
 export function setApiKey(key: string | null) { _apiKey = key; }
+export function getApiKey(): string | null { return _apiKey; }
 
 function authHeaders(): Record<string, string> {
   return _apiKey ? { "X-API-Key": _apiKey } : {};

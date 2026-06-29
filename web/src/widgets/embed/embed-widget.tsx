@@ -24,13 +24,18 @@ function sourceTypeFromUrl(url: string): VideoSource["type"] {
   return undefined;
 }
 
-function resolvePlaybackMode(source: VideoSource | undefined, configuredMode: string): PlaybackMode {
+function resolvePlaybackMode(source: VideoSource | undefined): PlaybackMode {
   if (!source) return "unsupported";
+  // source.type is the canonical signal (set by backend parser).
+  // Fall back to URL sniffing when type is missing (e.g. manually added source).
   const type = source.type ?? sourceTypeFromUrl(source.url);
   if (type === "dash") return "unsupported";
   if (type === "iframe") return "iframe";
   if (type === "hls" || type === "mp4" || type === "video") return "video";
-  return configuredMode === "video" ? "video" : "iframe";
+  // Unknown type + unrecognized URL → default to video (hls.js handles it
+  // via /ai/stream-proxy). Falling back to iframe here caused "Source
+  // unavailable" when users added a raw m3u8 URL without explicit type.
+  return "video";
 }
 
 export function EmbedWidget({ widget, onConfig, onDetail, onDelete, onMinimize }: { widget: DashboardWidget; onConfig?: () => void; onDetail?: () => void; onDelete?: () => void; onMinimize?: () => void }) {
@@ -39,9 +44,8 @@ export function EmbedWidget({ widget, onConfig, onDetail, onDelete, onMinimize }
   const [loaded, setLoaded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const sources = resolveSources(widget.config);
-  const mode = (widget.config.mode as string) ?? "iframe";
   const current = sources[activeIndex];
-  const playbackMode = resolvePlaybackMode(current, mode);
+  const playbackMode = resolvePlaybackMode(current);
 
   const handleReady = useCallback(() => setLoaded(true), []);
   const handleError = useCallback(() => {

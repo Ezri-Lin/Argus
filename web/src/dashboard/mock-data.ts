@@ -40,6 +40,7 @@ export type TreemapItem = EntityLogoFields & {
   impactWeight?: number;
   impactPersistenceDays?: number;
   confidence: "confirmed" | "watch";
+  dataState?: string;
   refuted?: boolean;
   headline?: string;
   related?: Array<string | RelatedNews>;

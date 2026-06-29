@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import Hls from "hls.js";
 import { color, radius } from "@/design/tokens";
 import { claimActiveVideo, releaseActiveVideo, onActiveVideoChange } from "@/lib/active-video";
-import { translateSubtitles } from "@/dashboard/api";
+import { translateSubtitles, getApiKey } from "@/dashboard/api";
 
 /** A single subtitle cue with timing. */
 export type SubtitleCue = {
@@ -176,9 +176,15 @@ export const VideoPlayer = memo(function VideoPlayer({ src, widgetId, onReady, o
 
     if (isHlsStream(src)) {
       if (Hls.isSupported()) {
+        const apiKey = getApiKey();
         const hls = new Hls({
           enableCEA708Captions: true,
           renderTextTracksNatively: false,
+          // Stream proxy sits behind the auth middleware — inject X-API-Key
+          // so hls.js's manifest + segment fetches don't 401 in authenticated mode.
+          xhrSetup: apiKey
+            ? (xhr) => { xhr.withCredentials = false; xhr.setRequestHeader("X-API-Key", apiKey); }
+            : undefined,
         });
         hls.loadSource(proxyUrl(src));
         hls.attachMedia(v);

@@ -49,12 +49,19 @@ def invalidate_api_key_cache():
 
 
 class ApiKeyMiddleware(BaseHTTPMiddleware):
-    """Check X-API-Key header against the effective API key.
+    """Enforce API key auth.
 
-    If no key is configured (DB or env), all requests pass through.
+    Authenticated mode (a key is configured in DB or env):
+      - All non-whitelisted requests require a matching X-API-Key header.
+      - Missing/wrong key → 401.
+
+    Guest mode (no key configured anywhere — key env var unset, DB row absent):
+      - GET/HEAD/OPTIONS are allowed (read-only public access).
+      - All write methods (POST/PUT/PATCH/DELETE) → 403.
     """
 
-    WHITELIST = frozenset({"/health", "/auth/verify", "/docs", "/openapi.json"})
+    WHITELIST = frozenset({"/health", "/auth/verify", "/auth/config", "/docs", "/openapi.json"})
+    READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
     async def dispatch(self, request, call_next):
         # CORS preflight — no custom headers, always allow
@@ -63,7 +70,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
 
         path = request.url.path
 
-        # Whitelisted paths
+        # Whitelisted paths (auth introspection, docs, health)
         if path in self.WHITELIST:
             return await call_next(request)
 
@@ -73,15 +80,22 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
-        # Check API key
         api_key = get_effective_api_key()
+
         if api_key:
+            # Authenticated mode: require matching X-API-Key on all non-whitelisted paths
             provided = request.headers.get("x-api-key", "")
             if not hmac.compare_digest(provided, api_key):
                 return JSONResponse(
                     {"ok": False, "error": "Unauthorized"},
                     status_code=401,
                 )
+            return await call_next(request)
 
-        # No key configured or key matches → pass through
-        return await call_next(request)
+        # Guest mode (no key configured): read-only
+        if request.method in self.READ_METHODS:
+            return await call_next(request)
+        return JSONResponse(
+            {"ok": False, "error": "Guest mode is read-only"},
+            status_code=403,
+        )
